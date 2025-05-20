@@ -37,11 +37,6 @@ const HomePage: React.FC = () => {
     fetchProjects();
   }, []);
 
-  const handleCreateProject = () => {
-    // TODO: Implement project creation
-    console.log('Create project clicked');
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -64,12 +59,12 @@ const HomePage: React.FC = () => {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Ketspen</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Your Projects</h1>
           <div className="flex items-center gap-4">
             <span className="text-gray-600">{user?.email}</span>
             <button
               onClick={handleSignOut}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-4 py-1 hover:bg-gray-100 transition-all duration-200"
             >
               Sign Out
             </button>
@@ -79,14 +74,20 @@ const HomePage: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">My Projects</h2>
+        <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={handleCreateProject}
+            onClick={() => navigate('/newproject')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Create New Project
           </button>
+          <div className="flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
         </div>
 
         {projects.length === 0 ? (
@@ -100,13 +101,13 @@ const HomePage: React.FC = () => {
               <div
                 key={project.id}
                 onClick={() => navigate(`/project/${project.id}`)}
-                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
+                className="bg-white p-6 rounded-xl border border-gray-300 shadow-md hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
               >
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   {project.name}
                 </h3>
-                <p className="text-gray-600 mb-4">{project.description}</p>
-                <div className="text-sm text-gray-500">
+                <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+                <div className="text-sm text-gray-500 border-t border-gray-100 pt-3">
                   Created {new Date(project.created_at).toLocaleDateString()}
                 </div>
               </div>

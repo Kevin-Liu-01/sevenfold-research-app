@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import ProjectPage from './pages/ProjectPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import NewProjectPage from './pages/NewProjectPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/project/:id" element={<ProjectPage />} />
+            <Route path="/newproject" element={<NewProjectPage />} />
           </Route>
 
 
