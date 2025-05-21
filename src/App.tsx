@@ -24,7 +24,7 @@ function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
-            <Route path="/project/:id" element={<ProjectPage />} />
+            <Route path="/project/:projectId" element={<ProjectPage />} />
             <Route path="/newproject" element={<NewProjectPage />} />
           </Route>
 
