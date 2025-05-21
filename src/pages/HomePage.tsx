@@ -2,14 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import supabase from '../services/supabaseClient';
-
-interface Project {
-  id: string;
-  name: string;
-  research_question: string;
-  keywords: string[];
-  created_at: string;
-}
+import type { Project } from '../../database.types';
 
 const HomePage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);

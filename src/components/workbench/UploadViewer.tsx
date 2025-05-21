@@ -2,7 +2,11 @@ import React, { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import supabase from '../../services/supabaseClient';
 
-const UploadViewer: React.FC = () => {
+interface UploadViewerProps {
+  refreshSidebar: () => void; 
+}
+
+const UploadViewer: React.FC<UploadViewerProps> = ({ refreshSidebar }) => {
   const { projectId } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [paperType, setPaperType] = useState<'source' | 'candidate'>('source');
@@ -63,6 +67,9 @@ const UploadViewer: React.FC = () => {
 
       alert('Upload successful');
       setSelectedFile(null);
+
+      await new Promise((res) => setTimeout(res, 1000));
+      refreshSidebar(); 
     } catch (err: any) {
       alert('Upload failed: ' + err.message);
     } finally {

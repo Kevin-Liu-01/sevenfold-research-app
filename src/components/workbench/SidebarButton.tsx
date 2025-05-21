@@ -9,12 +9,12 @@ interface SidebarButtonProps {
 
 const SidebarButton: React.FC<SidebarButtonProps> = ({ icon, text, active, onClick }) => (
   <button
-    className={`flex items-center gap-1 py-1 px-3 rounded transition
+    className={`flex items-center gap-1 py-1 px-2 rounded transition w-full
       ${active ? 'bg-blue-200 text-blue-900 font-semibold' : 'hover:bg-gray-300 text-gray-800'}`}
     onClick={onClick}
   >
     <span className="w-5 h-5">{icon}</span>
-    <span>{text}</span>
+    <span className="truncate max-w-full">{text}</span>
   </button>
 );
 
