@@ -9,9 +9,18 @@ interface SidebarProps {
   setActiveViewer: (viewer: string) => void;
   sourcePapers: Paper[];
   candidatePapers: Paper[];
+  onPaperSelect: (paper: Paper) => void;
+  selectedPaperId: string | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeViewer, setActiveViewer, sourcePapers, candidatePapers }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activeViewer,
+  setActiveViewer,
+  sourcePapers,
+  candidatePapers,
+  onPaperSelect,
+  selectedPaperId
+}) => {
   const navigate = useNavigate();
   const [width, setWidth] = useState(250); // Default width in pixels
   const isResizing = useRef(false);
@@ -20,7 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeViewer, setActiveViewer, source
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
-      
+
       const newWidth = e.clientX;
       if (newWidth >= 200 && newWidth <= 500) { // Min and max width constraints
         setWidth(newWidth);
@@ -40,19 +49,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activeViewer, setActiveViewer, source
     };
   }, []);
 
+  const handlePaperClick = (paper: Paper) => {
+    setActiveViewer('paper');
+    onPaperSelect(paper);
+  };
+
   return (
-    <aside 
+    <aside
       ref={sidebarRef}
       className="bg-gray-100 h-full flex flex-col p-2 gap-8 relative"
       style={{ width: `${width}px` }}
     >
-      <div 
+      <div
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500"
         onMouseDown={() => {
           isResizing.current = true;
         }}
       />
-      
+
       <section className="flex flex-col gap-2">
         <SidebarButton
           icon={<HomeIcon />}
@@ -85,14 +99,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeViewer, setActiveViewer, source
         <ul className="space-y-1 text-sm">
           {sourcePapers.length
             ? sourcePapers.map(p => (
-                <SidebarButton
-                  key={p.id}
-                  icon={<DocumentTextIcon />}
-                  text={p.filename}
-                  active={activeViewer === 'paper'}
-                  onClick={() => setActiveViewer('paper')}
-                />
-              ))
+              <SidebarButton
+                key={p.id}
+                icon={<DocumentTextIcon />}
+                text={p.filename}
+                active={selectedPaperId === p.id}
+                onClick={() => handlePaperClick(p)}
+              />
+            ))
             : <li className="text-gray-400">None yet</li>}
         </ul>
       </section>
@@ -102,14 +116,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeViewer, setActiveViewer, source
         <ul className="space-y-1 text-sm">
           {candidatePapers.length
             ? candidatePapers.map(p => (
-                <SidebarButton
-                  key={p.id}
-                  icon={<DocumentTextIcon />}
-                  text={p.filename}
-                  active={activeViewer === 'paper'}
-                  onClick={() => setActiveViewer('paper')}
-                />
-              ))
+              <SidebarButton
+                key={p.id}
+                icon={<DocumentTextIcon />}
+                text={p.filename}
+                active={selectedPaperId === p.id}
+                onClick={() => handlePaperClick(p)}
+              />
+            ))
             : <li className="text-gray-400">None yet</li>}
         </ul>
       </section>

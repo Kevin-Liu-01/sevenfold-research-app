@@ -13,6 +13,7 @@ const ProjectPage: React.FC = () => {
   const [activeViewer, setActiveViewer] = useState('search');
   const [sourcePapers, setSourcePapers] = useState<Paper[]>([]);
   const [candidatePapers, setCandidatePapers] = useState<Paper[]>([]);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
 
   const refreshSidebar = async () => {
     if (!projectId) return;
@@ -32,6 +33,10 @@ const ProjectPage: React.FC = () => {
     refreshSidebar();
   }, [projectId]);
 
+  const handlePaperSelect = (paper: Paper) => {
+    setSelectedPaper(paper);
+  };
+
   let ViewerComponent;
   switch (activeViewer) {
     case 'settings':
@@ -44,8 +49,10 @@ const ProjectPage: React.FC = () => {
       ViewerComponent = <SearchViewer />;
       break;
     case 'paper':
+      ViewerComponent = <PaperViewer selectedPaper={selectedPaper} />;
+      break;
     default:
-      ViewerComponent = <PaperViewer />;
+      ViewerComponent = <SearchViewer />;
       break;
   }
 
@@ -56,6 +63,8 @@ const ProjectPage: React.FC = () => {
         setActiveViewer={setActiveViewer}
         sourcePapers={sourcePapers}
         candidatePapers={candidatePapers}
+        onPaperSelect={handlePaperSelect}
+        selectedPaperId={selectedPaper?.id || null}
       />
       <main className="flex-1 bg-white">{ViewerComponent}</main>
     </div>
