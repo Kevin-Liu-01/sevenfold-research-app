@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import supabase from '../services/supabaseClient';
 
 interface Project {
   id: string;
   name: string;
-  description: string;
+  research_question: string;
+  keywords: string[];
   created_at: string;
 }
 
@@ -18,15 +20,23 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        // TODO: Replace with actual API call
-        setProjects([
-          {
-            id: '1',
-            name: 'Sample Project',
-            description: 'A sample research project',
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setProjects(data || []);
       } catch (error) {
         console.error('Error fetching projects:', error);
       } finally {
@@ -106,7 +116,17 @@ const HomePage: React.FC = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   {project.name}
                 </h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+                <p className="text-gray-600 mb-2 line-clamp-2">{project.research_question}</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {project.keywords.map((keyword, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
                 <div className="text-sm text-gray-500 border-t border-gray-100 pt-3">
                   Created {new Date(project.created_at).toLocaleDateString()}
                 </div>
@@ -119,4 +139,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

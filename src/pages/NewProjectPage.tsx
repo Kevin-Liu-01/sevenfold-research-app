@@ -1,19 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../services/supabaseClient';
 
 const NewProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [researchQuestion, setResearchQuestion] = useState('');
   const [keywords, setKeywords] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleCancel = () => {
     navigate('/home');
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement project creation logic
+    setError(null);
+
+    // 1. Get user session
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setError('You must be logged in to create a project.');
+      return;
+    }
+
+    // 2. Format keywords into text[] array
+    const keywordArray = keywords
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    // 3. Insert into Supabase
+    const { error: insertError } = await supabase
+      .from('projects')
+      .insert([
+        {
+          name,
+          research_question: researchQuestion,
+          keywords: keywordArray,
+          user_id: user.id,
+        },
+      ]);
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    // 4. Navigate on success
     navigate('/home');
   };
 
@@ -24,6 +62,13 @@ const NewProjectPage: React.FC = () => {
         className="w-full max-w-lg bg-white border border-gray-200 rounded-xl shadow-lg p-8"
       >
         <h2 className="text-2xl font-bold mb-6">Create a new project</h2>
+
+        {error && (
+          <div className="mb-4 text-red-600 font-medium">
+            {error}
+          </div>
+        )}
+
         <div className="mb-5">
           <label className="block text-gray-700 font-medium mb-1">Project Name</label>
           <input
@@ -35,6 +80,7 @@ const NewProjectPage: React.FC = () => {
             required
           />
         </div>
+
         <div className="mb-5">
           <label className="block text-gray-700 font-medium mb-1">Research Question</label>
           <input
@@ -46,6 +92,7 @@ const NewProjectPage: React.FC = () => {
             required
           />
         </div>
+
         <div className="mb-8">
           <label className="block text-gray-700 font-medium mb-1">Keywords</label>
           <input
@@ -57,6 +104,7 @@ const NewProjectPage: React.FC = () => {
             required
           />
         </div>
+
         <div className="flex justify-between items-center">
           <button
             type="button"
@@ -77,4 +125,4 @@ const NewProjectPage: React.FC = () => {
   );
 };
 
-export default NewProjectPage; 
+export default NewProjectPage;

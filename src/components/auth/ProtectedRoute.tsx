@@ -1,4 +1,4 @@
-// src/components/ProtectedRoute.tsx
+// src/components/auth/ProtectedRoute.tsx
 
 import React from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
