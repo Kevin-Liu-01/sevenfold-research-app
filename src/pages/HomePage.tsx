@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import supabase from '../services/supabaseClient';
-import type { Project } from '../../database.types';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import supabase from "../services/supabaseClient";
+import type { Project } from "../../database.types";
 
 const HomePage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -13,17 +13,19 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (!user) {
-          throw new Error('User not authenticated');
+          throw new Error("User not authenticated");
         }
 
         const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .from("projects")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
 
         if (error) {
           throw error;
@@ -31,7 +33,7 @@ const HomePage: React.FC = () => {
 
         setProjects(data || []);
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error("Error fetching projects:", error);
       } finally {
         setLoading(false);
       }
@@ -43,9 +45,9 @@ const HomePage: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -79,7 +81,7 @@ const HomePage: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => navigate('/newproject')}
+            onClick={() => navigate("/newproject")}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Create New Project
@@ -96,7 +98,9 @@ const HomePage: React.FC = () => {
         {projects.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-xl text-gray-600 mb-4">No projects yet</h3>
-            <p className="text-gray-500">Create your first project to get started</p>
+            <p className="text-gray-500">
+              Create your first project to get started
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -109,7 +113,9 @@ const HomePage: React.FC = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   {project.name}
                 </h3>
-                <p className="text-gray-600 mb-2 line-clamp-2">{project.research_question}</p>
+                <p className="text-gray-600 mb-2 line-clamp-2">
+                  {project.research_question}
+                </p>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {project.keywords.map((keyword, index) => (
                     <span
