@@ -3,12 +3,16 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/default/footer";
 import { Navbar } from "../components/default/navbar";
 import { Hero } from "../components/default/hero";
+import { Carousel } from "../components/default/carousel";
+// import { Features } from "../components/default/features";
 
 const LandingPage: React.FC = () => {
   return (
     <>
       <Navbar />
       <Hero />
+      <Carousel />
+      {/* <Features /> */}
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center p-4">
         <div className="max-w-3xl text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">

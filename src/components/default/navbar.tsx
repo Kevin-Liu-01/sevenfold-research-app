@@ -10,7 +10,7 @@ export const Navbar: React.FC = () => {
     <nav className="sticky top-0 bg-white border-b z-50">
       <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left: Logo or Brand */}
+          {/* Left: Ketspen logo */}
           <div className="flex-shrink-0">
             <Link
               to="/"
@@ -24,7 +24,7 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Center: Desktop Navigation Links */}
+          {/* Center: Nav Links */}
           <div className="hidden md:flex space-x-8">
             <a
               href="#features"
@@ -46,7 +46,7 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Right: Desktop CTA Buttons & Mobile Menu Button */}
+          {/* Right: CTA Buttons / Mobile Hamburger */}
           <div className="flex items-center space-x-4">
             <Link
               to="/signup"

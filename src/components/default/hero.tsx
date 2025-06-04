@@ -44,7 +44,7 @@ export const Hero: React.FC = () => {
                 <p className="text-gray-700 text-sm leading-relaxed">
                   Lorem ipsum dolor sit amet, consectetur adipiscing elit.{" "}
                   <span className="relative group">
-                    <div className="absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="hover:rotate-15 transition-all absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100">
                       <div className="font-semibold truncate">
                         <UserIcon size={16} className=" inline-block mr-1" />
                         A’s insight
@@ -89,7 +89,7 @@ export const Hero: React.FC = () => {
                   Sed do eiusmod tempor incididunt ut labore et dolore magna
                   aliqua.{" "}
                   <span className="relative group">
-                    <div className="absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="hover:rotate-12 transition-all absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100">
                       <div className="font-semibold truncate">
                         <UserIcon size={16} className=" inline-block mr-1" />
                         B’s insight
@@ -107,7 +107,7 @@ export const Hero: React.FC = () => {
                 <p className="text-gray-700 text-sm leading-relaxed">
                   Duis aute irure dolor in reprehenderit in voluptate velit esse{" "}
                   <span className="relative group">
-                    <div className="absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="hover:rotate-12 transition-all absolute top-0 border border-black/40 mr-2 right-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100">
                       <div className="font-semibold truncate">
                         <UserIcon size={16} className=" inline-block mr-1" />
                         C’s insight
@@ -145,7 +145,7 @@ export const Hero: React.FC = () => {
                   Excepteur sint occaecat cupidatat non proident, sunt in culpa{" "}
                   <span className="relative group">
                     <span className="bg-yellow-200">qui officia deserunt</span>
-                    <div className="absolute top-0 border border-black/40 mr-2 left-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="hover:rotate-7 transition-all absolute top-0 border border-black/40 mr-2 left-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100">
                       <div className="font-semibold truncate">
                         <UserIcon size={16} className=" inline-block mr-1" />
                         A’s insight
@@ -161,7 +161,7 @@ export const Hero: React.FC = () => {
                   Curabitur pretium tincidunt lacus. Nulla gravida orci a odio.{" "}
                   <span className="relative group">
                     <span className="bg-blue-200">Nullam varius</span>
-                    <div className="absolute top-0 border border-black/40 mr-2 left-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="hover:rotate-7 transition-all absolute top-0 border border-black/40 mr-2 left-full ml-2 w-32 p-2 bg-white text-xs text-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100">
                       <div className="font-semibold truncate">
                         <UserIcon size={16} className=" inline-block mr-1" />
                         D’s insight
