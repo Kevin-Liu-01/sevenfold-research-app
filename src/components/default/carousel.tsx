@@ -35,7 +35,7 @@ export const Carousel: React.FC = () => {
           {/* Logos container */}
           <div
             ref={scrollRef}
-            className="flex space-x-8 overflow-x-auto scrollbar-hide px-12"
+            className="flex space-x-8 overflow-x-auto no-scrollbar px-12"
           >
             {/* Princeton logo */}
             <div className="flex-shrink-0 w-40 h-20 flex items-center justify-center">
