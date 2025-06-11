@@ -17,6 +17,9 @@ dependencies:
   '@types/react-router-dom':
     specifier: ^5.3.3
     version: 5.3.3
+  google:
+    specifier: link:next/font/google
+    version: link:next/font/google
   lucide-react:
     specifier: ^0.511.0
     version: 0.511.0(react@19.1.0)

@@ -1,31 +1,41 @@
 import React, { useState } from "react";
 import { MenuIcon, XIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { GlobeAltIcon } from "@heroicons/react/24/outline";
+// import { GlobeAltIcon } from "@heroicons/react/24/outline";
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 bg-white border-b z-50">
+    <nav className="max-w-7xl mx-auto w-full bg-white z-50">
+      {/* Launch Banner */}
+      <div className="rounded-full mx-8 mt-6 bg-gray-200 text-center text-sm py-2 font-medium text-gray-700">
+        We’ve Launched! Effective Sept 1, 2025, Ketspen Beta Will Be Open to
+        Users.
+      </div>
       <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left: Logo or Brand */}
+          {/* Left: Ketspen logo */}
           <div className="flex-shrink-0">
             <Link
               to="/"
               className="text-2xl flex items-center font-bold text-gray-800"
             >
-              <GlobeAltIcon
+              {/* <GlobeAltIcon
                 className="inline-block h-8 w-8 mr-2
               "
               />
-              Ketspen
+              Ketspen */}
+              <img
+                src="/images/Ketspen_logo.png"
+                className="h-12 "
+                alt="Ketspen Logo"
+              />
             </Link>
           </div>
 
-          {/* Center: Desktop Navigation Links */}
-          <div className="hidden md:flex space-x-8">
+          {/* Center: Nav Links */}
+          <div className="hidden md:flex text-sm space-x-8">
             <a
               href="#features"
               className="text-gray-600 hover:text-gray-900 font-medium transition"
@@ -46,7 +56,7 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Right: Desktop CTA Buttons & Mobile Menu Button */}
+          {/* Right: CTA Buttons / Mobile Hamburger */}
           <div className="flex items-center space-x-4">
             <Link
               to="/signup"
