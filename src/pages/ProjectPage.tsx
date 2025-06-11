@@ -4,6 +4,7 @@ import SettingsViewer from '../components/workbench/SettingsViewer';
 import UploadViewer from '../components/workbench/UploadViewer';
 import SearchViewer from '../components/workbench/SearchViewer';
 import PaperViewer from '../components/workbench/PaperViewer';
+import Editor from '../components/workbench/Editor';
 import { useParams } from 'react-router-dom';
 import supabase from '../services/supabaseClient';
 import type { Paper } from '../../database.types';
@@ -50,6 +51,9 @@ const ProjectPage: React.FC = () => {
       break;
     case 'paper':
       ViewerComponent = <PaperViewer selectedPaper={selectedPaper} />;
+      break;
+    case 'editor':
+      ViewerComponent = <Editor />;
       break;
     default:
       ViewerComponent = <SearchViewer />;
