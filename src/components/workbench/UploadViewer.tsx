@@ -65,8 +65,14 @@ const UploadViewer: React.FC<UploadViewerProps> = ({ refreshSidebar }) => {
         throw new Error(err);
       }
 
+      // const data = await res.json();
       alert('Upload successful');
       setSelectedFile(null);
+
+      // // Store the preview URL in localStorage for later use
+      // if (data.preview_url) {
+      //   localStorage.setItem(`paper_preview_${data.paper_id}`, data.preview_url);
+      // }
 
       await new Promise((res) => setTimeout(res, 1000));
       refreshSidebar(); 
