@@ -7,6 +7,7 @@
   --text-color: #212529;
 }
 
+/* Custom Utility: no-scrollbar */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -19,4 +20,49 @@
 
 .font-hedvig {
   font-family: "Hedvig Letters Serif", serif;
+}
+
+/* Keyframes and animation */
+@layer utilities {
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-250px * 7));
+    }
+  }
+
+  .animate-scroll {
+    animation: scroll 40s linear infinite;
+  }
+}
+
+/* Gradient fade for slider edges */
+@layer components {
+  .slider-mask::before,
+  .slider-mask::after {
+    content: "";
+    position: absolute;
+    width: 200px;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .slider-mask::before {
+    left: 0;
+    top: 0;
+    background: linear-gradient(
+      to right,
+      white 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  .slider-mask::after {
+    right: 0;
+    top: 0;
+    background: linear-gradient(to left, white 0%, rgba(255, 255, 255, 0) 100%);
+  }
 }
