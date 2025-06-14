@@ -27,3 +27,6 @@ dist
 .env
 .env.*
 !.env.example
+
+#PDFJS express static files
+public/webviewer
