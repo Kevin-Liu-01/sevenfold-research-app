@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS papers (
   file_url TEXT NOT NULL,
   filename TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('source', 'candidate')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  annotations TEXT[]
 );
 ```
 
