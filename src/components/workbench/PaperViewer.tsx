@@ -9,46 +9,58 @@ interface PaperViewerProps {
 
 const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
-  const initRef = useRef<boolean>(false);        // ← guard flag
+  const initRef = useRef(false);
   const [instance, setInstance] = useState<any>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // — INITIALIZE WEBVIEWER ONCE —
+  // — Guards / state for syncing —
+  const isImportingRef = useRef(false);
+  const lastSavedXfdfRef = useRef<string | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  // — INIT WEBVIEWER —
   useEffect(() => {
     if (viewerRef.current && !initRef.current) {
       initRef.current = true;
-      WebViewer(
-        {
-          path: '/webviewer/lib',  // your SDK public folder
-        },
-        viewerRef.current
-      ).then((inst: any) => {
-        setInstance(inst);
-      });
+      WebViewer({ path: '/webviewer/lib' }, viewerRef.current).then(
+        (inst: any) => {
+          setInstance(inst);
+          inst.Core.documentViewer.addEventListener(
+            'documentLoadFailed',
+            (evt: any) => console.error('PDF failed to load:', evt)
+          );
+        }
+      );
     }
-  }, []);  // empty deps
+  }, [selectedPaper]);
 
-  // — FETCH SIGNED URL WHEN PAPER CHANGES —
+  // — FETCH SIGNED URL —
   useEffect(() => {
-    setSignedUrl(null);
-    setError(null);
     if (!selectedPaper) return;
+    setError(null);
+    setSignedUrl(null);
 
-    const fetchUrl = async () => {
+    (async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data?.session?.access_token) {
+        const { data, error: authErr } = await supabase.auth.getSession();
+        if (authErr || !data?.session?.access_token) {
           throw new Error('Not authenticated');
         }
-        const token = data.session.access_token;
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/signed-url`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: {
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          }
         );
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Fetch failed: ${res.status} – ${text}`);
+        }
         const { signed_url } = await res.json();
         setSignedUrl(signed_url);
       } catch (e: any) {
@@ -56,17 +68,116 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchUrl();
+    })();
   }, [selectedPaper]);
 
-  // — LOAD DOCUMENT WHEN BOTH INSTANCE AND URL ARE READY —
+  // — LOAD DOC & IMPORT EXISTING ANNOTATIONS ONCE —
   useEffect(() => {
-    if (instance && signedUrl) {
-      instance.loadDocument(signedUrl, { filename: selectedPaper!.filename });
-    }
-  }, [instance, signedUrl, selectedPaper?.filename]);
+    if (!instance || !signedUrl || !selectedPaper) return;
+
+    instance.loadDocument(signedUrl, { filename: selectedPaper.filename });
+
+    const dv = instance.Core.documentViewer;
+    const annotManager = instance.Core.annotationManager;
+
+    const onDocLoaded = async () => {
+      isImportingRef.current = true;
+      try {
+        const { data, error } = await supabase
+          .from('papers')
+          .select('annotations')
+          .eq('id', selectedPaper.id)
+          .single();
+        if (error) throw error;
+
+        for (const xfdf of (data?.annotations ?? [])) {
+          annotManager.importAnnotations(xfdf);
+        }
+      } catch (e: any) {
+        console.error('Failed to load annotations:', e);
+        setError('Could not load saved annotations');
+      } finally {
+        isImportingRef.current = false;
+        dv.removeEventListener('documentLoaded', onDocLoaded);
+      }
+    };
+
+    dv.addEventListener('documentLoaded', onDocLoaded);
+    return () => {
+      dv.removeEventListener('documentLoaded', onDocLoaded);
+    };
+  }, [instance, signedUrl, selectedPaper]);
+
+  // — SYNC USER EDITS (debounced & deduped) —
+  useEffect(() => {
+    if (!instance || !selectedPaper) return;
+
+    const annotManager = instance.Core.annotationManager;
+
+    const scheduleSave = (action: string) => {
+      if (isImportingRef.current) return;
+      if (!['add', 'modify', 'delete'].includes(action)) return;
+
+      // clear any pending save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // schedule a save 1s after the last event
+      saveTimeoutRef.current = window.setTimeout(async () => {
+        try {
+          const fullXfdf = await annotManager.exportAnnotations();
+
+          // skip if nothing changed
+          if (fullXfdf === lastSavedXfdfRef.current) return;
+
+          lastSavedXfdfRef.current = fullXfdf;
+
+          const {
+            data: { session },
+            error: authErr,
+          } = await supabase.auth.getSession();
+          if (authErr || !session?.access_token) {
+            throw new Error('Not authenticated');
+          }
+
+          const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/annotations`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify([fullXfdf]),
+            }
+          );
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Save failed: ${res.status} – ${txt}`);
+          }
+        } catch (e: any) {
+          console.error('Error saving annotations:', e);
+        }
+      }, 1000);
+    };
+
+    const onAnnotationChanged = (_annots: any[], action: string) => {
+      scheduleSave(action);
+    };
+
+    annotManager.addEventListener(
+      'annotationChanged',
+      onAnnotationChanged
+    );
+    return () => {
+      annotManager.removeEventListener(
+        'annotationChanged',
+        onAnnotationChanged
+      );
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [instance, selectedPaper]);
 
   if (!selectedPaper) {
     return (
