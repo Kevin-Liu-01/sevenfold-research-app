@@ -1,5 +1,5 @@
-from fastapi import APIRouter, UploadFile, Form, HTTPException, Header
-from typing import Literal
+from fastapi import APIRouter, UploadFile, Form, HTTPException, Header, Body
+from typing import Literal, List
 import uuid
 
 from db.supabase import supabase
@@ -133,3 +133,51 @@ def get_signed_url(
     )
 
     return {"signed_url": signed_resp["signedURL"]}
+
+@router.put("/papers/{paper_id}/annotations", status_code=200)
+async def upload_annotations(
+    paper_id: str,
+    annotations: List[str] = Body(..., description="List of annotation strings"),
+    authorization: str = Header(...),
+):
+    """
+    Set the annotations array for a paper.
+
+    Args:
+        paper_id: The ID of the paper to annotate.
+        annotations: A JSON array of text annotations.
+        authorization: The Authorization header containing the Bearer JWT.
+
+    Returns:
+        A dict with status, paper_id, and the saved annotations.
+    """
+
+    # 1. Authenticate
+    user_id = _get_user_id(authorization)
+
+    # 2. Fetch paper and check ownership
+    paper_resp = (
+        supabase
+        .table("papers")
+        .select("user_id")
+        .eq("id", paper_id)
+        .single()
+        .execute()
+    )
+    if not paper_resp.data or paper_resp.data.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Paper not found or access denied")
+
+    # 3. Update annotations
+    update_resp = (
+        supabase
+        .table("papers")
+        .update({"annotations": annotations})
+        .eq("id", paper_id)
+        .execute()
+    )
+    
+    return {
+        "status": "success",
+        "paper_id": paper_id,
+        "annotations": annotations,
+    }
