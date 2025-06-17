@@ -53,7 +53,7 @@ const ProjectPage: React.FC = () => {
       ViewerComponent = <PaperViewer selectedPaper={selectedPaper} />;
       break;
     case 'editor':
-      ViewerComponent = <Editor />;
+      ViewerComponent = <Editor projectId={projectId!} />;
       break;
     default:
       ViewerComponent = <SearchViewer />;
