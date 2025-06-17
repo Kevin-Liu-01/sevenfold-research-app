@@ -24,7 +24,7 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
   useEffect(() => {
     if (viewerRef.current && !initRef.current) {
       initRef.current = true;
-      WebViewer({ path: '/webviewer/lib' }, viewerRef.current).then(
+      WebViewer({ path: '/webviewer' }, viewerRef.current).then(
         (inst: any) => {
           setInstance(inst);
           inst.Core.documentViewer.addEventListener(
@@ -34,7 +34,7 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
         }
       );
     }
-  }, [selectedPaper]);
+  }, []);
 
   // — FETCH SIGNED URL —
   useEffect(() => {
