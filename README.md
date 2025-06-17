@@ -27,7 +27,8 @@ CREATE TABLE projects (
   research_question text NOT NULL,
   keywords text[] NOT NULL,
   user_id uuid NOT NULL REFERENCES auth.users(id),
-  created_at timestamp DEFAULT now()
+  created_at timestamp DEFAULT now(),
+  editor_content text
 );
 ```
 
