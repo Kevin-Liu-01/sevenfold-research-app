@@ -24,13 +24,26 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
   useEffect(() => {
     if (viewerRef.current && !initRef.current) {
       initRef.current = true;
-      WebViewer({ path: '/webviewer' }, viewerRef.current).then(
+      WebViewer({ 
+        path: '/webviewer',
+        // TODO: Add logic to remove these elements elsewhere (including the shortcuts)
+        disabledElements: [
+          'toolbarGroup-Shapes',
+          'toolbarGroup-Insert',
+          'toolbarGroup-FillAndSign',
+        ],
+      }, viewerRef.current)
+      .then(
         (inst: any) => {
           setInstance(inst);
           inst.Core.documentViewer.addEventListener(
             'documentLoadFailed',
             (evt: any) => console.error('PDF failed to load:', evt)
           );
+          inst.UI.setZoomStepFactors([
+            { step: 7,  startZoom: 0   },  
+            { step: 10, startZoom: 200 },
+          ]);
         }
       );
     }
