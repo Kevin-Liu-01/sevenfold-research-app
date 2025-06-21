@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import { MenuIcon, XIcon } from "lucide-react";
+import { MenuIcon, XIcon, ArrowUpRightIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="max-w-7xl mx-auto w-full bg-white z-50">
+    <nav className="max-w-6xl mx-auto w-full bg-white z-50">
       {/* Launch Banner */}
-      <div className="rounded-full mx-8 mt-6 bg-gray-200 text-center text-sm py-2 font-medium text-gray-700">
+      {/* <div className="rounded-full mx-8 mt-6 bg-gray-200 text-center text-sm py-2 font-medium text-gray-700">
         We’ve Launched! Effective Sept 1, 2025, Ketspen Beta Will Be Open to
         Users.
-      </div>
+      </div> */}
 
-      <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 py-1 sm:px-6 lg:px-8">
         <div className="grid grid-cols-3 h-16 items-center">
           {/* Left: Ketspen logo */}
           <div className="col-span-1 justify-start">
@@ -23,14 +23,14 @@ export const Navbar: React.FC = () => {
             >
               <img
                 src="/images/ketspen_logo.png"
-                className="h-12 "
+                className="h-8 "
                 alt="Ketspen Logo"
               />
             </Link>
           </div>
 
           {/* Center: Nav Links */}
-          <div className="col-span-1 justify-center md:flex text-lg space-x-16">
+          <div className="col-span-1 justify-center md:flex text-md space-x-16">
             <a
               href="#features"
               className="text-gray-800 hover:text-gray-900 font-medium transition"
@@ -55,9 +55,10 @@ export const Navbar: React.FC = () => {
           <div className="col-span-1 justify-end flex">
             <Link
               to="/home"
-              className="hidden md:inline-block bg-black text-white font-semibold px-5 py-2 rounded-lg hover:bg-gray-800 transition"
+              className="hidden md:inline-block bg-black text-white font-semibold px-4 py-2 rounded-lg hover:bg-gray-800 transition"
             >
-              Open App
+              Open App{" "}
+              <ArrowUpRightIcon size={20} className="inline-block ml-2" />
             </Link>
             {/* <Link
               to="/signup"

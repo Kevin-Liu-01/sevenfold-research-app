@@ -16,7 +16,7 @@ export const Carousel: React.FC = () => {
       <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
         Trusted by Researchers at
       </p>
-      <div className="relative overflow-hidden max-w-7xl mx-auto h-[100px] slider-mask">
+      <div className="relative overflow-hidden max-w-6xl mx-auto h-[100px] slider-mask">
         <div className="flex w-[3500px] animate-scroll">
           {allLogos.map(({ src, href }, index) => (
             <div
