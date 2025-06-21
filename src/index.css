@@ -1,10 +1,35 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=PT+Mono&display=swap');
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 300;
+  src: url("/fonts/times-now-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/times-now-semi-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/times-now-semi-bold.otf") format("opentype");
+}
+
 @theme {
-  --primary-color: #007bff;
-  --secondary-color: #6c757d;
-  --background-color: #f8f9fa;
-  --text-color: #212529;
+  --font-timesnow: "Times Now", serif;
+  --font-dmsans: "DM Sans", sans-serif;
+  --font-ptmono: "PT Mono", monospace;
+  --color-kets-orange: #f57920;
+  --color-kets-yellow: #ffbd59;
+  --color-kets-green: #7ed957;
 }
 
 /* Custom Utility: no-scrollbar */
@@ -16,10 +41,6 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-}
-
-.font-hedvig {
-  font-family: "Hedvig Letters Serif", serif;
 }
 
 /* Keyframes and animation */
@@ -65,4 +86,8 @@
     top: 0;
     background: linear-gradient(to left, white 0%, rgba(255, 255, 255, 0) 100%);
   }
+}
+
+::selection {
+  background-color: rgba(245, 121, 32, 0.5);
 }
