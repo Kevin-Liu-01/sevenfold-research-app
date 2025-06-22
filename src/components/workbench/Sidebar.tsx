@@ -1,8 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { HomeIcon, Cog6ToothIcon, ArrowUpTrayIcon, MagnifyingGlassIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
-import SidebarButton from './SidebarButton';
-import type { Paper } from '../../../database.types';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  HomeIcon,
+  Cog6ToothIcon,
+  ArrowUpTrayIcon,
+  MagnifyingGlassIcon,
+  DocumentTextIcon,
+} from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
+import SidebarButton from "./SidebarButton";
+import type { Paper } from "../../../database.types";
 
 interface SidebarProps {
   activeViewer: string;
@@ -19,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   sourcePapers,
   candidatePapers,
   onPaperSelect,
-  selectedPaperId
+  selectedPaperId,
 }) => {
   const navigate = useNavigate();
   const [width, setWidth] = useState(250); // Default width in pixels
@@ -31,7 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       if (!isResizing.current) return;
 
       const newWidth = e.clientX;
-      if (newWidth >= 200 && newWidth <= 500) { // Min and max width constraints
+      if (newWidth >= 200 && newWidth <= 500) {
+        // Min and max width constraints
         setWidth(newWidth);
       }
     };
@@ -40,17 +47,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       isResizing.current = false;
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
 
   const handlePaperClick = (paper: Paper) => {
-    setActiveViewer('paper');
+    setActiveViewer("paper");
     onPaperSelect(paper);
   };
 
@@ -71,34 +78,36 @@ const Sidebar: React.FC<SidebarProps> = ({
         <SidebarButton
           icon={<HomeIcon />}
           text="Return Home"
-          active={activeViewer === 'home'}
-          onClick={() => navigate('/home')}
+          active={activeViewer === "home"}
+          onClick={() => navigate("/home")}
         />
         <SidebarButton
           icon={<Cog6ToothIcon />}
           text="Settings"
-          active={activeViewer === 'settings'}
-          onClick={() => setActiveViewer('settings')}
+          active={activeViewer === "settings"}
+          onClick={() => setActiveViewer("settings")}
         />
         <SidebarButton
           icon={<ArrowUpTrayIcon />}
           text="Upload"
-          active={activeViewer === 'upload'}
-          onClick={() => setActiveViewer('upload')}
+          active={activeViewer === "upload"}
+          onClick={() => setActiveViewer("upload")}
         />
         <SidebarButton
           icon={<MagnifyingGlassIcon />}
           text="Search"
-          active={activeViewer === 'search'}
-          onClick={() => setActiveViewer('search')}
+          active={activeViewer === "search"}
+          onClick={() => setActiveViewer("search")}
         />
       </section>
 
       <section>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Source Papers</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">
+          Source Papers
+        </h3>
         <ul className="space-y-1 text-sm">
-          {sourcePapers.length
-            ? sourcePapers.map(p => (
+          {sourcePapers.length ? (
+            sourcePapers.map((p) => (
               <SidebarButton
                 key={p.id}
                 icon={<DocumentTextIcon />}
@@ -107,15 +116,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => handlePaperClick(p)}
               />
             ))
-            : <li className="text-gray-400">None yet</li>}
+          ) : (
+            <li className="text-gray-400">None yet</li>
+          )}
         </ul>
       </section>
 
       <section>
-        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Candidate Papers</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">
+          Candidate Papers
+        </h3>
         <ul className="space-y-1 text-sm">
-          {candidatePapers.length
-            ? candidatePapers.map(p => (
+          {candidatePapers.length ? (
+            candidatePapers.map((p) => (
               <SidebarButton
                 key={p.id}
                 icon={<DocumentTextIcon />}
@@ -124,7 +137,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => handlePaperClick(p)}
               />
             ))
-            : <li className="text-gray-400">None yet</li>}
+          ) : (
+            <li className="text-gray-400">None yet</li>
+          )}
         </ul>
       </section>
     </aside>
