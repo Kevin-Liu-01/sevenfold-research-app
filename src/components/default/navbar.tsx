@@ -22,7 +22,7 @@ export const Navbar: React.FC = () => {
               className="text-2xl flex items-center font-bold text-gray-800"
             >
               <img
-                src="/images/ketspen_logo.png"
+                src="branding/logo-long.png"
                 className="h-8 "
                 alt="Ketspen Logo"
               />
