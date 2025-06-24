@@ -6,11 +6,12 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
-import ProjectPage from "./pages/ProjectPage";
+import WorkbenchPage from "./pages/WorkbenchPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import NewProjectPage from "./pages/NewProjectPage";
@@ -28,7 +29,7 @@ function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
-            <Route path="/project/:projectId" element={<ProjectPage />} />
+            <Route path="/project/:projectId" element={<WorkbenchPage />} />
             <Route path="/newproject" element={<NewProjectPage />} />
           </Route>
 

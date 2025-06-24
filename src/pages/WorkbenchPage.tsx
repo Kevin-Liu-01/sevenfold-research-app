@@ -9,7 +9,7 @@ import { useParams } from 'react-router-dom';
 import supabase from '../services/supabaseClient';
 import type { Paper } from '../../database.types';
 
-const ProjectPage: React.FC = () => {
+const WorkbenchPage: React.FC = () => {
   const { projectId } = useParams();
   const [activeViewer, setActiveViewer] = useState('search');
   const [sourcePapers, setSourcePapers] = useState<Paper[]>([]);
@@ -75,4 +75,4 @@ const ProjectPage: React.FC = () => {
   );
 };
 
-export default ProjectPage;
+export default WorkbenchPage;
