@@ -4,6 +4,7 @@ import Sidebar from "../components/testWorkbench/Sidebar";
 import SearchWindow from "../components/testWorkbench/SearchWindow";
 import PDFViewer from "../components/testWorkbench/PDFViewer";
 import ChatbotWindow from "../components/testWorkbench/ChatbotWindow";
+
 import { Rnd, type RndDragCallback, type RndResizeCallback } from "react-rnd";
 
 interface Layout {
@@ -19,21 +20,25 @@ const dragGrid = [20, 20] as [number, number];
 const resizeGrid = [20, 20] as [number, number];
 
 const TestViewer: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [customPanels, setCustomPanels] = useState<Set<string>>(new Set());
+  const [layouts, setLayouts] = useState<Record<string, Layout>>(() => {
+    const saved = localStorage.getItem("testviewer_layout");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    // fallback defaults
+    return computeDefaults(true);
+  });
+
   const [size, setSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
 
-  const panels = [
-    { id: "search", Component: SearchWindow },
-    { id: "pdf", Component: PDFViewer },
-    { id: "chatbot", Component: ChatbotWindow },
-  ];
-
-  // compute defaults, optionally override collapsed
+  // compute layout defaults
   const computeDefaults = useCallback(
     (overrideCollapsed?: boolean): Record<string, Layout> => {
       const isCollapsed =
@@ -67,45 +72,15 @@ const TestViewer: React.FC = () => {
         },
       };
     },
-    [size, collapsed]
+    [size]
   );
 
-  // initial layouts (localStorage or defaults)
-  const [layouts, setLayouts] = useState<Record<string, Layout>>(() => {
-    try {
-      const saved = localStorage.getItem("testviewer_layout");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return computeDefaults();
-  });
-
-  // persist to localStorage
+  // persist layouts
   useEffect(() => {
     localStorage.setItem("testviewer_layout", JSON.stringify(layouts));
   }, [layouts]);
 
-  // manual reset
-  const resetLayout = () => {
-    const defs = computeDefaults();
-    setLayouts(defs);
-    setCustomPanels(new Set());
-  };
-
-  // collapse/expand toggle
-  const handleCollapseToggle = () => {
-    const willCollapse = !collapsed;
-    const defaults = computeDefaults(willCollapse);
-    setLayouts((prev) => {
-      const updated: Record<string, Layout> = {};
-      Object.keys(defaults).forEach((id) => {
-        updated[id] = customPanels.has(id) ? prev[id] : defaults[id];
-      });
-      return updated;
-    });
-    setCollapsed(willCollapse);
-  };
-
-  // window resize listener
+  // resize listener
   useEffect(() => {
     const onResize = () =>
       setSize({ width: window.innerWidth, height: window.innerHeight });
@@ -113,26 +88,25 @@ const TestViewer: React.FC = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // update panel dimensions on size/collapse changes
+  // recompute panel sizes on collapse/resize
   useEffect(() => {
-    const defaults = computeDefaults();
     setLayouts((prev) => {
-      const updated: Record<string, Layout> = {};
-      Object.keys(prev).forEach((id) => {
-        updated[id] = customPanels.has(id) ? prev[id] : defaults[id];
-      });
-      return updated;
+      const defs = computeDefaults();
+      return {
+        search: { ...defs.search, ...prev.search },
+        pdf: { ...defs.pdf, ...prev.pdf },
+        chatbot: { ...defs.chatbot, ...prev.chatbot },
+      };
     });
-  }, [computeDefaults, customPanels]);
+  }, [computeDefaults, collapsed]);
 
   const onDragStop: RndDragCallback = (_, d, id) => {
     setLayouts((p) => ({
       ...p,
       [id as string]: { ...p[id as string], x: d.x, y: d.y },
     }));
-    setCustomPanels((prev) => new Set(prev).add(id as string));
+    setActiveId(id as string);
   };
-
   const onResizeStop: RndResizeCallback = (_, __, ref, ___, pos, id) => {
     setLayouts((p) => ({
       ...p,
@@ -143,34 +117,29 @@ const TestViewer: React.FC = () => {
         height: parseInt(ref.style.height, 10),
       },
     }));
-    setCustomPanels((prev) => new Set(prev).add(id as string));
+    setActiveId(id as string);
   };
+
+  const panels = [
+    { id: "search", Component: SearchWindow },
+    { id: "pdf", Component: PDFViewer },
+    { id: "chatbot", Component: ChatbotWindow },
+  ];
 
   return (
     <div className="h-screen w-screen bg-gray-100 relative overflow-hidden">
-      {/* Reset Layout */}
-      <button
-        onClick={resetLayout}
-        className="absolute bottom-4 right-4 z-30 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition"
-      >
-        Reset
-      </button>
+      {/* Hover zone to open */}
+      {/* {collapsed && (
+        <div
+          className="absolute top-0 left-0 h-full w-2 cursor-pointer z-40 bg-gray-200 hover:bg-gray-300"
+          onMouseEnter={() => setCollapsed(false)}
+        />
+      )} */}
 
       <div className="flex h-full">
-        {/* Sidebar */}
-        <div
-          style={{
-            width: collapsed ? 0 : defaultSidebar,
-            transition: "width 0.3s",
-          }}
-          className="h-full bg-white shadow-inner flex-shrink-0 z-30"
-        >
-          <Sidebar
-            collapsed={collapsed}
-            onCollapseToggle={handleCollapseToggle}
-          />
-        </div>
+        {/* Sidebar wrapper */}
 
+        <Sidebar />
         {/* Panels */}
         <div className="relative flex-1 z-20 p-6 space-y-6 bg-gray-100 overflow-auto">
           {panels.map(({ id, Component }) => {
