@@ -1,4 +1,3 @@
-<<<<<<< HEAD:src/components/workbench/Sidebar.tsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   HomeIcon,
@@ -6,17 +5,11 @@ import {
   ArrowUpTrayIcon,
   MagnifyingGlassIcon,
   DocumentTextIcon,
+  CodeBracketIcon,
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import SidebarButton from "./SidebarButton";
-import type { Paper } from "../../../database.types";
-=======
-import React, { useState, useRef, useEffect } from 'react';
-import { HomeIcon, Cog6ToothIcon, ArrowUpTrayIcon, MagnifyingGlassIcon, DocumentTextIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
-import SidebarButton from './SidebarButton';
-import type { Paper } from '../../database.types';
->>>>>>> main:src/workbench/Sidebar.tsx
+import type { Paper } from "../../database.types";
 
 interface SidebarProps {
   activeViewer: string;

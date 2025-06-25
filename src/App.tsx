@@ -30,21 +30,12 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/test" element={<TestViewer />} />
 
-<<<<<<< HEAD
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/home" element={<HomePage />} />
-              <Route path="/project/:projectId" element={<ProjectPage />} />
-              <Route path="/newproject" element={<NewProjectPage />} />
-            </Route>
-=======
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/project/:projectId" element={<WorkbenchPage />} />
             <Route path="/newproject" element={<NewProjectPage />} />
           </Route>
->>>>>>> main
 
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
