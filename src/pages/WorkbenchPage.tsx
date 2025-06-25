@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/workbench/Sidebar';
-import SettingsViewer from '../components/workbench/SettingsViewer';
-import UploadViewer from '../components/workbench/UploadViewer';
-import SearchViewer from '../components/workbench/SearchViewer';
-import PaperViewer from '../components/workbench/PaperViewer';
+import Sidebar from '../workbench/Sidebar';
+import SettingsViewer from '../workbench/SettingsViewer';
+import UploadViewer from '../workbench/UploadViewer';
+import SearchViewer from '../workbench/SearchViewer';
+import PaperViewer from '../workbench/PaperViewer';
+import Editor from '../workbench/Editor';
 import { useParams } from 'react-router-dom';
 import supabase from '../services/supabaseClient';
 import type { Paper } from '../../database.types';
 
-const ProjectPage: React.FC = () => {
+const WorkbenchPage: React.FC = () => {
   const { projectId } = useParams();
   const [activeViewer, setActiveViewer] = useState('search');
   const [sourcePapers, setSourcePapers] = useState<Paper[]>([]);
@@ -51,6 +52,9 @@ const ProjectPage: React.FC = () => {
     case 'paper':
       ViewerComponent = <PaperViewer selectedPaper={selectedPaper} />;
       break;
+    case 'editor':
+      ViewerComponent = <Editor projectId={projectId!} />;
+      break;
     default:
       ViewerComponent = <SearchViewer />;
       break;
@@ -71,4 +75,4 @@ const ProjectPage: React.FC = () => {
   );
 };
 
-export default ProjectPage;
+export default WorkbenchPage;

@@ -1,3 +1,4 @@
+<<<<<<< HEAD:src/components/workbench/Sidebar.tsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   HomeIcon,
@@ -9,6 +10,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import SidebarButton from "./SidebarButton";
 import type { Paper } from "../../../database.types";
+=======
+import React, { useState, useRef, useEffect } from 'react';
+import { HomeIcon, Cog6ToothIcon, ArrowUpTrayIcon, MagnifyingGlassIcon, DocumentTextIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import SidebarButton from './SidebarButton';
+import type { Paper } from '../../database.types';
+>>>>>>> main:src/workbench/Sidebar.tsx
 
 interface SidebarProps {
   activeViewer: string;
@@ -35,7 +43,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
-
       const newWidth = e.clientX;
       if (newWidth >= 200 && newWidth <= 500) {
         // Min and max width constraints
@@ -98,6 +105,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           text="Search"
           active={activeViewer === "search"}
           onClick={() => setActiveViewer("search")}
+        />
+        <SidebarButton
+          icon={<CodeBracketIcon />}
+          text="Editor"
+          active={activeViewer === 'editor'}
+          onClick={() => setActiveViewer('editor')}
         />
       </section>
 
