@@ -1,5 +1,4 @@
 import React from "react";
-// import { Link } from "react-router-dom";
 import { Footer } from "../components/default/Footer";
 import { Navbar } from "../components/default/Navbar";
 import { Hero } from "../components/default/Hero";
@@ -9,6 +8,7 @@ import { Carousel } from "../components/default/Carousel";
 const LandingPage: React.FC = () => {
   return (
     <>
+      <Sidebar />
       <Navbar />
       <Hero />
       <Carousel />

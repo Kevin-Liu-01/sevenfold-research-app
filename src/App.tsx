@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
-import { ResearchProvider } from "./context/ResearchProvider";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
@@ -16,19 +15,16 @@ import WorkbenchPage from "./pages/WorkbenchPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import NewProjectPage from "./pages/NewProjectPage";
-import TestViewer from "./pages/TestViewer";
 
 function App() {
   return (
-    <ResearchProvider>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/test" element={<TestViewer />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
@@ -37,12 +33,11 @@ function App() {
             <Route path="/newproject" element={<NewProjectPage />} />
           </Route>
 
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </ResearchProvider>
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
