@@ -15,7 +15,7 @@
 // }
 
 import React, { useState, useRef, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 // Navigation buttons and their corresponding panels
 const navItems = [
