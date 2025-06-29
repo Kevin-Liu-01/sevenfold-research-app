@@ -1,3 +1,19 @@
+// Sidebar component
+//
+// To use the sidebar, simply import it and include it in your component tree.
+// For example, in your main App component or a specific page:
+// import Sidebar from "./components/workbench/Sidebar";
+//
+// function App() {
+//   return (//     <div className="flex">
+//       <Sidebar />
+//       <div className="flex-1 p-4">
+//         {/* Your main content goes here */}
+//       </div>
+//     </div>
+//   );
+// }
+
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
