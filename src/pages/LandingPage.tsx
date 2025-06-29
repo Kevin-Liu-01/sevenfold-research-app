@@ -8,7 +8,6 @@ import { Carousel } from "../components/default/Carousel";
 const LandingPage: React.FC = () => {
   return (
     <>
-      <Sidebar />
       <Navbar />
       <Hero />
       <Carousel />
