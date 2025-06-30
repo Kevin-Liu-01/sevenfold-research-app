@@ -104,9 +104,9 @@ export const Hero: React.FC = () => {
           </motion.div>
         </div>
       </section>
-      <section className="w-screen">
+      <section className="w-screen bg-linear-to-b from-white via-kets-yellow to-white">
         <motion.div
-          className="flex justify-center -space-x-[25vw]"
+          className="flex justify-center -space-x-[25vw] py-16"
           initial="hidden"
           animate="show"
           variants={{
