@@ -1,88 +1,123 @@
+// src/components/default/Features.tsx
 import React from "react";
 
-export const Features: React.FC = () => {
-  const features = [
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "Smart Results Integration",
-      description:
-        "Drop in your results and notes—Ketspen synthesizes them to identify key findings and recommend applicable papers.",
-    },
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "Intelligent Annotation Tools",
-      description:
-        "Highlight, summarize, and annotate with ease—Ketspen auto-detects key findings, links cited papers, and flags relevant sections.",
-    },
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "Unified Paper Library",
-      description:
-        "Organize all your research—preprints, journals, annotations, and notes—in a single, searchable workspace.",
-    },
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "Researcher-Informed Semantic Search",
-      description:
-        "Discover the most impactful papers—Ketspen surfaces results based on what top researchers read, highlight, and cite.",
-    },
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "AI-Powered Writing & Auto-Citation",
-      description:
-        "Write faster with smart suggestions, real-time citations, and seamless integration with your reading history and library.",
-    },
-    {
-      image: "/images/feature-placeholder.png", // placeholder image
-      title: "Chat with Your Corpus",
-      description:
-        "Converse with your entire paper library—ask questions, trace arguments, and extract insights instantly from papers, notes, and annotations.",
-    },
-  ];
+export const Features: React.FC = () => (
+  <section className="max-w-6xl mx-auto px-4 py-12 font-dmsans">
+    {/* HEADER */}
+    <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-4">
+      The Research Stack, Rebuilt
+    </h2>
+    <p className="text-base text-gray-600 text-center mb-10">
+      Replace scattered, inefficient tools with Ketspen’s unified
+      platform—streamline every step of your research process to move faster,
+      think deeper, and publish smarter.
+    </p>
 
-  return (
-    <section id="features" className="bg-white py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-4">
-            The Research Stack, Rebuilt
-          </h2>
-          <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-            Replace scattered, inefficient tools with Ketspen's unified platform—designed to streamline every step of your research process and help you move faster, think deeper, and publish smarter.
+    {/* GRID: 1col default → 3cols at md */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Row 1: Wide, then Narrow */}
+      <div className="overflow-hidden relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm md:col-span-2">
+        {/* text block at 40% */}
+        <div className="w-[40%] text-left">
+          <h3 className="text-sm font-medium mb-1">
+            Smart Results Integration
+          </h3>
+          <p className="text-xs">
+            Drop in your results and notes—Ketspen synthesizes them to identify
+            key findings and recommend applicable papers.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="flex flex-col items-start text-left p-6 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300"
-            >
-              <div className="w-full h-40 bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
-                <img
-                  src={feature.image}
-                  alt={feature.title}
-                  className="w-full h-full object-cover rounded-lg"
-                  onError={(e) => {
-                    // Fallback for placeholder image
-                    e.currentTarget.style.display = 'none';
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) {
-                      fallback.style.display = 'flex';
-                    }
-                  }}
-                />
-                <div className="w-full h-full bg-gray-200 rounded-lg items-center justify-center text-gray-500 text-sm hidden">
-                  Feature Image
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-gray-600 text-sm">{feature.description}</p>
-            </div>
-          ))}
-        </div>
+        {/* image placeholder at 40% */}
+        <img
+          src="/images/pdfviewer-mockup.png"
+          alt="Smart Results Integration"
+          className="mt-4 absolute shadow-lg h-[100%] w-auto right-0 bg-gray-200 rounded-lg"
+        />
       </div>
-    </section>
-  );
-};
+
+      <div className="relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm">
+        {/* text at 70% */}
+        <div className="w-[70%] text-left">
+          <h3 className="text-sm font-medium mb-1">
+            Intelligent Annotation Tools
+          </h3>
+          <p className="text-xs">
+            Highlight, summarize and annotate with ease—auto-detect key
+            findings, link cited papers and flag relevant sections.
+          </p>
+        </div>
+        <img
+          src="/images/pdfviewer-mockup.png"
+          alt="Intelligent Annotation Tools"
+          className="mt-4 h-auto w-auto bg-gray-200 rounded-lg"
+        />
+      </div>
+
+      {/* Row 2: Narrow, then Wide */}
+      <div className="relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm">
+        <div className="w-[70%] text-left">
+          <h3 className="text-sm font-medium mb-1">Unified Paper Library</h3>
+          <p className="text-xs">
+            Organize preprints, journals, notes and annotations in a single,
+            searchable workspace.
+          </p>
+        </div>
+        <img
+          src="/images/search-mockup.png"
+          alt="Unified Paper Library"
+          className="mt-4 h-auto w-auto bg-gray-200 rounded-lg"
+        />
+      </div>
+
+      <div className="overflow-hidden relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm md:col-span-2">
+        <div className="w-[40%] text-left">
+          <h3 className="text-sm font-medium mb-1">
+            Researcher-Informed Semantic Search
+          </h3>
+          <p className="text-xs">
+            Surface the most impactful papers—Ketspen learns from top
+            researchers’ reads, highlights and citations.
+          </p>
+        </div>
+        <img
+          src="/images/search-mockup.png"
+          alt="Researcher-Informed Semantic Search"
+          className="mt-4 absolute shadow-lg h-[100%] w-auto right-0 bg-gray-200 rounded-lg"
+        />
+      </div>
+
+      {/* Row 3: Wide, then Narrow */}
+      <div className="relative overflow-hidden bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm md:col-span-2">
+        <div className="w-[40%] text-left">
+          <h3 className="text-sm font-medium mb-1">
+            AI-Powered Writing & Auto-Citation
+          </h3>
+          <p className="text-xs">
+            Write faster with smart suggestions, real-time citations and
+            seamless library integration.
+          </p>
+        </div>
+        <img
+          src="/images/chatbot-mockup.png"
+          alt="AI-Powered Writing & Auto-Citation"
+          className="mt-4 absolute shadow-lg h-[100%] w-auto right-0 bg-gray-200 rounded-lg"
+        />
+      </div>
+
+      <div className="relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm">
+        <div className="w-[70%] text-left">
+          <h3 className="text-sm font-medium mb-1">Chat with Your Corpus</h3>
+          <p className="text-xs">
+            Converse with your entire paper library—ask questions, trace
+            arguments and extract insights instantly.
+          </p>
+        </div>
+        <img
+          src="/images/chatbot-mockup.png"
+          alt="Chat with Your Corpus"
+          className="mt-4 bg-gray-200 rounded-lg"
+        />
+      </div>
+    </div>
+  </section>
+);
