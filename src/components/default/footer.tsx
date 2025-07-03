@@ -5,37 +5,36 @@ import { ArrowRightIcon } from "lucide-react";
 export const Footer: React.FC = () => {
   return (
     <footer
-      className="bg-white mt-8"
+      className="mt-8"
       role="contentinfo"
       aria-label="Site footer"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="border border-gray-200 p-6 rounded-lg text-center">
-          <h2 className="text-lg font-bold text-gray-900 mb-2">
-            Ready to start your research journey?
-          </h2>
-          <Link
-            to="/signup"
-            className="inline-block bg-black text-white font-bold px-6 py-2 rounded-lg text-base hover:bg-blue-700 transition"
-            aria-label="Sign up for Ketspen research platform"
-          >
-            Sign up now{" "}
-            <ArrowRightIcon
-              size={16}
-              className="inline-block ml-2"
-              aria-hidden="true"
-            />
-          </Link>
-        </div>
-      </div>
-
       <div
-        className="text-white"
+        className="text-gray-800"
         style={{
-          background:
-            "linear-gradient(135deg, #f57920 0%, #ffbd59 50%, #7ed957 100%)",
+          background: "linear-gradient(to bottom, white 50%, #caffbf)",
         }}
       >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="p-6 rounded-lg text-center">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Ready to start your research journey?
+            </h2>
+            <Link
+              to="/signup"
+              className="inline-block bg-black text-white font-bold px-6 py-2 rounded-lg text-base hover:bg-blue-700 transition"
+              aria-label="Sign up for Ketspen research platform"
+            >
+              Sign up now{" "}
+              <ArrowRightIcon
+                size={16}
+                className="inline-block ml-2"
+                aria-hidden="true"
+              />
+            </Link>
+          </div>
+        </div>
+
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <nav
             className="grid grid-cols-2 md:grid-cols-6 gap-2 max-w-4xl"
@@ -50,7 +49,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     User Guide
                   </a>
@@ -58,7 +57,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Changelog
                   </a>
@@ -66,7 +65,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     FAQs
                   </a>
@@ -74,7 +73,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Community
                   </a>
@@ -91,7 +90,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/terms"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Terms
                   </Link>
@@ -99,7 +98,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/privacy"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Privacy
                   </Link>
@@ -116,7 +115,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#features"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Features
                   </a>
@@ -124,7 +123,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Testimonials
                   </a>
@@ -132,7 +131,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/pricing"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Pricing
                   </Link>
@@ -140,7 +139,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/signup"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Sign Up
                   </Link>
@@ -148,7 +147,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/home"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Web App
                   </Link>
@@ -156,7 +155,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Mobile App
                   </a>
@@ -164,7 +163,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Desktop App
                   </a>
@@ -181,7 +180,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/company"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     About Us
                   </Link>
@@ -189,7 +188,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Careers
                   </a>
@@ -197,7 +196,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Team
                   </a>
@@ -205,7 +204,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <a
                     href="#"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Blog
                   </a>
@@ -213,7 +212,7 @@ export const Footer: React.FC = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                   >
                     Contact
                   </Link>
@@ -232,7 +231,7 @@ export const Footer: React.FC = () => {
                     href="https://linkedin.com/company/ketspen"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                     aria-label="Follow Ketspen on LinkedIn"
                   >
                     LinkedIn
@@ -243,7 +242,7 @@ export const Footer: React.FC = () => {
                     href="https://twitter.com/ketspen"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white/80 hover:text-white text-sm transition"
+                    className="text-gray-600 hover:text-gray-900 text-sm transition"
                     aria-label="Follow Ketspen on X (Twitter)"
                   >
                     X (Twitter)
@@ -259,10 +258,10 @@ export const Footer: React.FC = () => {
               <img
                 src="/branding/logo-long.png"
                 alt="Ketspen company logo"
-                className="h-8 md:ml-auto filter brightness-0 invert"
+                className="h-8 md:ml-auto"
               />
             </div>
-            <div className="text-white/80 text-sm">© 2025 Ketspen Inc.</div>
+            <div className="text-gray-600 text-sm">© 2025 Ketspen Inc.</div>
           </div>
         </div>
       </div>
