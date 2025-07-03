@@ -7,13 +7,13 @@ import { Features } from "../components/default/features";
 
 const LandingPage: React.FC = () => {
   return (
-    <>
+    <div className="overflow-x-hidden">
       <Navbar />
       <Hero />
       <Carousel />
       <Features />
       <Footer />
-    </>
+    </div>
   );
 };
 
