@@ -21,31 +21,49 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
   const saveTimeoutRef = useRef<number | null>(null);
 
   // — INIT WEBVIEWER —
+  // — INIT WEBVIEWER —
   useEffect(() => {
     if (viewerRef.current && !initRef.current) {
       initRef.current = true;
-      WebViewer({ 
-        path: '/webviewer',
-        // TODO: Add logic to remove these elements elsewhere (including the shortcuts)
-        disabledElements: [
-          'toolbarGroup-Shapes',
-          'toolbarGroup-Insert',
-          'toolbarGroup-FillAndSign',
-        ],
-      }, viewerRef.current)
-      .then(
-        (inst: any) => {
-          setInstance(inst);
-          inst.Core.documentViewer.addEventListener(
-            'documentLoadFailed',
-            (evt: any) => console.error('PDF failed to load:', evt)
-          );
-          inst.UI.setZoomStepFactors([
-            { step: 7,  startZoom: 0   },  
-            { step: 10, startZoom: 200 },
-          ]);
-        }
-      );
+      WebViewer(
+        {
+          path: '/webviewer'
+        },
+        viewerRef.current,
+      ).then((inst: any) => {
+        setInstance(inst);
+
+        inst.UI.setHeaderItems(function(header: any) {
+          header.getHeader('toolbarGroup-Annotate').delete('toolsOverlay');
+          const toolItems = header.getHeader('toolbarGroup-Annotate').getItems()
+          const items = header.getHeader('default').getItems().slice(0, -4);
+          const lastItems = header.getHeader('default').getItems().slice(-4);
+          const combined = [
+            ...items,
+            ...toolItems,
+            ...lastItems
+          ];
+          header.getHeader('default').update(combined);
+          console.log('Header items:', header.getItems());
+        });
+
+        // hide all ribbon tabs and tools header
+        inst.UI.disableElements(['ribbons', 'toolsHeader']);
+
+        // make "Annotate" the default active group
+        // inst.UI.setToolbarGroup('toolbarGroup-Annotate');
+
+        inst.Core.documentViewer.addEventListener(
+          'documentLoadFailed',
+          (evt: any) => console.error('PDF failed to load:', evt),
+        );
+        inst.UI.setZoomStepFactors([
+          { step: 2, startZoom: 0 },
+          { step: 5, startZoom: 50 },
+          { step: 7, startZoom: 100 },
+          { step: 15, startZoom: 200 },
+        ]);
+      });
     }
   }, []);
 
