@@ -9,14 +9,10 @@ import {
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import WorkbenchPage from "./pages/WorkbenchPage";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
 import NewProjectPage from "./pages/NewProjectPage";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
+import { ForgotPasswordPage, SigninPage, SignupPage, } from "./pages/AuthPages";
 
 function App() {
   return (
@@ -24,11 +20,9 @@ function App() {
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signin" element={<SigninPage/>} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
@@ -38,7 +32,7 @@ function App() {
           </Route>
 
           {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

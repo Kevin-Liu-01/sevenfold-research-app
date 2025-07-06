@@ -18,7 +18,7 @@ const ProtectedRoute: React.FC = () => {
 
   if (!user) {
     // Redirect to login, with redirect back to intended page after login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
   // User is authenticated, render the protected content
