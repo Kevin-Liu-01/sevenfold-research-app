@@ -1,6 +1,7 @@
 // src/pages/AuthPages.tsx
+
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Github } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -103,8 +104,11 @@ export const SigninPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
   const { signIn, signInWithProvider } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,64 +123,72 @@ export const SigninPage: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <AuthHeader title="Welcome Back" description="Sign in to your account" />
 
+        {successMessage && (
+          <div className="text-green-700 text-sm bg-green-100 p-3 rounded-md border border-green-300">
+            {successMessage}
+          </div>
+        )}
+
         <div className="space-y-4">
-          <OAuthButton icon={<Github className="w-5 h-5" />} label="Continue with GitHub" onClick={() => signInWithProvider('github')} />
-          
+          <OAuthButton
+            icon={<Github className="w-5 h-5" />}
+            label="Continue with GitHub"
+            onClick={() => signInWithProvider('github')}
+          />
           <OAuthButton
             icon={<div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">G</div>}
             label="Continue with Google"
             onClick={() => signInWithProvider('google')}
           />
-
           <AuthDivider />
+        </div>
 
-          <div className="space-y-4">
-            <InputField
-              id="email"
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <InputField
+            id="email"
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
 
-            <div>
-              <div className="flex justify-between items-center">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-gray-700">Forgot Password?</Link>
-              </div>
-              <PasswordField
-                id="password"
-                label=""
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••••"
-                showPassword={showPassword}
-                setShowPassword={setShowPassword}
-              />
+          <div>
+            <div className="flex justify-between items-center">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+              <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-gray-700">Forgot Password?</Link>
             </div>
-
-            {error && <div className="text-red-600 text-sm">{error}</div>}
-
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full bg-kets-green text-white py-3 rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Signing In...' : 'Sign In'}
-            </button>
+            <PasswordField
+              id="password"
+              label=""
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+            />
           </div>
 
-          <p className="text-center text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-black hover:underline font-medium">Sign Up Now</Link>
-          </p>
-        </div>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-kets-green text-white py-3 rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
+        </form>
+
+        <p className="text-center text-gray-600">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-black hover:underline font-medium">Sign Up Now</Link>
+        </p>
 
         <AuthFooter />
       </div>
@@ -184,7 +196,6 @@ export const SigninPage: React.FC = () => {
   );
 };
 
-// ===================== SIGNUP PAGE =====================
 export const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -232,8 +243,10 @@ export const SignupPage: React.FC = () => {
           />
 
           <AuthDivider />
-
-          <div className="space-y-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }} className="space-y-4">
             <InputField
               id="signup-email"
               label="Email"
@@ -261,15 +274,14 @@ export const SignupPage: React.FC = () => {
             />
 
             {error && <div className="text-red-600 text-sm">{error}</div>}
-
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="w-full bg-kets-green text-white py-3 rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Creating Account...' : 'Sign Up'}
             </button>
-          </div>
+          </form>
 
           <p className="text-center text-gray-600">
             Have an account?{' '}
@@ -283,7 +295,6 @@ export const SignupPage: React.FC = () => {
   );
 };
 
-// ===================== FORGOT PASSWORD PAGE =====================
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -300,7 +311,7 @@ export const ForgotPasswordPage: React.FC = () => {
     try {
       await resetPassword(email);
       setSent(true);
-      navigate('/signin')
+      navigate('/signin', )
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
