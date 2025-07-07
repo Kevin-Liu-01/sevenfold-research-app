@@ -110,22 +110,22 @@ const Sidebar: React.FC = () => {
           width: panelWidth,
         }}
         className={
-          `bg-white border-r border-gray-200 shadow-xl z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+          `bg-white border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
           (visible
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
-          <h3 className="text-sm font-medium">{activeTab}</h3>
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">{activeTab}</h3>
           <button
             onClick={togglePin}
-            className="px-1 pt-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
+            className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-150 focus:outline-none"
             title={isPinned ? "Unpin panel" : "Pin panel"}
           >
             <span
-              className={` ${
+              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
                 isPinned ? "material-icons" : "material-icons-outlined"
               }`}
             >
@@ -135,7 +135,7 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-auto m-2 rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-2">
+        <div className="relative flex-1 overflow-auto p-3 space-y-2">
           {Array.isArray(items) &&
             items.map((item) => {
               if (activeTab === "Sources") {
@@ -143,7 +143,7 @@ const Sidebar: React.FC = () => {
                 return (
                   <div
                     key={src.url}
-                    className="text-xs cursor-pointer bg-white rounded-md px-2 py-1 hover:border-gray-300 border border-gray-200 transition"
+                    className="text-xs cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 border border-gray-100 hover:border-gray-200 transition-all duration-150"
                   >
                     <a
                       href={src.url}
@@ -167,9 +167,9 @@ const Sidebar: React.FC = () => {
                 return (
                   <div
                     key={item as string}
-                    className="text-xs cursor-pointer bg-white rounded-md px-2 py-1 hover:border-gray-300 border border-gray-200 transition"
+                    className="text-xs cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 border border-gray-100 hover:border-gray-200 transition-all duration-150"
                   >
-                    <span>{item as string}</span>
+                    <span className="text-gray-700">{item as string}</span>
                   </div>
                 );
               }
@@ -215,61 +215,88 @@ const Sidebar: React.FC = () => {
     >
       {/* Sidebar */}
       <div
-        className="fixed inset-y-0 border-r border-gray-200 left-0 bg-white z-30 flex flex-col items-center py-4 space-y-6"
+        className="fixed inset-y-0 border-r border-gray-100 left-0 bg-white z-30 flex flex-col items-center py-6 shadow-sm"
         style={{ width: sidebarWidth, height: "100vh" }}
       >
         {/* Logo */}
-        <img src="/images/logo.png" alt="Logo" className="h-10 w-10" />
+        <div className="mb-6">
+          <img src="/images/logo.png" alt="Logo" className="h-8 w-8" />
+        </div>
 
         {/* Nav buttons */}
-        <nav className="flex-1 flex flex-col justify-center space-y-2">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              onMouseEnter={() => setActiveTab(item.label)}
-              className="flex flex-col items-center text-gray-600 p-1 rounded-lg hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 focus:outline-none"
-            >
-              <span className="material-icons-outlined text-xl">
-                {item.icon}
-              </span>
-              <span className="text-xs mt-1">{item.label}</span>
-            </button>
-          ))}
+        <nav className="flex-1 flex flex-col justify-center space-y-1">
+          {navItems.map((item) => {
+            const isActive = activeTab === item.label;
+            return (
+              <div key={item.label} className="flex justify-center">
+                <button
+                  onMouseEnter={() => setActiveTab(item.label)}
+                  className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 focus:outline-none group ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  }`}
+                  style={{ width: '48px', height: '48px' }}
+                >
+                  <span 
+                    className={`material-icons-outlined transition-all duration-200 ${
+                      isActive 
+                        ? 'text-lg transform scale-110' 
+                        : 'text-base group-hover:scale-105'
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
+                  <span 
+                    className={`text-xs mt-0.5 transition-all duration-200 ${
+                      isActive 
+                        ? 'font-medium' 
+                        : 'font-normal'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
         </nav>
 
         {/* Avatar + popup */}
-        <div ref={avatarRef} className="relative">
-          <img
-            src={
-              user?.avatarUrl ||
-              "https://avatars.githubusercontent.com/u/66856750?v=4"
-            }
-            alt="Avatar"
-            className="h-10 w-10 rounded-full border-2 border-gray-200 cursor-pointer"
-            onClick={() => setAvatarMenuOpen((o) => !o)}
-          />
+        <div ref={avatarRef} className="relative mt-6">
+          <div className="flex justify-center">
+            <img
+              src={
+                user?.user_metadata?.avatar_url ||
+                "https://avatars.githubusercontent.com/u/66856750?v=4"
+              }
+              alt="Avatar"
+              className="h-8 w-8 rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
+              onClick={() => setAvatarMenuOpen((o) => !o)}
+            />
+          </div>
 
           <div
             className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${
               avatarMenuOpen
                 ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
                 : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-            } ml-2 w-max bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-40`}
+            } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
           >
             <button
-              className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150"
               onClick={() => setAvatarMenuOpen(false)}
             >
               Account
             </button>
             <button
-              className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150"
               onClick={() => setAvatarMenuOpen(false)}
             >
               Settings
             </button>
             <button
-              className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
+              className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors duration-150"
               onClick={() => {
                 setAvatarMenuOpen(false);
                 signOut();
