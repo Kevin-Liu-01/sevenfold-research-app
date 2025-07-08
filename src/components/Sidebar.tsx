@@ -224,39 +224,39 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Nav buttons */}
-        <nav className="flex-1 flex flex-col justify-center space-y-1">
+        <nav className="flex-1 flex flex-col justify-center space-y-2">
           {navItems.map((item) => {
             const isActive = activeTab === item.label;
             return (
-              <div key={item.label} className="flex justify-center">
+              <div
+                key={item.label}
+                className="flex text-center flex-col justify-center"
+              >
                 <button
                   onMouseEnter={() => setActiveTab(item.label)}
-                  className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 focus:outline-none group ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  className={`flex flex-col items-center p-2 mx-2 rounded-xl transition-all duration-200 focus:outline-none group ${
+                    isActive && isExpanded
+                      ? "bg-blue-50 text-blue-600 shadow-sm"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                   }`}
-                  style={{ width: '48px', height: '48px' }}
                 >
-                  <span 
+                  <span
                     className={`material-icons-outlined transition-all duration-200 ${
-                      isActive 
-                        ? 'text-lg transform scale-110' 
-                        : 'text-base group-hover:scale-105'
+                      isActive
+                        ? "text-lg transform scale-110"
+                        : "text-base group-hover:scale-105"
                     }`}
                   >
                     {item.icon}
                   </span>
-                  <span 
-                    className={`text-xs mt-0.5 transition-all duration-200 ${
-                      isActive 
-                        ? 'font-medium' 
-                        : 'font-normal'
-                    }`}
-                  >
-                    {item.label}
-                  </span>
                 </button>
+                <span
+                  className={`text-[0.7rem] mt-0.5 transition-all duration-200 ${
+                    isActive ? "font-medium" : "font-normal"
+                  }`}
+                >
+                  {item.label}
+                </span>
               </div>
             );
           })}
@@ -264,16 +264,21 @@ const Sidebar: React.FC = () => {
 
         {/* Avatar + popup */}
         <div ref={avatarRef} className="relative mt-6">
-          <div className="flex justify-center">
+          <div
+            onClick={() => setAvatarMenuOpen((o) => !o)}
+            className="flex flex-col justify-center"
+          >
             <img
               src={
                 user?.user_metadata?.avatar_url ||
                 "https://avatars.githubusercontent.com/u/66856750?v=4"
               }
               alt="Avatar"
-              className="h-8 w-8 rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
-              onClick={() => setAvatarMenuOpen((o) => !o)}
+              className="h-8 w-8 mx-auto rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
             />
+            <span className="cursor-pointer text-[0.7rem] mt-0.5 transition-all duration-200">
+              Account
+            </span>
           </div>
 
           <div
