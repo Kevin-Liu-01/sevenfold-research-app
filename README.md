@@ -4,7 +4,18 @@ Ketspen is an agentic research environment designed to streamline the process of
 
 ## Table of Contents
 1. [Tech Stack](#tech-stack)
-
+2. [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+   - [Configuration](#configuration)
+   - [Running the Application](#running-the-application)
+3. [Usage Examples](#usage-examples)
+4. [Project Structure](#project-structure)
+5. [Testing](#testing)
+6. [Contributing](#contributing)
+7. [Roadmap & Changelog](#roadmap--changelog)
+8. [License & Authors](#license--authors)
+   
 ## Tech Stack
 
 - **Frontend:**
