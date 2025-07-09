@@ -239,16 +239,21 @@ const Sidebar: React.FC = () => {
 
         {/* Avatar + popup */}
         <div ref={avatarRef} className="relative mt-6">
-          <div className="flex justify-center">
+          <div
+            onClick={() => setAvatarMenuOpen((o) => !o)}
+            className="flex flex-col justify-center"
+          >
             <img
               src={
                 user?.user_metadata?.avatar_url ||
                 "https://avatars.githubusercontent.com/u/66856750?v=4"
               }
               alt="Avatar"
-              className="h-8 w-8 rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
-              onClick={() => setAvatarMenuOpen((o) => !o)}
+              className="h-8 w-8 mx-auto rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
             />
+            <span className="cursor-pointer text-[0.7rem] mt-0.5 transition-all duration-200">
+              Account
+            </span>
           </div>
 
           <div
