@@ -31,6 +31,16 @@
   --color-kets-orange: #f57920;
   --color-kets-yellow: #ffbd59;
   --color-kets-green: #7ed957;
+  --color-kets-orange-50: #fef4ee;
+  --color-kets-orange-100: #fde4cd;
+  --color-kets-orange-200: #fbc89c;
+  --color-kets-orange-300: #f7a36b;
+  --color-kets-orange-400: #f57920;
+  --color-kets-orange-500: #e6651b;
+  --color-kets-orange-600: #d55417;
+  --color-kets-orange-700: #b14313;
+  --color-kets-orange-800: #8f3410;
+  --color-kets-orange-900: #74280d;
 }
 
 /* Custom Utility: no-scrollbar */
