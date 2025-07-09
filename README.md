@@ -12,9 +12,9 @@ Ketspen is an agentic research environment designed to streamline the process of
    - [Building for Production](#building-for-production)
 3. [Usage Examples](#usage-examples) ************(NEW \ Added Usage Examples: shows CLI script call/ cURL API fetch/ Brief UI description)
 4. [Project Structure](#project-structure) ******* (Might wanna add "scripts" to tree structure)
-6. [Scripts](#code-quality--scripts) ************(NEW\ not done)
+6. [Scripts](#code-quality--scripts) ************(NEW\ not added yet)
 7. [Contributing](#contributing)
-8. [Changelog](#roadmap--changelog) ************(NEW\ not done)
+8. [Changelog](#roadmap--changelog) ************(NEW\ not added yet)
 9. [License & Authors](#license--authors)
    
 ## Tech Stack
