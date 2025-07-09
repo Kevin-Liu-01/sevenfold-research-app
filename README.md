@@ -15,7 +15,7 @@ Ketspen is an agentic research environment designed to streamline the process of
 6. [Scripts](#code-quality--scripts) ************(NEW\ not added yet)
 7. [Contributing](#contributing)
 8. [Changelog](#changelog) ************(NEW\ needs link)
-9. [License & Authors](#license--authors)
+9. [License & Authors](#license--authors) ************(NEW)
    
 ## Tech Stack
 
