@@ -2,6 +2,9 @@
 
 Ketspen is an agentic research environment designed to streamline the process of finding, digesting, and producing research. By learning the context of your project, Ketspen provides smarter, more relevant results, helping you accelerate your research workflow.
 
+## Table of Contents
+1. [Tech Stack](#tech-stack)
+
 ## Tech Stack
 
 - **Frontend:**
