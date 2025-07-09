@@ -105,7 +105,7 @@ The dashboard displays your recEnt projects and a search bar
 └── vite.config.ts        # Vite configuration
 ```
 
-## Licenses & Authors
+## License & Authors
 Released under... (Does this need a License file)
 
 Maintained by...
