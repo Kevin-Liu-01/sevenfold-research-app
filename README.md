@@ -21,9 +21,9 @@ Added Usage Examples: shows CLI script call/ cURL API fetch/ Brief UI descriptio
 ```
 Tree might need a "scripts" part to help contributers
 ```
-6. [Code Quality & Scripts](#code-quality--scripts) **********
+6. [Scripts](#code-quality--scripts) **********
 7. [Contributing](#contributing)
-8. [Roadmap & Changelog](#roadmap--changelog) ************
+8. [Changelog](#roadmap--changelog) ************
 9. [License & Authors](#license--authors)
    
 ## Tech Stack
