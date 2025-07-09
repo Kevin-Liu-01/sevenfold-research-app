@@ -17,67 +17,47 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
+import SourcesPanel from "./SourcesPanel";
+import type { Paper } from "../../../database.types";
 
-type NavItem = { icon: string; label: string }
+type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
-  { icon: 'search', label: 'Search' },
-  { icon: 'source', label: 'Sources' },
-  { icon: '3p', label: 'Chat' },
-  { icon: 'edit', label: 'Compose' },
-]
+  { icon: "search", label: "Search", viewer: "search" },
+  { icon: "source", label: "Sources", viewer: "paper" },
+  { icon: "3p", label: "Chat", viewer: "chat" },
+  { icon: "edit", label: "Editor", viewer: "editor" },
+  { icon: "settings", label: "Settings", viewer: "settings" },
+];
 
-interface Source { title: string; url: string }
+interface SidebarProps {
+  activeViewer: string;
+  setActiveViewer: (view: string) => void;
+  sourcePapers: Paper[];
+  candidatePapers: Paper[];
+  onPaperSelect: (paper: Paper) => void;
+  selectedPaperId: string | null;
+}
 
-type PanelData = Record<string, (string | Source)[]>
-const panelData: PanelData = {
-  Search: [
-    "Recent query: React hooks",
-    "Saved search: API design",
-    "Advanced tips",
-  ],
-  Chat: [
-    "Chat #1: Water research",
-    "Chat #2: Air research",
-    "Chat #3: Fire research",
-  ],
-  Sources: [
-    {
-      title: "Attention Is All You Need",
-      url: "https://arxiv.org/pdf/1706.03762.pdf",
-    },
-    {
-      title: "U-Net: Convolutional Networks for Biomedical Segmentation",
-      url: "https://arxiv.org/pdf/1409.1556.pdf",
-    },
-    {
-      title: "Deep Residual Learning for Image Recognition (ResNet)",
-      url: "https://arxiv.org/pdf/1512.03385.pdf",
-    },
-    {
-      title: "BERT: Pre-training of Deep Bidirectional Transformers",
-      url: "https://arxiv.org/pdf/2002.05709.pdf",
-    },
-  ],
-  Compose: ["New Doc", "Blog Post", "Notes", "Report Template"],
-};
-
-const Sidebar: React.FC = () => {
-  const { user, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('Search')
-  const [hoveredTab, setHoveredTab] = useState<string | null>(null)
+const Sidebar: React.FC<SidebarProps> = ({
+  activeViewer,
+  setActiveViewer,
+  sourcePapers,
+  candidatePapers,
+  onPaperSelect,
+  selectedPaperId,
+}) => {
+  const { user, signOut } = useAuth();
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
-  const [pdfHover, setPdfHover] = useState<string | null>(null)
-  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 })
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
 
   const sidebarWidth = 70;
-  const panelWidth = 240;
+  const panelWidth = 280;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
-  // Close avatar menu on outside click
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
       if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
@@ -88,13 +68,17 @@ const Sidebar: React.FC = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const currentTab = hoveredTab ?? activeTab;
+  const currentTab = hoveredTab ?? "search";
   const togglePin = () => setIsPinned((p) => !p);
+
+  const handleClickPaper = (paper: Paper) => {
+    onPaperSelect(paper);
+    setActiveViewer("paper");
+    if (!isPinned) setIsExpanded(false);
+  };
 
   const renderPanel = () => {
     const visible = isExpanded || isPinned;
-    const items = panelData[currentTab];
-
     return (
       <div
         style={{
@@ -120,8 +104,9 @@ const Sidebar: React.FC = () => {
             title={isPinned ? "Unpin panel" : "Pin panel"}
           >
             <span
-              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${isPinned ? "material-icons" : "material-icons-outlined"
-                }`}
+              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
+                isPinned ? "material-icons" : "material-icons-outlined"
+              }`}
             >
               push_pin
             </span>
@@ -129,75 +114,20 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-auto p-3 space-y-0">
-          {Array.isArray(items) &&
-            items.map((item) => {
-              if (currentTab === "Sources") {
-                const src = item as Source;
-                return (
-                  <div
-                    key={src.url}
-                    className="text-xs cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 border border-gray-100 hover:border-gray-200 transition-all duration-150"
-                  >
-                    <a
-                      href={src.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="break-words text-blue-600 hover:underline"
-                      onMouseEnter={(e) => {
-                        setPdfHover(src.url);
-                        setPreviewPos({ x: e.clientX, y: e.clientY });
-                      }}
-                      onMouseMove={(e) => {
-                        setPreviewPos({ x: e.clientX, y: e.clientY });
-                      }}
-                      onMouseLeave={() => setPdfHover(null)}
-                    >
-                      {src.title}
-                    </a>
-                  </div>
-                );
-              } else {
-                return (
-                  <div className="relative overflow-hidden rounded-sm">
-                    <div
-                      className="text-sm cursor-pointer hover:bg-gray-200 px-2 py-2 hover:border-gray-200 transition-all duration-150"
-                    >
-                      <span className="text-gray-900">{item as string}</span>
-                    </div>
-                    <div
-                      className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-stone-50 to-transparent"
-                    />
-                  </div>
-                );
-              }
-            })}
-
-          {/* PDF Preview Tooltip */}
-          {pdfHover && (
-            <div
-              style={{
-                position: "fixed",
-                top: previewPos.y + 12,
-                left: previewPos.x + 12,
-                width: 200,
-                height: 250,
-                background: "#fff",
-                border: "1px solid rgba(0,0,0,0.2)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                zIndex: 40,
-              }}
-            >
-              <iframe
-                src={pdfHover}
-                width="100%"
-                height="100%"
-                style={{ border: "none" }}
-                title="PDF preview"
-              />
-            </div>
-          )}
-        </div>
+        {currentTab === "Sources" ? (
+          <SourcesPanel
+            sourcePapers={sourcePapers}
+            candidatePapers={candidatePapers}
+            selectedPaperId={selectedPaperId}
+            onClickPaper={handleClickPaper}
+          />
+        ) : (
+          <div className="p-4 text-gray-500">
+            {" "}
+            {/* stub for other panels */}
+            {currentTab} content…
+          </div>
+        )}
       </div>
     );
   };
@@ -224,14 +154,15 @@ const Sidebar: React.FC = () => {
         {/* Nav buttons */}
         <nav className="flex-1 flex flex-col justify-top space-y-6">
           {navItems.map((item) => {
-            const isActive = activeTab === item.label;
+            const isActive = activeViewer === item.viewer;
             return (
               <SidebarButton
+                key={item.viewer}
                 icon={item.icon}
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
-                onClick={() => setActiveTab(item.label)}
+                onClick={() => setActiveViewer(item.viewer)}
               />
             );
           })}
@@ -257,25 +188,26 @@ const Sidebar: React.FC = () => {
           </div>
 
           <div
-            className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${avatarMenuOpen
+            className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${
+              avatarMenuOpen
                 ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
                 : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-              } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
+            } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
           >
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
               onClick={() => setAvatarMenuOpen(false)}
             >
               Account
             </button>
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
               onClick={() => setAvatarMenuOpen(false)}
             >
               Settings
             </button>
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors duration-150"
+              className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
               onClick={() => {
                 setAvatarMenuOpen(false);
                 signOut();
@@ -288,7 +220,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Panel */}
-      {renderPanel()}
+      {hoveredTab != "Settings" && renderPanel()}
     </div>
   );
 };
