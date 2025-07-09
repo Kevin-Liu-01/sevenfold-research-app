@@ -106,6 +106,6 @@ The dashboard displays your recEnt projects and a search bar
 ```
 
 ## License & Authors
-Released under... (Does this need a License file)
+Released under... (Does this need a License file?)
 
 Maintained by...
