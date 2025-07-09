@@ -7,13 +7,13 @@ Ketspen is an agentic research environment designed to streamline the process of
 2. [Getting Started](#getting-started)
    - [Prerequisites](#prerequisites)
    - [Installation](#installation)
-   - [Configuration](#configuration)
+   - [Configuration](#configuration) ************(NEW)
 ```
 added Configuration: makes sure devs dont get stuck where to put api. covers full process from clone to running app
 ```
    - [Running the Application](#running-the-application)
    - [Building for Production](#building-for-production)
-3. [Usage Examples](#usage-examples)
+3. [Usage Examples](#usage-examples) ************(NEW)
 ```
 Added Usage Examples: shows CLI script call/ cURL API fetch/ Brief UI description
 ```
@@ -21,9 +21,9 @@ Added Usage Examples: shows CLI script call/ cURL API fetch/ Brief UI descriptio
 ```
 Tree might need a "scripts" part to help contributers
 ```
-6. [Scripts](#code-quality--scripts) **********
+6. [Scripts](#code-quality--scripts) ************(NEW)
 7. [Contributing](#contributing)
-8. [Changelog](#roadmap--changelog) ************
+8. [Changelog](#roadmap--changelog) ************(NEW)
 9. [License & Authors](#license--authors)
    
 ## Tech Stack
@@ -77,6 +77,22 @@ cp.env.example.env
 2. **Open your browser:**
 
    Navigate to `http://localhost:5173` to see the application in action.
+
+## Usage Examples
+CLI
+```
+placeholder; add text
+```
+
+API
+```
+placeholder; add text
+```
+
+UI
+```
+The dashboard displays your recEnt projects and a search bar
+```
 
 ## Project Structure
 
