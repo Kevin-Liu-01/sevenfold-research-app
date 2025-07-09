@@ -9,9 +9,10 @@ Ketspen is an agentic research environment designed to streamline the process of
    - [Installation](#installation)
    - [Configuration](#configuration)
    - [Running the Application](#running-the-application)
+   - [Building for Production](#building-for-production)
 3. [Usage Examples](#usage-examples)
 4. [Project Structure](#project-structure)
-5. [Testing](#testing)
+5. [Code Quality & Scripts](#code-quality--scripts)
 6. [Contributing](#contributing)
 7. [Roadmap & Changelog](#roadmap--changelog)
 8. [License & Authors](#license--authors)
@@ -28,7 +29,7 @@ Ketspen is an agentic research environment designed to streamline the process of
 - **PDF Viewing:**
   - [PDF.js Express](https://pdfjs.express/)
 
-## Getting Started
+## Getting Started 
 
 ### Prerequisites
 
