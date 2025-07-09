@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import supabase from '../services/supabaseClient';
+import supabase from '../../services/supabaseClient';
 
 interface EditorProps {
   projectId: string;
@@ -18,7 +18,7 @@ function getCookie(name: string): string | null {
 }
 
 function setCookie(name: string, value: string, maxAgeSeconds: number) {
-  document.cookie = 
+  document.cookie =
     `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ` +
     `max-age=${maxAgeSeconds}; path=/;`;
 }

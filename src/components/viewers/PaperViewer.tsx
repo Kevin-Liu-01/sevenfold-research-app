@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import type { Paper } from '../../database.types';
-import supabase from '../services/supabaseClient';
+import type { Paper } from '../../../database.types';
+import supabase from '../../services/supabaseClient';
 import WebViewer from '@pdftron/pdfjs-express';
 
 interface PaperViewerProps {
@@ -33,7 +33,7 @@ const PaperViewer: React.FC<PaperViewerProps> = ({ selectedPaper }) => {
       ).then((inst: any) => {
         setInstance(inst);
 
-        inst.UI.setHeaderItems(function(header: any) {
+        inst.UI.setHeaderItems(function (header: any) {
           header.getHeader('toolbarGroup-Annotate').delete('toolsOverlay');
           const toolItems = header.getHeader('toolbarGroup-Annotate').getItems()
           const items = header.getHeader('default').getItems().slice(0, -4);

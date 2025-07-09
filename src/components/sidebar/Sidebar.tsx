@@ -15,23 +15,21 @@
 // }
 
 import React, { useState, useRef, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
+import SidebarButton from "./SidebarButton";
 
-// Navigation buttons and their corresponding panels
-const navItems = [
-  { icon: "search", label: "Search" },
-  { icon: "source", label: "Sources" },
-  { icon: "3p", label: "Chat" },
-  { icon: "edit", label: "Compose" },
-];
+type NavItem = { icon: string; label: string }
+const navItems: NavItem[] = [
+  { icon: 'search', label: 'Search' },
+  { icon: 'source', label: 'Sources' },
+  { icon: '3p', label: 'Chat' },
+  { icon: 'edit', label: 'Compose' },
+]
 
-// Now using objects with title + url for Sources
-interface Source {
-  title: string;
-  url: string;
-}
+interface Source { title: string; url: string }
 
-const panelData: Record<string, string[] | Source[]> = {
+type PanelData = Record<string, (string | Source)[]>
+const panelData: PanelData = {
   Search: [
     "Recent query: React hooks",
     "Saved search: API design",
@@ -64,21 +62,17 @@ const panelData: Record<string, string[] | Source[]> = {
 };
 
 const Sidebar: React.FC = () => {
-  const sidebarWidth = 70;
-  const panelWidth = 300;
-  const { user, signOut } = useAuth();
-
-  const [activeTab, setActiveTab] = useState<string>("Search");
+  const { user, signOut } = useAuth()
+  const [activeTab, setActiveTab] = useState('Search')
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
+  const [pdfHover, setPdfHover] = useState<string | null>(null)
+  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 })
 
-  // PDF hover-preview state
-  const [hoveredPdf, setHoveredPdf] = useState<string | null>(null);
-  const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
+  const sidebarWidth = 70;
+  const panelWidth = 240;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
@@ -94,11 +88,12 @@ const Sidebar: React.FC = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
+  const currentTab = hoveredTab ?? activeTab;
   const togglePin = () => setIsPinned((p) => !p);
 
   const renderPanel = () => {
     const visible = isExpanded || isPinned;
-    const items = panelData[activeTab];
+    const items = panelData[currentTab];
 
     return (
       <div
@@ -110,24 +105,23 @@ const Sidebar: React.FC = () => {
           width: panelWidth,
         }}
         className={
-          `bg-white border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+          `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
           (visible
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">{activeTab}</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">{currentTab}</h3>
           <button
             onClick={togglePin}
             className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-150 focus:outline-none"
             title={isPinned ? "Unpin panel" : "Pin panel"}
           >
             <span
-              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
-                isPinned ? "material-icons" : "material-icons-outlined"
-              }`}
+              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${isPinned ? "material-icons" : "material-icons-outlined"
+                }`}
             >
               push_pin
             </span>
@@ -135,10 +129,10 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-auto p-3 space-y-2">
+        <div className="relative flex-1 overflow-auto p-3 space-y-0">
           {Array.isArray(items) &&
             items.map((item) => {
-              if (activeTab === "Sources") {
+              if (currentTab === "Sources") {
                 const src = item as Source;
                 return (
                   <div
@@ -151,13 +145,13 @@ const Sidebar: React.FC = () => {
                       rel="noopener noreferrer"
                       className="break-words text-blue-600 hover:underline"
                       onMouseEnter={(e) => {
-                        setHoveredPdf(src.url);
+                        setPdfHover(src.url);
                         setPreviewPos({ x: e.clientX, y: e.clientY });
                       }}
                       onMouseMove={(e) => {
                         setPreviewPos({ x: e.clientX, y: e.clientY });
                       }}
-                      onMouseLeave={() => setHoveredPdf(null)}
+                      onMouseLeave={() => setPdfHover(null)}
                     >
                       {src.title}
                     </a>
@@ -165,18 +159,22 @@ const Sidebar: React.FC = () => {
                 );
               } else {
                 return (
-                  <div
-                    key={item as string}
-                    className="text-xs cursor-pointer bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 border border-gray-100 hover:border-gray-200 transition-all duration-150"
-                  >
-                    <span className="text-gray-700">{item as string}</span>
+                  <div className="relative overflow-hidden rounded-sm">
+                    <div
+                      className="text-sm cursor-pointer hover:bg-gray-200 px-2 py-2 hover:border-gray-200 transition-all duration-150"
+                    >
+                      <span className="text-gray-900">{item as string}</span>
+                    </div>
+                    <div
+                      className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-stone-50 to-transparent"
+                    />
                   </div>
                 );
               }
             })}
 
           {/* PDF Preview Tooltip */}
-          {hoveredPdf && (
+          {pdfHover && (
             <div
               style={{
                 position: "fixed",
@@ -191,7 +189,7 @@ const Sidebar: React.FC = () => {
               }}
             >
               <iframe
-                src={hoveredPdf}
+                src={pdfHover}
                 width="100%"
                 height="100%"
                 style={{ border: "none" }}
@@ -215,49 +213,26 @@ const Sidebar: React.FC = () => {
     >
       {/* Sidebar */}
       <div
-        className="fixed inset-y-0 border-r border-gray-100 left-0 bg-white z-30 flex flex-col items-center py-6 shadow-sm"
+        className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
         style={{ width: sidebarWidth, height: "100vh" }}
       >
         {/* Logo */}
-        <div className="mb-6">
-          <img src="/images/logo.png" alt="Logo" className="h-8 w-8" />
+        <div className="mb-12">
+          <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
         </div>
 
         {/* Nav buttons */}
-        <nav className="flex-1 flex flex-col justify-center space-y-1">
+        <nav className="flex-1 flex flex-col justify-top space-y-6">
           {navItems.map((item) => {
             const isActive = activeTab === item.label;
             return (
-              <div key={item.label} className="flex justify-center">
-                <button
-                  onMouseEnter={() => setActiveTab(item.label)}
-                  className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 focus:outline-none group ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                  }`}
-                  style={{ width: '48px', height: '48px' }}
-                >
-                  <span 
-                    className={`material-icons-outlined transition-all duration-200 ${
-                      isActive 
-                        ? 'text-lg transform scale-110' 
-                        : 'text-base group-hover:scale-105'
-                    }`}
-                  >
-                    {item.icon}
-                  </span>
-                  <span 
-                    className={`text-xs mt-0.5 transition-all duration-200 ${
-                      isActive 
-                        ? 'font-medium' 
-                        : 'font-normal'
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              </div>
+              <SidebarButton
+                icon={item.icon}
+                label={item.label}
+                active={isActive}
+                onHover={() => setHoveredTab(item.label)}
+                onClick={() => setActiveTab(item.label)}
+              />
             );
           })}
         </nav>
@@ -277,11 +252,10 @@ const Sidebar: React.FC = () => {
           </div>
 
           <div
-            className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${
-              avatarMenuOpen
+            className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${avatarMenuOpen
                 ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
                 : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-            } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
+              } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
           >
             <button
               className="block w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150"

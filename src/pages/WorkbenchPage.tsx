@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import SettingsViewer from '../components/SettingsViewer';
-import UploadViewer from '../components/UploadViewer';
-import SearchViewer from '../components/SearchViewer';
-import PaperViewer from '../components/PaperViewer';
-import Editor from '../components/Editor';
+import Sidebar from '../components/sidebar/Sidebar';
+import SettingsViewer from '../components/viewers/SettingsViewer';
+import UploadViewer from '../components/viewers/UploadViewer';
+import SearchViewer from '../components/viewers/SearchViewer';
+import PaperViewer from '../components/viewers/PaperViewer';
+import Editor from '../components/viewers/ComposeViewer';
 
 import { useParams } from 'react-router-dom';
 import supabase from '../services/supabaseClient';
