@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import supabase from '../services/supabaseClient';
+import supabase from '../../services/supabaseClient';
 
 interface UploadViewerProps {
-  refreshSidebar: () => void; 
+  refreshSidebar: () => void;
 }
 
 const UploadViewer: React.FC<UploadViewerProps> = ({ refreshSidebar }) => {
@@ -75,7 +75,7 @@ const UploadViewer: React.FC<UploadViewerProps> = ({ refreshSidebar }) => {
       // }
 
       await new Promise((res) => setTimeout(res, 1000));
-      refreshSidebar(); 
+      refreshSidebar();
     } catch (err: any) {
       alert('Upload failed: ' + err.message);
     } finally {
