@@ -8,14 +8,23 @@ Ketspen is an agentic research environment designed to streamline the process of
    - [Prerequisites](#prerequisites)
    - [Installation](#installation)
    - [Configuration](#configuration)
+```
+added Configuration: makes sure devs dont get stuck where to put api. covers full process from clone to running app
+```
    - [Running the Application](#running-the-application)
    - [Building for Production](#building-for-production)
 3. [Usage Examples](#usage-examples)
+```
+Added Usage Examples: shows CLI script call/ cURL API fetch/ Brief UI description
+```
 4. [Project Structure](#project-structure)
-5. [Code Quality & Scripts](#code-quality--scripts)
-6. [Contributing](#contributing)
-7. [Roadmap & Changelog](#roadmap--changelog)
-8. [License & Authors](#license--authors)
+```
+Tree might need a "scripts" part to help contributers
+```
+6. [Code Quality & Scripts](#code-quality--scripts) **********
+7. [Contributing](#contributing)
+8. [Roadmap & Changelog](#roadmap--changelog) ************
+9. [License & Authors](#license--authors)
    
 ## Tech Stack
 
@@ -51,6 +60,12 @@ Ketspen is an agentic research environment designed to streamline the process of
    pnpm install
    ```
 
+### Configuration
+(IN PROGRESS)
+```
+cp.env.example.env
+```
+
 ### Running the Application
 
 1. **Start the development server:**
@@ -82,3 +97,8 @@ Ketspen is an agentic research environment designed to streamline the process of
 ├── tsconfig.json         # TypeScript configuration
 └── vite.config.ts        # Vite configuration
 ```
+
+## Licenses & Authors
+Released under... (Does this need a License file)
+
+Maintained by...
