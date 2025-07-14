@@ -6,3 +6,4 @@ supabase
 pyjwt
 aiofiles
 dotenv
+numpy
