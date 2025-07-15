@@ -6,4 +6,7 @@ supabase
 pyjwt
 aiofiles
 dotenv
+torch
+adapters
+transformers
 numpy
