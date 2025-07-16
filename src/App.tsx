@@ -12,7 +12,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import WorkbenchPage from "./pages/WorkbenchPage";
 import NewProjectPage from "./pages/NewProjectPage";
-import { ForgotPasswordPage, SigninPage, SignupPage, } from "./pages/AuthPages";
+import { ForgotPasswordPage, SigninPage, SignupPage } from "./pages/AuthPages";
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/signin" element={<SigninPage/>} />
+          <Route path="/signin" element={<SigninPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
