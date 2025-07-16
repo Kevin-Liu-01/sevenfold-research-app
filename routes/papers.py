@@ -5,7 +5,7 @@ import uuid
 from db.supabase import supabase
 from utils.auth import get_user_id_from_token
 
-router = APIRouter()
+router = APIRouter(prefix="/papers", tags=["papers"])
 
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""

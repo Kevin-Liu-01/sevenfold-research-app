@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.papers import router as papers_router
 from routes.projects import router as projects_router
+from routes.search import router as search_router
 
 app = FastAPI()
 
@@ -23,3 +24,4 @@ app.add_middleware(
 # API routes
 app.include_router(papers_router)
 app.include_router(projects_router)
+app.include_router(search_router)
