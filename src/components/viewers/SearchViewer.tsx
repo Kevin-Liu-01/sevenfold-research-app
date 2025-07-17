@@ -90,36 +90,36 @@ const SearchViewer: React.FC = () => {
     setSearchParams({ q: searchQuery });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    performSearch(trimmed);
-  };
-
-  //   const handleSearch = async (e: React.FormEvent) => {
+  // const handleSearch = (e: React.FormEvent) => {
   //   e.preventDefault();
-  //   if (!query.trim()) return;
-  //   setLoading(true);
-  //   try {
-  //     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/papers`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ query, limit: 20 }),
-  //     });
-  //     if (!response.ok) {
-  //       console.error('Search API error', await response.text());
-  //       setResults([]);
-  //     } else {
-  //       const data = await response.json();
-  //       setResults(data);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
+  //   const trimmed = query.trim();
+  //   if (!trimmed) return;
+  //   performSearch(trimmed);
   // };
+
+    const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, limit: 20 }),
+      });
+      if (!response.ok) {
+        console.error('Search API error', await response.text());
+        setResults([]);
+      } else {
+        const data = await response.json();
+        setResults(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const initial = searchParams.get("q");
@@ -186,7 +186,7 @@ const SearchViewer: React.FC = () => {
           </header>
 
           <div className="flex-1 overflow-y-auto py-6">
-            <div className="max-w-2xl mx-auto flex flex-col space-y-6 px-6">
+            <div className="max-w-4xl mx-auto flex flex-col space-y-6 px-6">
               {results.map((paper) => (
                 <div
                   key={paper.paperId}
@@ -221,18 +221,18 @@ const SearchViewer: React.FC = () => {
                   </div>
 
                   {(paper.authors || paper.year) && (
-                    <div className="mt-3 flex flex-wrap items-center text-gray-600 text-sm space-x-4">
+                    <div className="mt-3 flex flex-wrap items-center text-gray-600 text-sm">
                       {paper.authors && (
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-2">
                           <span className="material-icons text-base">
                             person
                           </span>
                           <span>
-                            {paper.authors.map((a) => a.name).join(", ")}
+                            {paper.authors.map((a) => a).join(", ")}
                           </span>
                         </div>
                       )}
-                      {paper.year && <div>• {paper.year}</div>}
+                      {paper.year && <div className="ml-1">• {paper.year}</div>}
                     </div>
                   )}
 
