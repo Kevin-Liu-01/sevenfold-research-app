@@ -62,7 +62,7 @@ const WorkbenchPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-app-outer">
       <Sidebar
         activeViewer={activeViewer}
         setActiveViewer={setActiveViewer}
@@ -71,7 +71,7 @@ const WorkbenchPage: React.FC = () => {
         onPaperSelect={handlePaperSelect}
         selectedPaperId={selectedPaper?.id || null}
       />
-      <main className="ml-[4rem] flex-1 bg-white">{ViewerComponent}</main>
+      <main className="ml-[4rem] flex-1 mt-2 rounded-tl-2xl bg-white">{ViewerComponent}</main>
     </div>
   );
 };

@@ -89,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           width: panelWidth,
         }}
         className={
-          `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+          `bg-app-outer border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
           (visible
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
@@ -143,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Sidebar */}
       <div
-        className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
+        className="fixed inset-y-0 left-0 bg-app-outer z-30 flex flex-col items-center py-4"
         style={{ width: sidebarWidth, height: "100vh" }}
       >
         {/* Logo */}
