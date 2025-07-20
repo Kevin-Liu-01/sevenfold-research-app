@@ -29,6 +29,9 @@ const SettingsViewer: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [formData, setFormData] = useState<Partial<Project>>({});
   const { user } = useAuth();
 
@@ -36,21 +39,16 @@ const SettingsViewer: React.FC = () => {
     const fetchProject = async () => {
       try {
         if (!user) return;
-
-        // First try to get project by ID if available
         let query = supabase
           .from("projects")
           .select("*")
           .eq("user_id", user.id);
-
         if (projectId) {
           query = query.eq("id", projectId);
         } else {
           query = query.order("created_at", { ascending: false }).limit(1);
         }
-
         const { data, error } = await query.single();
-
         if (error) throw error;
         setProject(data);
         setFormData(data);
@@ -60,31 +58,48 @@ const SettingsViewer: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchProject();
   }, [user, projectId]);
 
   const handleSave = async () => {
     if (!project) return;
-
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
     try {
-      const { error } = await supabase
+      // Only update fields that exist in the project
+      const updateData: Partial<Project> = {};
+      Object.keys(formData).forEach((key) => {
+        if (key in project && key !== 'id' && key !== 'created_at' && formData[key as keyof typeof formData] !== undefined) {
+          updateData[key as keyof Project] = formData[key as keyof typeof formData] as any;
+        }
+      });
+      const { data, error } = await supabase
         .from("projects")
-        .update(formData)
-        .eq("id", project.id);
-
+        .update(updateData)
+        .eq("id", project.id)
+        .select();
       if (error) throw error;
-
-      setProject({ ...project, ...formData });
+      if (data && data[0]) {
+        setProject(data[0]);
+        setFormData(data[0]);
+      }
       setEditing(false);
-    } catch (error) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (error: any) {
+      setSaveError(error?.message || "Failed to save changes. Please try again.");
       console.error("Error saving project:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
     setFormData(project || {});
     setEditing(false);
+    setSaveError(null);
+    setSaveSuccess(false);
   };
 
   const handleArrayChange = (field: string, value: string) => {
@@ -112,14 +127,20 @@ const SettingsViewer: React.FC = () => {
             <>
               <button
                 onClick={handleSave}
-                className="pl-2 pr-4 py-2 text-sm font-semibold bg-red-400 text-white rounded-lg hover:bg-red-700 transition"
+                className="pl-2 pr-4 py-2 text-sm font-semibold bg-green-500 text-white rounded-lg hover:bg-green-700 transition flex items-center"
+                disabled={saving}
               >
-                <span className="material-icons align-middle mr-2">save</span>
-                Save Changes
+                {saving ? (
+                  <span className="material-icons align-middle mr-2 animate-spin">autorenew</span>
+                ) : (
+                  <span className="material-icons align-middle mr-2">save</span>
+                )}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
               <button
                 onClick={handleCancel}
                 className="pl-2 pr-4 py-2 text-sm font-semibold bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                disabled={saving}
               >
                 <span className="material-icons align-middle mr-2">cancel</span>
                 Cancel
@@ -136,7 +157,12 @@ const SettingsViewer: React.FC = () => {
           )}
         </div>
       </div>
-
+      {saveError && (
+        <div className="mb-4 text-red-600 font-semibold">{saveError}</div>
+      )}
+      {saveSuccess && (
+        <div className="mb-4 text-green-600 font-semibold">Changes saved successfully!</div>
+      )}
       <div className="flex bg-orange-100 p-3 rounded-lg border border-orange-200 flex-row items-center mb-8">
         <span className="material-icons text-orange-400 mr-2">info</span>
         <p className="text-orange-700 max-w-2xl">
@@ -144,7 +170,6 @@ const SettingsViewer: React.FC = () => {
           settings help personalize and control its behavior.
         </p>
       </div>
-
       <div className="space-y-8">
         {/* Core Project Settings */}
         <section className="bg-white border border-gray-200 rounded-lg p-6">
@@ -152,7 +177,6 @@ const SettingsViewer: React.FC = () => {
             <span className="material-icons mr-2 text-gray-400">settings</span>
             Core Settings
           </h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
@@ -168,19 +192,16 @@ const SettingsViewer: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
-                <p className="text-gray-700">{project.name}</p>
+                <p className="text-gray-700">{formData.name}</p>
               )}
             </div>
-
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
                 Research Goal
               </label>
               {editing ? (
                 <textarea
-                  value={
-                    formData.research_goal || formData.research_question || ""
-                  }
+                  value={formData.research_goal || formData.research_question || ""}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -192,11 +213,10 @@ const SettingsViewer: React.FC = () => {
                 />
               ) : (
                 <p className="text-gray-700">
-                  {project.research_goal || project.research_question}
+                  {formData.research_goal || formData.research_question}
                 </p>
               )}
             </div>
-
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
                 Topic Tags
@@ -204,31 +224,24 @@ const SettingsViewer: React.FC = () => {
               {editing ? (
                 <input
                   type="text"
-                  value={(formData.topic_tags || formData.keywords || []).join(
-                    ", "
-                  )}
-                  onChange={(e) =>
-                    handleArrayChange("topic_tags", e.target.value)
-                  }
+                  value={(formData.topic_tags || formData.keywords || []).join(", ")}
+                  onChange={(e) => handleArrayChange("topic_tags", e.target.value)}
                   placeholder="e.g., transformers, QA, NLP"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {(project.topic_tags || project.keywords || []).map(
-                    (tag, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
-                      >
-                        {tag}
-                      </span>
-                    )
-                  )}
+                  {(formData.topic_tags || formData.keywords || []).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
-
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
                 Focus Domains
@@ -237,15 +250,13 @@ const SettingsViewer: React.FC = () => {
                 <input
                   type="text"
                   value={(formData.focus_domains || []).join(", ")}
-                  onChange={(e) =>
-                    handleArrayChange("focus_domains", e.target.value)
-                  }
+                  onChange={(e) => handleArrayChange("focus_domains", e.target.value)}
                   placeholder="e.g., cs.CL, cs.LG, cs.AI"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {(project.focus_domains || []).map((domain, index) => (
+                  {(formData.focus_domains || []).map((domain, index) => (
                     <span
                       key={index}
                       className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm"
@@ -256,7 +267,6 @@ const SettingsViewer: React.FC = () => {
                 </div>
               )}
             </div>
-
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
                 Custom Query Boosts
@@ -265,15 +275,13 @@ const SettingsViewer: React.FC = () => {
                 <input
                   type="text"
                   value={(formData.custom_query_boosts || []).join(", ")}
-                  onChange={(e) =>
-                    handleArrayChange("custom_query_boosts", e.target.value)
-                  }
+                  onChange={(e) => handleArrayChange("custom_query_boosts", e.target.value)}
                   placeholder="Keywords or concepts to prioritize"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {(project.custom_query_boosts || []).map((boost, index) => (
+                  {(formData.custom_query_boosts || []).map((boost, index) => (
                     <span
                       key={index}
                       className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-sm"
@@ -284,7 +292,6 @@ const SettingsViewer: React.FC = () => {
                 </div>
               )}
             </div>
-
             <div>
               <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
                 Collaborators
@@ -293,15 +300,13 @@ const SettingsViewer: React.FC = () => {
                 <input
                   type="text"
                   value={(formData.collaborators || []).join(", ")}
-                  onChange={(e) =>
-                    handleArrayChange("collaborators", e.target.value)
-                  }
+                  onChange={(e) => handleArrayChange("collaborators", e.target.value)}
                   placeholder="Email addresses of collaborators"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {(project.collaborators || []).map((collaborator, index) => (
+                  {(formData.collaborators || []).map((collaborator, index) => (
                     <span
                       key={index}
                       className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm"
@@ -417,7 +422,7 @@ const SettingsViewer: React.FC = () => {
                 </select>
               ) : (
                 <p className="text-gray-700">
-                  {project.citation_style || "APA"}
+                  {formData.citation_style || "APA"}
                 </p>
               )}
             </div>
@@ -453,9 +458,7 @@ const SettingsViewer: React.FC = () => {
                   <option value="Technical">Technical</option>
                 </select>
               ) : (
-                <p className="text-gray-700">
-                  {project.agent_tone || "Curious"}
-                </p>
+                <p className="text-gray-700">{formData.agent_tone || "Curious"}</p>
               )}
             </div>
 
@@ -479,9 +482,7 @@ const SettingsViewer: React.FC = () => {
                   <option value="Full Context">Full Context</option>
                 </select>
               ) : (
-                <p className="text-gray-700">
-                  {project.memory_scope || "Full Context"}
-                </p>
+                <p className="text-gray-700">{formData.memory_scope || "Full Context"}</p>
               )}
             </div>
 
@@ -505,9 +506,7 @@ const SettingsViewer: React.FC = () => {
                   <option value="Visual">Visual</option>
                 </select>
               ) : (
-                <p className="text-gray-700">
-                  {project.summarization_style || "Bullet Points"}
-                </p>
+                <p className="text-gray-700">{formData.summarization_style || "Bullet Points"}</p>
               )}
             </div>
 
@@ -531,9 +530,7 @@ const SettingsViewer: React.FC = () => {
                   <option value="Appendix">Appendix</option>
                 </select>
               ) : (
-                <p className="text-gray-700">
-                  {project.citation_insertion || "Inline"}
-                </p>
+                <p className="text-gray-700">{formData.citation_insertion || "Inline"}</p>
               )}
             </div>
           </div>
