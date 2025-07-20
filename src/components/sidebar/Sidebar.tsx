@@ -15,6 +15,7 @@
 // }
 
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
@@ -47,10 +48,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedPaperId,
 }) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
 
   const sidebarWidth = 70;
   const panelWidth = 280;
@@ -89,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           width: panelWidth,
         }}
         className={
-          `bg-app-outer border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+          `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
           (visible
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
@@ -136,19 +139,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => {
-        if (!isPinned) setIsExpanded(false);
-      }}
     >
       {/* Sidebar */}
       <div
-        className="fixed inset-y-0 left-0 bg-app-outer z-30 flex flex-col items-center py-4"
+        className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
         style={{ width: sidebarWidth, height: "100vh" }}
       >
         {/* Logo */}
         <div className="mb-12">
-          <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
+          <button
+            onClick={() => navigate('/home')}
+            className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
+            title="Go to Homepage"
+          >
+            <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
+          </button>
         </div>
 
         {/* Nav buttons */}
@@ -162,6 +167,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
+                onMouseEnter={() => setIsExpanded(true)}
+                onMouseLeave={() => {
+                  if (!isPinned) setIsExpanded(false);
+                }}
                 onClick={() => setActiveViewer(item.viewer)}
               />
             );
