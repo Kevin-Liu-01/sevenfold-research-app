@@ -97,6 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
+
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -139,6 +140,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       ref={containerRef}
       className="relative"
+      onMouseEnter={() => {
+        if (!isPinned) setIsExpanded(true);
+      }}
+      onMouseLeave={() => {
+        if (!isPinned) setIsExpanded(false);
+      }}
     >
       {/* Sidebar */}
       <div
