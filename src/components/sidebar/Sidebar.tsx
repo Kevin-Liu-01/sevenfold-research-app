@@ -174,6 +174,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
+                onMouseEnter={() => setIsExpanded(true)}
+                onMouseLeave={() => {
+                  if (!isPinned) setIsExpanded(false);
+                }}
                 onClick={() => setActiveViewer(item.viewer)}
               />
             );
