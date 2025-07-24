@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   candidatePapers,
   onPaperSelect,
   selectedPaperId,
-  onCreateDocument,
+  // onCreateDocument,
 }) => {
   const { user, signOut } = useAuth();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
@@ -123,6 +123,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             candidatePapers={candidatePapers}
             selectedPaperId={selectedPaperId}
             onClickPaper={handleClickPaper}
+            refreshPapers={function (): void {
+              throw new Error("Function not implemented.");
+            }}
           />
         ) : currentTab === "Compose" ? (
           <DocumentsPanel
@@ -132,8 +135,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               { id: "doc3", title: "Draft Summary" },
             ]}
             selectedDocId={" your selected document ID "}
-            onClickDocument={(doc) => {
-              /* handler */
+            onCreateDocument={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+            onClickDocument={function (): void {
+              throw new Error("Function not implemented.");
             }}
           />
         ) : (
