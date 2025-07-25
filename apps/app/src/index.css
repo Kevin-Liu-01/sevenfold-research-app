@@ -1,0 +1,105 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=PT+Mono&display=swap');
+@import "tailwindcss";
+@import "material-icons/iconfont/material-icons.css";
+
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 300;
+  src: url("/fonts/times-now-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/times-now-semi-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Times Now";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/times-now-semi-bold.otf") format("opentype");
+}
+
+@theme {
+  --font-timesnow: "Times Now", serif;
+  --font-dmsans: "DM Sans", sans-serif;
+  --font-ptmono: "PT Mono", monospace;
+  --color-kets-orange: #f57920;
+  --color-kets-yellow: #ffbd59;
+  --color-kets-green: #7ed957;
+  --color-kets-orange-50: #fef4ee;
+  --color-kets-orange-100: #fde4cd;
+  --color-kets-orange-200: #fbc89c;
+  --color-kets-orange-300: #f7a36b;
+  --color-kets-orange-400: #f57920;
+  --color-kets-orange-500: #e6651b;
+  --color-kets-orange-600: #d55417;
+  --color-kets-orange-700: #b14313;
+  --color-kets-orange-800: #8f3410;
+  --color-kets-orange-900: #74280d;
+  --color-app-outer: #f8f8f8;
+}
+
+/* Custom Utility: no-scrollbar */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Keyframes and animation */
+@layer utilities {
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-250px * 7));
+    }
+  }
+
+  .animate-scroll {
+    animation: scroll 40s linear infinite;
+  }
+}
+
+/* Gradient fade for slider edges */
+@layer components {
+  .slider-mask::before,
+  .slider-mask::after {
+    content: "";
+    position: absolute;
+    width: 200px;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .slider-mask::before {
+    left: 0;
+    top: 0;
+    background: linear-gradient(
+      to right,
+      white 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  .slider-mask::after {
+    right: 0;
+    top: 0;
+    background: linear-gradient(to left, white 0%, rgba(255, 255, 255, 0) 100%);
+  }
+}
+
+::selection {
+  background-color: rgba(245, 121, 32, 0.5);
+}
