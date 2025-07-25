@@ -15,11 +15,13 @@
 // }
 
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
 import DocumentsPanel from "./DocumentsPanel";
+import FeedbackPopup from "./FeedbackPopup";
 
 type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
@@ -50,10 +52,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   // onCreateDocument,
 }) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const sidebarWidth = 70;
   const panelWidth = 280;
@@ -92,11 +97,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           width: panelWidth,
         }}
         className={
-          `bg-app-outer border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+          `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
           (visible
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
+
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -157,19 +163,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => setIsExpanded(true)}
+      onMouseEnter={() => {
+        if (!isPinned) setIsExpanded(true);
+      }}
       onMouseLeave={() => {
         if (!isPinned) setIsExpanded(false);
       }}
     >
       {/* Sidebar */}
       <div
-        className="fixed inset-y-0 left-0 bg-app-outer z-30 flex flex-col items-center py-4"
+        className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
         style={{ width: sidebarWidth, height: "100vh" }}
       >
         {/* Logo */}
         <div className="mb-12">
-          <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
+          <button
+            onClick={() => navigate('/home')}
+            className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
+            title="Go to Homepage"
+          >
+            <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
+          </button>
         </div>
 
         {/* Nav buttons */}
@@ -237,6 +251,27 @@ const Sidebar: React.FC<SidebarProps> = ({
               Sign Out
             </button>
           </div>
+        </div>
+        {/* Feedback Button */}
+        <div className="w-full flex flex-col items-center mt-6 mb-2">
+          <button
+            className="group flex flex-col items-center justify-center focus:outline-none"
+            style={{ width: 48, height: 48 }}
+            onClick={() => setFeedbackOpen(true)}
+            title="Send Feedback"
+          >
+            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
+              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
+                feedback
+              </span>
+            </div>
+            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+              Feedback
+            </span>
+          </button>
+          {feedbackOpen && (
+            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+          )}
         </div>
       </div>
 

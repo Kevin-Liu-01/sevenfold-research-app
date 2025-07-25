@@ -5,6 +5,8 @@ export type SidebarButtonProps = {
   active: boolean
   onClick: () => void
   onHover: () => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 export function SidebarButton({
@@ -13,6 +15,8 @@ export function SidebarButton({
   active,
   onClick,
   onHover,
+  onMouseEnter,
+  onMouseLeave,
 }: SidebarButtonProps) {
   const wrapper = 'group flex flex-col items-center justify-center focus:outline-none'
   const boxBase = 'flex items-center justify-center p-2 rounded-xl transition-all duration-200'
@@ -35,7 +39,11 @@ export function SidebarButton({
       type="button"
       className={wrapper}
       onClick={onClick}
-      onMouseEnter={onHover}
+      onMouseEnter={() => {
+        onHover();
+        onMouseEnter?.();
+      }}
+      onMouseLeave={onMouseLeave}
     >
       <div className={`${boxBase} ${boxState}`}>
         <span className={`${iconBase} ${iconState}`}>

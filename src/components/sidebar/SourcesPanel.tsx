@@ -1,4 +1,5 @@
 // components/workbench/SourcesPanel.tsx
+
 import React, { useState, useMemo } from "react";
 import type { Paper } from "../../../database.types";
 import AddPaperModal from "./AddPaperModal";
@@ -44,8 +45,11 @@ const SourcesPanel: React.FC<SourcesPanelProps> = ({
   // Filter papers based on search query
   const filteredSourcePapers = useMemo(() => {
     if (!searchQuery.trim()) return sourcePapers;
-    const q = searchQuery.toLowerCase();
-    return sourcePapers.filter((p) => p.filename.toLowerCase().includes(q));
+    
+    const query = searchQuery.toLowerCase();
+    return sourcePapers.filter(paper => 
+      paper.filename.toLowerCase().includes(query)
+    );
   }, [sourcePapers, searchQuery]);
 
   const filteredCandidatePapers = useMemo(() => {
