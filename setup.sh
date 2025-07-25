@@ -5,8 +5,6 @@ set -e  # Exit on any error
 echo "Installing root dependencies..."
 pnpm install
 
-
-
 echo "Setting up apps/www..."
 cd apps/www
 pnpm install next
