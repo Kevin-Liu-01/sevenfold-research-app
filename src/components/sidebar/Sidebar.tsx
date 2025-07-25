@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
+import FeedbackPopup from "./FeedbackPopup";
 
 type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
@@ -54,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const sidebarWidth = 70;
   const panelWidth = 280;
@@ -174,10 +176,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
-                onMouseEnter={() => setIsExpanded(true)}
-                onMouseLeave={() => {
-                  if (!isPinned) setIsExpanded(false);
-                }}
                 onClick={() => setActiveViewer(item.viewer)}
               />
             );
@@ -232,6 +230,27 @@ const Sidebar: React.FC<SidebarProps> = ({
               Sign Out
             </button>
           </div>
+        </div>
+        {/* Feedback Button */}
+        <div className="w-full flex flex-col items-center mt-6 mb-2">
+          <button
+            className="group flex flex-col items-center justify-center focus:outline-none"
+            style={{ width: 48, height: 48 }}
+            onClick={() => setFeedbackOpen(true)}
+            title="Send Feedback"
+          >
+            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
+              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
+                feedback
+              </span>
+            </div>
+            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+              Feedback
+            </span>
+          </button>
+          {feedbackOpen && (
+            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+          )}
         </div>
       </div>
 
