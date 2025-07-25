@@ -4,7 +4,7 @@ import SettingsViewer from "../components/viewers/SettingsViewer";
 import UploadViewer from "../components/viewers/UploadViewer";
 import SearchViewer from "../components/viewers/SearchViewer";
 import PaperViewer from "../components/viewers/PaperViewer";
-import Editor from "../components/viewers/ComposeViewer";
+import ComposeViewer from "../components/viewers/ComposeViewer";
 
 import { useParams } from "react-router-dom";
 import supabase from "../services/supabaseClient";
@@ -16,6 +16,9 @@ const WorkbenchPage: React.FC = () => {
   const [sourcePapers, setSourcePapers] = useState<Paper[]>([]);
   const [candidatePapers, setCandidatePapers] = useState<Paper[]>([]);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
+    null
+  );
 
   const refreshSidebar = async () => {
     if (!projectId) return;
@@ -39,6 +42,26 @@ const WorkbenchPage: React.FC = () => {
     setSelectedPaper(paper);
   };
 
+  const createNewDocument = async () => {
+    if (!projectId) return;
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        project_id: projectId,
+        title: "Untitled Document",
+        content: "",
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Error creating document:", error.message);
+      return;
+    }
+    setCurrentDocumentId(data.id);
+    setActiveViewer("compose");
+  };
+
   let ViewerComponent;
   switch (activeViewer) {
     case "settings":
@@ -53,8 +76,8 @@ const WorkbenchPage: React.FC = () => {
     case "paper":
       ViewerComponent = <PaperViewer selectedPaper={selectedPaper} />;
       break;
-    case "editor":
-      ViewerComponent = <Editor projectId={projectId!} />;
+    case "compose":
+      ViewerComponent = <ComposeViewer projectId={projectId!} />;
       break;
     default:
       ViewerComponent = <SearchViewer />;
@@ -70,6 +93,7 @@ const WorkbenchPage: React.FC = () => {
         candidatePapers={candidatePapers}
         onPaperSelect={handlePaperSelect}
         selectedPaperId={selectedPaper?.id || null}
+        onCreateDocument={createNewDocument}
       />
       <main className="ml-[4rem] flex-1 mt-2 rounded-tl-2xl bg-white">{ViewerComponent}</main>
     </div>

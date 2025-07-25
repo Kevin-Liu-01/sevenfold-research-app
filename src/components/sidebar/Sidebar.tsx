@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
+import DocumentsPanel from "./DocumentsPanel";
 import FeedbackPopup from "./FeedbackPopup";
 
 type NavItem = { icon: string; viewer: string; label: string };
@@ -27,7 +28,7 @@ const navItems: NavItem[] = [
   { icon: "search", label: "Search", viewer: "search" },
   { icon: "source", label: "Sources", viewer: "paper" },
   { icon: "3p", label: "Chat", viewer: "chat" },
-  { icon: "edit", label: "Editor", viewer: "editor" },
+  { icon: "edit", label: "Compose", viewer: "compose" },
   { icon: "settings", label: "Settings", viewer: "settings" },
 ];
 
@@ -38,6 +39,7 @@ interface SidebarProps {
   candidatePapers: Paper[];
   onPaperSelect: (paper: Paper) => void;
   selectedPaperId: string | null;
+  onCreateDocument: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -47,6 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   candidatePapers,
   onPaperSelect,
   selectedPaperId,
+  // onCreateDocument,
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -126,6 +129,24 @@ const Sidebar: React.FC<SidebarProps> = ({
             candidatePapers={candidatePapers}
             selectedPaperId={selectedPaperId}
             onClickPaper={handleClickPaper}
+            refreshPapers={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
+        ) : currentTab === "Compose" ? (
+          <DocumentsPanel
+            documents={[
+              { id: "doc1", title: "Research Outline" },
+              { id: "doc2", title: "Meeting Notes" },
+              { id: "doc3", title: "Draft Summary" },
+            ]}
+            selectedDocId={" your selected document ID "}
+            onCreateDocument={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+            onClickDocument={function (): void {
+              throw new Error("Function not implemented.");
+            }}
           />
         ) : (
           <div className="p-4 text-gray-500">
@@ -255,7 +276,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Panel */}
-      {hoveredTab != "Settings" && renderPanel()}
+      {hoveredTab != "Settings" && hoveredTab != "Search" && renderPanel()}
     </div>
   );
 };
