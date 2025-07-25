@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=PT+Mono&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=PT+Mono&display=swap");
 @import "tailwindcss";
 @import "material-icons/iconfont/material-icons.css";
 
@@ -51,7 +51,7 @@
       transform: translateX(0);
     }
     100% {
-      transform: translateX(calc(-250px * 7));
+      transform: translateX(calc(-250px * 5));
     }
   }
 

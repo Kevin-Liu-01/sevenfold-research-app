@@ -148,7 +148,6 @@ const Hero = () => {
   );
 };
 
-
 const Carousel = () => {
   const logos = [
     { src: "/images/princeton.png", href: "https://www.princeton.edu" },
@@ -166,7 +165,10 @@ const Carousel = () => {
         Trusted by Researchers at
       </p>
       <div className="relative overflow-hidden max-w-6xl mx-auto h-[100px] slider-mask">
-        <div className="flex w-[3500px] animate-scroll">
+        <div
+          className="flex animate-scroll"
+          style={{ width: `${allLogos.length * 250}px` }}
+        >
           {allLogos.map(({ src, href }, index) => (
             <div
               key={index}
@@ -216,13 +218,13 @@ export const Features = () => (
           </p>
         </div>
         {/* image placeholder at 40% */}
-          <Image
-            src="/images/placeholder.png"
-            alt="Smart Results Integration"
-            width={500}
-            height={300}
-            className="mt-4 absolute shadow-lg h-[100%] w-auto right-0 bg-gray-200 rounded-lg"
-          />
+        <Image
+          src="/images/placeholder.png"
+          alt="Smart Results Integration"
+          width={500}
+          height={300}
+          className="mt-4 absolute shadow-lg h-[100%] w-auto right-0 bg-gray-200 rounded-lg"
+        />
       </div>
 
       <div className="relative bg-gray-50 rounded-2xl p-5 text-gray-800 text-sm">
