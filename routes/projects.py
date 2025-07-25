@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Header, HTTPException, Body
+import numpy as np
+from fastapi import APIRouter, Header, HTTPException, Body, Query
 from utils.auth import get_user_id_from_token
 from db.supabase import supabase
+from typing import List
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
