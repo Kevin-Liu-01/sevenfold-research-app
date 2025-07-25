@@ -12,12 +12,6 @@ Depends on #[issue-number] (if applicable)
 - Itemized list of key changes
 - Highlight anything notable or non-obvious
 
-## Checklist
-
-- [ ] Code follows project conventions
-- [ ] Tests added or updated
-- [ ] Documentation updated if needed
-
 ## Relevant Reviewers
 
 @person
