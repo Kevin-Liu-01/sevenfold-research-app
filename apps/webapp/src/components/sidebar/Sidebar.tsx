@@ -15,19 +15,21 @@
 // }
 
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
+import DocumentsPanel from "./DocumentsPanel";
 import FeedbackPopup from "./FeedbackPopup";
+import ChatPanel from "./ChatPanel";
 
 type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
   { icon: "search", label: "Search", viewer: "search" },
   { icon: "source", label: "Sources", viewer: "paper" },
   { icon: "3p", label: "Chat", viewer: "chat" },
-  { icon: "edit", label: "Editor", viewer: "editor" },
+  { icon: "edit", label: "Compose", viewer: "compose" },
   { icon: "settings", label: "Settings", viewer: "settings" },
 ];
 
@@ -38,6 +40,7 @@ interface SidebarProps {
   candidatePapers: Paper[];
   onPaperSelect: (paper: Paper) => void;
   selectedPaperId: string | null;
+  onCreateDocument: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -47,37 +50,37 @@ const Sidebar: React.FC<SidebarProps> = ({
   candidatePapers,
   onPaperSelect,
   selectedPaperId,
+  // onCreateDocument,
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // Remove onMouseEnter/onMouseLeave from the sidebar container
-  // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-  // Only open the panel if a button is hovered or the panel is hovered
-  const [buttonHovered, setButtonHovered] = useState(false);
   const [panelHovered, setPanelHovered] = useState(false);
-
-  useEffect(() => {
-    if (!isPinned) {
-      if (buttonHovered || panelHovered) {
-        setIsExpanded(true);
-      } else {
-        setIsExpanded(false);
-        setHoveredTab(null);
-      }
-    }
-  }, [buttonHovered, panelHovered, isPinned]);
 
   const sidebarWidth = 70;
   const panelWidth = 280;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
+
+  // Update activeViewer based on current route
+  useEffect(() => {
+    if (location.pathname === "/chat") {
+      setActiveViewer("chat");
+    } else if (location.pathname.startsWith("/project/")) {
+      setActiveViewer("search");
+    } else if (location.pathname === "/home") {
+      setActiveViewer("search");
+    } else if (location.pathname === "/newproject") {
+      setActiveViewer("search");
+    }
+  }, [location.pathname, setActiveViewer]);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -96,6 +99,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     onPaperSelect(paper);
     setActiveViewer("paper");
     if (!isPinned) setIsExpanded(false);
+  };
+
+  const handleNavClick = (item: NavItem) => {
+    console.log("handleNavClick called with:", item.label);
+    
+    if (item.label === "Chat") {
+      // Navigate to chat page
+      navigate("/chat");
+    } else {
+      // Set the active viewer based on the clicked item
+      setActiveViewer(item.viewer);
+    }
   };
 
   const renderPanel = () => {
@@ -143,11 +158,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             candidatePapers={candidatePapers}
             selectedPaperId={selectedPaperId}
             onClickPaper={handleClickPaper}
+            refreshPapers={() => {}}
           />
         ) : (
           <div className="p-4 text-gray-500">
-            {" "}
-            {/* stub for other panels */}
             {currentTab} content…
           </div>
         )}
@@ -159,15 +173,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       ref={containerRef}
       className="relative"
-      // Remove onMouseEnter/onMouseLeave from the sidebar container
-      // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-      // Only open the panel if a button is hovered or the panel is hovered
-      // onMouseEnter={() => {
-      //   if (!isPinned) setIsExpanded(true);
-      // }}
-      // onMouseLeave={() => {
-      //   if (!isPinned) setIsExpanded(false);
-      // }}
+      onMouseEnter={() => {
+        if (!isPinned) setIsExpanded(true);
+      }}
+      onMouseLeave={() => {
+        if (!isPinned) setIsExpanded(false);
+      }}
     >
       {/* Sidebar */}
       <div
@@ -196,35 +207,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
-                onMouseEnter={() => setButtonHovered(true)}
-                onMouseLeave={() => setButtonHovered(false)}
-                onClick={() => setActiveViewer(item.viewer)}
+                onClick={() => handleNavClick(item)}
               />
             );
           })}
         </nav>
 
-        {/* Move Feedback Button above Account/Avatar section */}
-        <div className="w-full flex flex-col items-center mt-6 mb-2">
-          <button
-            className="group flex flex-col items-center justify-center focus:outline-none"
-            style={{ width: 48, height: 48 }}
-            onClick={() => setFeedbackOpen(true)}
-            title="Send Feedback"
-          >
-            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
-              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
-                feedback
-              </span>
-            </div>
-            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
-              Feedback
-            </span>
-          </button>
-          {feedbackOpen && (
-            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
-          )}
-        </div>
         {/* Avatar + popup */}
         <div ref={avatarRef} className="relative mt-6">
           <div
@@ -274,10 +262,31 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         </div>
+        {/* Feedback Button */}
+        <div className="w-full flex flex-col items-center mt-6 mb-2">
+          <button
+            className="group flex flex-col items-center justify-center focus:outline-none"
+            style={{ width: 48, height: 48 }}
+            onClick={() => setFeedbackOpen(true)}
+            title="Send Feedback"
+          >
+            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
+              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
+                feedback
+              </span>
+            </div>
+            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+              Feedback
+            </span>
+          </button>
+          {feedbackOpen && (
+            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+          )}
+        </div>
       </div>
 
       {/* Panel */}
-      {hoveredTab != "Settings" && renderPanel()}
+      {hoveredTab === "Sources" && renderPanel()}
     </div>
   );
 };
