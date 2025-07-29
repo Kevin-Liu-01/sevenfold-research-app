@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
+import DocumentsPanel from "./DocumentsPanel";
 import FeedbackPopup from "./FeedbackPopup";
 
 type NavItem = { icon: string; viewer: string; label: string };
@@ -27,7 +28,7 @@ const navItems: NavItem[] = [
   { icon: "search", label: "Search", viewer: "search" },
   { icon: "source", label: "Sources", viewer: "paper" },
   { icon: "3p", label: "Chat", viewer: "chat" },
-  { icon: "edit", label: "Editor", viewer: "editor" },
+  { icon: "edit", label: "Editor", viewer: "compose" },
   { icon: "settings", label: "Settings", viewer: "settings" },
 ];
 
@@ -38,6 +39,7 @@ interface SidebarProps {
   candidatePapers: Paper[];
   onPaperSelect: (paper: Paper) => void;
   selectedPaperId: string | null;
+  onCreateDocument: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -47,6 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   candidatePapers,
   onPaperSelect,
   selectedPaperId,
+  // onCreateDocument,
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -54,24 +57,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
+  // const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // Remove onMouseEnter/onMouseLeave from the sidebar container
-  // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-  // Only open the panel if a button is hovered or the panel is hovered
-  const [buttonHovered, setButtonHovered] = useState(false);
-  const [panelHovered, setPanelHovered] = useState(false);
-
-  useEffect(() => {
-    if (!isPinned) {
-      if (buttonHovered || panelHovered) {
-        setIsExpanded(true);
-      } else {
-        setIsExpanded(false);
-        setHoveredTab(null);
-      }
-    }
-  }, [buttonHovered, panelHovered, isPinned]);
 
   const sidebarWidth = 70;
   const panelWidth = 280;
@@ -115,8 +102,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
-        onMouseEnter={() => setPanelHovered(true)}
-        onMouseLeave={() => setPanelHovered(false)}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -143,6 +128,24 @@ const Sidebar: React.FC<SidebarProps> = ({
             candidatePapers={candidatePapers}
             selectedPaperId={selectedPaperId}
             onClickPaper={handleClickPaper}
+            refreshPapers={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
+        ) : currentTab === "Editor" ? (
+          <DocumentsPanel
+            documents={[
+              { id: "doc1", title: "Research Outline" },
+              { id: "doc2", title: "Meeting Notes" },
+              { id: "doc3", title: "Draft Summary" },
+            ]}
+            selectedDocId={" your selected document ID "}
+            onCreateDocument={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+            onClickDocument={function (): void {
+              throw new Error("Function not implemented.");
+            }}
           />
         ) : (
           <div className="p-4 text-gray-500">
@@ -159,15 +162,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div
       ref={containerRef}
       className="relative"
-      // Remove onMouseEnter/onMouseLeave from the sidebar container
-      // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-      // Only open the panel if a button is hovered or the panel is hovered
-      // onMouseEnter={() => {
-      //   if (!isPinned) setIsExpanded(true);
-      // }}
-      // onMouseLeave={() => {
-      //   if (!isPinned) setIsExpanded(false);
-      // }}
+      onMouseEnter={() => {
+        if (!isPinned) setIsExpanded(true);
+      }}
+      onMouseLeave={() => {
+        if (!isPinned) setIsExpanded(false);
+      }}
     >
       {/* Sidebar */}
       <div
@@ -177,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Logo */}
         <div className="mb-12">
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate("/home")}
             className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
             title="Go to Homepage"
           >
@@ -196,8 +196,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label={item.label}
                 active={isActive}
                 onHover={() => setHoveredTab(item.label)}
-                onMouseEnter={() => setButtonHovered(true)}
-                onMouseLeave={() => setButtonHovered(false)}
                 onClick={() => setActiveViewer(item.viewer)}
               />
             );
@@ -277,7 +275,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Panel */}
-      {hoveredTab != "Settings" && renderPanel()}
+      {hoveredTab != "Settings" && hoveredTab != "Search" && renderPanel()}
     </div>
   );
 };
