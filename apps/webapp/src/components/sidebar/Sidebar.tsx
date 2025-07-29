@@ -28,7 +28,7 @@ const navItems: NavItem[] = [
   { icon: "search", label: "Search", viewer: "search" },
   { icon: "source", label: "Sources", viewer: "paper" },
   { icon: "3p", label: "Chat", viewer: "chat" },
-  { icon: "edit", label: "Compose", viewer: "compose" },
+  { icon: "edit", label: "Editor", viewer: "compose" },
   { icon: "settings", label: "Settings", viewer: "settings" },
 ];
 
@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
+  // const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const sidebarWidth = 70;
@@ -102,7 +102,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             ? "translate-x-0 opacity-100 pointer-events-auto"
             : "-translate-x-full opacity-0 pointer-events-none")
         }
-
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -133,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               throw new Error("Function not implemented.");
             }}
           />
-        ) : currentTab === "Compose" ? (
+        ) : currentTab === "Editor" ? (
           <DocumentsPanel
             documents={[
               { id: "doc1", title: "Research Outline" },
@@ -178,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Logo */}
         <div className="mb-12">
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate("/home")}
             className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
             title="Go to Homepage"
           >
@@ -203,6 +202,27 @@ const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
+        {/* Move Feedback Button above Account/Avatar section */}
+        <div className="w-full flex flex-col items-center mt-6 mb-2">
+          <button
+            className="group flex flex-col items-center justify-center focus:outline-none"
+            style={{ width: 48, height: 48 }}
+            onClick={() => setFeedbackOpen(true)}
+            title="Send Feedback"
+          >
+            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
+              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
+                feedback
+              </span>
+            </div>
+            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+              Feedback
+            </span>
+          </button>
+          {feedbackOpen && (
+            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+          )}
+        </div>
         {/* Avatar + popup */}
         <div ref={avatarRef} className="relative mt-6">
           <div
@@ -251,27 +271,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               Sign Out
             </button>
           </div>
-        </div>
-        {/* Feedback Button */}
-        <div className="w-full flex flex-col items-center mt-6 mb-2">
-          <button
-            className="group flex flex-col items-center justify-center focus:outline-none"
-            style={{ width: 48, height: 48 }}
-            onClick={() => setFeedbackOpen(true)}
-            title="Send Feedback"
-          >
-            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
-              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
-                feedback
-              </span>
-            </div>
-            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
-              Feedback
-            </span>
-          </button>
-          {feedbackOpen && (
-            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
-          )}
         </div>
       </div>
 
