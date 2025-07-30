@@ -27,7 +27,6 @@ out/
 build
 dist
 
-
 # Debug
 npm-debug.log*
 yarn-debug.log*
@@ -36,3 +35,37 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Production build
+build
+dist
+
+# System and editor files
+.vscode/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+#Env files
+.env
+.env.*
+!.env.example
+
+#PDFJS express static files
+public/webviewer/*

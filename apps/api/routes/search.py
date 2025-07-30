@@ -124,6 +124,7 @@ async def hybrid_search(request: SearchRequest):
     """
     embedding = embed_query(request.query)
     
+    
     resp = supabase.rpc(
         "hybrid_search",
         {

@@ -1,6 +1,5 @@
 # Ketspen Backend
 
-
 Initialization
 
 ```
@@ -8,18 +7,16 @@ python -m venv venv
 pip install -r requirements
 ```
 
-
 Start the App
 
 ```
 uvicorn main:app --reload --port 8080
 ```
 
-
 ## Supabase SQLEditors
 
-
 Create Projects Table
+
 ```
 CREATE TABLE projects (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,6 +30,7 @@ CREATE TABLE projects (
 ```
 
 Create Papers Table
+
 ```
 CREATE TABLE IF NOT EXISTS papers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
