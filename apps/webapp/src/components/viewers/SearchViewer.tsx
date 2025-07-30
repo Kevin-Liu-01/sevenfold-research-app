@@ -298,6 +298,7 @@ const SearchViewer: React.FC = () => {
                 semantic_weight: semanticWeight,
                 context_weight: contextWeight,
                 rrf_k: 50, 
+                min_year: yearFilter,
                 // limit: 20,
                 // ...(yearFilter !== "" && { year: yearFilter }),
                 // weights: {

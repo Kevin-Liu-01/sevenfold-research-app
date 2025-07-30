@@ -121,6 +121,7 @@ class SearchRequest(BaseModel):
     semantic_weight: float = 1.0
     context_weight: float = 1.0
     rrf_k: int = 50
+    min_year: int = 2005
 
 @router.post("/", response_model=List[dict])
 async def hybrid_search(request: SearchRequest):
@@ -141,8 +142,11 @@ async def hybrid_search(request: SearchRequest):
             "lexical_weight": request.lexical_weight,
             "semantic_weight": request.semantic_weight,
             "context_weight": request.context_weight,
-            "rrf_k": request.rrf_k
+            "rrf_k": request.rrf_k,
+            "min_year": request.min_year
         },
     ).execute()
+
+    print(resp)
 
     return resp.data or []
