@@ -66,7 +66,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             </div>
 
             {/* Document List */}
-            <ul className="flex-1 overflow-auto px-4 space-y-2">
+            <ul className="flex-1 overflow-auto px-3 pt-1 space-y-2">
                 {filtered.length === 0 ? (
                     <li className="text-center text-gray-500 py-6 text-xs">
                         No documents found.
