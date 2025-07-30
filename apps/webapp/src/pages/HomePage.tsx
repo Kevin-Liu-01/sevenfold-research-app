@@ -88,7 +88,7 @@ const HomePage: React.FC = () => {
                     <div className="flex justify-between items-center">
                         <div className="flex flex-row items-center gap-4">
                             <img
-                                src="/images/logo.png"
+                                src="/branding/logo-sq.png"
                                 alt="Logo"
                                 className="h-[5rem] w-auto"
                             />

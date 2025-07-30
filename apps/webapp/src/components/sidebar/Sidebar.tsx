@@ -26,8 +26,8 @@ import FeedbackPopup from "./FeedbackPopup";
 type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
     { icon: "search", label: "Search", viewer: "search" },
-    { icon: "source", label: "Sources", viewer: "paper" },
     { icon: "3p", label: "Chat", viewer: "chat" },
+    { icon: "source", label: "Sources", viewer: "paper" },
     { icon: "edit", label: "Editor", viewer: "compose" },
     { icon: "settings", label: "Settings", viewer: "settings" },
 ];
@@ -189,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         title="Go to Homepage"
                     >
                         <img
-                            src="/images/logo.png"
+                            src="/branding/logo-sq.png"
                             alt="Logo"
                             className="h-12 w-12"
                         />
@@ -260,18 +260,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
                         } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
                     >
-                        <button
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-                            onClick={() => setAvatarMenuOpen(false)}
-                        >
-                            Account
-                        </button>
-                        <button
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-                            onClick={() => setAvatarMenuOpen(false)}
-                        >
-                            Settings
-                        </button>
                         <button
                             className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
                             onClick={() => {

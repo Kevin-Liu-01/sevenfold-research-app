@@ -35,13 +35,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     loading,
 }) => (
     <div className="max-w-2xl w-full mx-auto px-6">
-        {/* <div className="flex justify-center mb-4">
-      <img
-        src="/images/Ketspen_logo.png"
-        alt="Ketspen Logo"
-        className="h-12 object-contain"
-      />
-    </div> */}
         <form onSubmit={onSubmit} className="flex flex-col space-y-4">
             <div className="relative">
                 <span className="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -190,7 +183,7 @@ const SidebarFilters: React.FC<FiltersProps> = ({
                 ))}
 
                 {/* Agent toggle */}
-                <div>
+                {/* <div>
                     <div className="text-sm font-medium text-gray-700">
                         LLM Agent
                     </div>
@@ -215,7 +208,7 @@ const SidebarFilters: React.FC<FiltersProps> = ({
                             </button>
                         ))}
                     </div>
-                </div>
+                </div> */}
 
                 {/* Apply filters */}
                 <button
@@ -299,14 +292,20 @@ const SearchViewer: React.FC = () => {
         try {
             const body = {
                 query: searchQuery.trim(),
-                limit: 20,
-                ...(yearFilter !== "" && { year: yearFilter }),
-                weights: {
-                    keyword: keywordWeight,
-                    semantic: semanticWeight,
-                    context: contextWeight,
-                },
-                agent,
+                // project_id: ,
+                match_count: 30,
+                lexical_weight: keywordWeight,
+                semantic_weight: semanticWeight,
+                context_weight: contextWeight,
+                rrf_k: 50, 
+                // limit: 20,
+                // ...(yearFilter !== "" && { year: yearFilter }),
+                // weights: {
+                //     keyword: keywordWeight,
+                //     semantic: semanticWeight,
+                //     context: contextWeight,
+                // },
+                // agent,
             };
 
             const res = await fetch(
@@ -346,67 +345,38 @@ const SearchViewer: React.FC = () => {
             setQuery(initial);
             doSearch(initial);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const hasResults = results.length > 0;
 
     return (
         <div className="min-h-screen bg-white">
-            {!hasResults ? (
-                <div className="flex w-full items-center justify-center min-h-screen">
-                    <SearchBar
-                        query={query}
-                        onQueryChange={setQuery}
-                        onSubmit={handleSearch}
-                        loading={loading}
-                    />
-                </div>
-            ) : (
-                <>
-                    <header className="fixed w-full z-10 top-0 py-4">
-                        <SearchBar
-                            query={query}
-                            onQueryChange={setQuery}
-                            onSubmit={handleSearch}
-                            loading={loading}
-                        />
-                        <SidebarFilters
-                            yearFilter={yearFilter}
-                            onYearChange={setYearFilter}
-                            keywordWeight={keywordWeight}
-                            semanticWeight={semanticWeight}
-                            contextWeight={contextWeight}
-                            onWeightsChange={(kw, sw, cw) => {
-                                setKeywordWeight(kw);
-                                setSemanticWeight(sw);
-                                setContextWeight(cw);
-                            }}
-                            agent={agent}
-                            onAgentChange={setAgent}
-                            onApplyFilters={() => doSearch(query)}
-                        />
-                    </header>
-                    <div className="flex ml-64 z-5  mt-[5.2rem] ">
-                        {/* <SidebarFilters
-              yearFilter={yearFilter}
-              onYearChange={setYearFilter}
-              keywordWeight={keywordWeight}
-              semanticWeight={semanticWeight}
-              contextWeight={contextWeight}
-              onWeightsChange={(kw, sw, cw) => {
-                setKeywordWeight(kw);
-                setSemanticWeight(sw);
-                setContextWeight(cw);
-              }}
-              agent={agent}
-              onAgentChange={setAgent}
-              onApplyFilters={() => doSearch(query)}
-            /> */}
-                        <ResultsList results={results} />
-                    </div>
-                </>
-            )}
+            <header className="fixed w-full z-10 top-0 py-4">
+                <SearchBar
+                    query={query}
+                    onQueryChange={setQuery}
+                    onSubmit={handleSearch}
+                    loading={loading}
+                />
+                <SidebarFilters
+                    yearFilter={yearFilter}
+                    onYearChange={setYearFilter}
+                    keywordWeight={keywordWeight}
+                    semanticWeight={semanticWeight}
+                    contextWeight={contextWeight}
+                    onWeightsChange={(kw, sw, cw) => {
+                        setKeywordWeight(kw);
+                        setSemanticWeight(sw);
+                        setContextWeight(cw);
+                    }}
+                    agent={agent}
+                    onAgentChange={setAgent}
+                    onApplyFilters={() => doSearch(query)}
+                />
+            </header>
+            <div className="flex ml-64 z-5  mt-[5.2rem] ">
+                <ResultsList results={results} />
+            </div>
         </div>
     );
 };
