@@ -13,21 +13,14 @@ RETURNS SETOF library
 LANGUAGE SQL
 AS $$
 WITH 
--- 1. Filter by year
-candidates AS (
-    SELECT *
-    FROM library
-    WHERE "year" > min_year
-),
-
 -- 2. Lexical search (FTS index)
 lexical AS (
     SELECT id,
            ROW_NUMBER() OVER (
                ORDER BY ts_rank_cd(fts, websearch_to_tsquery(query_text)) DESC
            ) AS rank_ix
-    FROM candidates
-    WHERE fts @@ websearch_to_tsquery(query_text)
+    FROM library
+    WHERE fts @@ websearch_to_tsquery(query_text) AND "year" > min_year
     LIMIT LEAST(match_count, 30) * 2
 ),
 
@@ -37,7 +30,9 @@ semantic AS (
            ROW_NUMBER() OVER (
                ORDER BY embedding <-> query_embedding
            ) AS rank_ix
-    FROM candidates
+    FROM library
+    WHERE "year" > min_year
+    ORDER BY embedding <-> query_embedding
     LIMIT LEAST(match_count, 30) * 5
 ),
 
@@ -58,7 +53,7 @@ FULL OUTER JOIN semantic
     ON lexical.id = semantic.id
 FULL OUTER JOIN context
     ON COALESCE(lexical.id, semantic.id) = context.id
-JOIN candidates lib
+JOIN library lib
     ON lib.id = COALESCE(lexical.id, semantic.id, context.id)
 ORDER BY
     COALESCE(1.0 / (rrf_k + lexical.rank_ix), 0.0) * lexical_weight +
