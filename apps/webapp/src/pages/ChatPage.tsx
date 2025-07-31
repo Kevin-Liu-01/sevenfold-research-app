@@ -114,6 +114,20 @@ const ChatPage: React.FC = () => {
             <h1 className="text-2xl font-semibold text-gray-900">ketspen</h1>
           </div>
 
+          {/* Sticky User Query Header */}
+          {messages.length > 0 && messages.some(m => m.isUser) && (
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-8 py-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 truncate">
+                    {messages.filter(m => m.isUser).slice(-1)[0]?.text || "Current Question"}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Chat Messages Area */}
           <div 
             ref={chatContainerRef}
