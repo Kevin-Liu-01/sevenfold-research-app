@@ -5,7 +5,7 @@ import uuid
 from db.supabase import supabase
 from utils.auth import get_user_id_from_token
 
-router = APIRouter(prefix="", tags=["papers"])
+router = APIRouter(prefix="/papers", tags=["papers"])
 
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""
@@ -99,7 +99,7 @@ async def upload_paper(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Upload failed: {exc}")
 
-@router.get("/papers/{paper_id}/signed-url")
+@router.get("/{paper_id}/signed-url")
 def get_signed_url(
     paper_id: str,
     expires_in: int = 60 * 60, 
@@ -134,7 +134,7 @@ def get_signed_url(
 
     return {"signed_url": signed_resp["signedURL"]}
 
-@router.put("/papers/{paper_id}/annotations", status_code=200)
+@router.put("/{paper_id}/annotations", status_code=200)
 async def upload_annotations(
     paper_id: str,
     annotations: List[str] = Body(..., description="List of annotation strings"),
