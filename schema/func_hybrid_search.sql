@@ -20,7 +20,7 @@ lexical AS (
                ORDER BY ts_rank_cd(fts, websearch_to_tsquery(query_text)) DESC
            ) AS rank_ix
     FROM library
-    WHERE fts @@ websearch_to_tsquery(query_text) AND "year" > min_year
+WHERE fts @@ websearch_to_tsquery(query_text) AND "year" >= min_year
     LIMIT LEAST(match_count, 30) * 2
 ),
 
@@ -31,7 +31,7 @@ semantic AS (
                ORDER BY embedding <-> query_embedding
            ) AS rank_ix
     FROM library
-    WHERE "year" > min_year
+WHERE "year" >= min_year
     ORDER BY embedding <-> query_embedding
     LIMIT LEAST(match_count, 30) * 5
 ),
