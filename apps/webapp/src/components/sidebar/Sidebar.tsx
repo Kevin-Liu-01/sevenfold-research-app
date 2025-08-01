@@ -100,14 +100,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                     width: panelWidth,
                 }}
                 className={
-                    `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+                    `bg-stone-50 border-r border-gray-200 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
                     (visible
                         ? "translate-x-0 opacity-100 pointer-events-auto"
                         : "-translate-x-full opacity-0 pointer-events-none")
                 }
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between pl-2 pr-4 py-1 border-b border-gray-100">
                     <h3 className="text-sm font-semibold text-gray-900">
                         {currentTab}
                     </h3>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, ChangeEvent } from "react";
 import { marked } from "marked";
 import katex from "katex";
 import "katex/dist/katex.min.css";
@@ -9,16 +9,14 @@ interface EditorProps {
 }
 
 const COOKIE_NAME = "editorMode";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year in seconds
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-// Simple cookie getters/setters
 function getCookie(name: string): string | null {
     const match = document.cookie.match(
         new RegExp("(?:^|; )" + name + "=([^;]*)"),
     );
     return match ? decodeURIComponent(match[1]) : null;
 }
-
 function setCookie(name: string, value: string, maxAgeSeconds: number) {
     document.cookie =
         `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ` +
@@ -26,22 +24,21 @@ function setCookie(name: string, value: string, maxAgeSeconds: number) {
 }
 
 const Editor: React.FC<EditorProps> = ({ projectId }) => {
-    // 1) Initialize mode from cookie (fallback to 'markdown')
-    const [mode, setMode] = useState<"markdown" | "latex">(() => {
-        const saved = getCookie(COOKIE_NAME);
-        return saved === "latex" ? "latex" : "markdown";
-    });
-
+    // state & refs
+    const [mode, setMode] = useState<"markdown" | "latex">(() =>
+        getCookie(COOKIE_NAME) === "latex" ? "latex" : "markdown",
+    );
     const [content, setContent] = useState("");
     const [renderedHtml, setRenderedHtml] = useState("");
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isInitialLoad = useRef(true);
 
-    // 2) Persist mode changes to cookie
+    // persist mode
     useEffect(() => {
         setCookie(COOKIE_NAME, mode, COOKIE_MAX_AGE);
     }, [mode]);
 
-    // 3) Load existing content on mount
+    // load content
     useEffect(() => {
         if (!projectId) return;
         (async () => {
@@ -49,11 +46,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                 data: { session },
                 error: authErr,
             } = await supabase.auth.getSession();
-            if (authErr || !session?.access_token) {
-                console.error("Not authenticated", authErr);
-                return;
-            }
-
+            if (authErr || !session?.access_token) return;
             const res = await fetch(
                 `${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/get-editor-content`,
                 {
@@ -62,16 +55,14 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                     },
                 },
             );
-            if (!res.ok) {
-                console.error(`Load failed (${res.status}):`, await res.text());
-                return;
+            if (res.ok) {
+                const data = await res.json();
+                setContent(data.editor_content || "");
             }
-            const data = await res.json();
-            setContent(data.editor_content ?? "");
         })();
     }, [projectId]);
 
-    // 4) Render preview
+    // render preview (debounce)
     useEffect(() => {
         const t = setTimeout(() => {
             if (mode === "markdown") {
@@ -99,7 +90,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
         return () => clearTimeout(t);
     }, [content, mode]);
 
-    // 5) Auto-save edits
+    // auto‑save (debounce)
     useEffect(() => {
         const t = setTimeout(() => {
             if (isInitialLoad.current) {
@@ -111,12 +102,8 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                     data: { session },
                     error: authErr,
                 } = await supabase.auth.getSession();
-                if (authErr || !session?.access_token) {
-                    console.error("Not authenticated", authErr);
-                    return;
-                }
-
-                const res = await fetch(
+                if (authErr || !session?.access_token) return;
+                await fetch(
                     `${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/editor-content`,
                     {
                         method: "PUT",
@@ -127,49 +114,185 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                         body: JSON.stringify({ editor_content: content }),
                     },
                 );
-                if (!res.ok) {
-                    console.error(
-                        `Save failed (${res.status}):`,
-                        await res.text(),
-                    );
-                }
             })();
         }, 1000);
         return () => clearTimeout(t);
     }, [content, projectId]);
 
+    // formatting helpers
+    const applyInline = (pre: string, post: string = pre) => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        const { selectionStart, selectionEnd, value } = ta;
+        const selected = value.slice(selectionStart, selectionEnd);
+        const newText =
+            value.slice(0, selectionStart) +
+            pre +
+            selected +
+            post +
+            value.slice(selectionEnd);
+        setContent(newText);
+        // restore cursor
+        setTimeout(() => {
+            ta.focus();
+            ta.setSelectionRange(
+                selectionStart + pre.length,
+                selectionStart + pre.length + selected.length,
+            );
+        }, 0);
+    };
+
+    const applyLine = (prefix: string) => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        const { selectionStart, selectionEnd, value } = ta;
+        const before = value.slice(0, selectionStart);
+        const selected = value.slice(selectionStart, selectionEnd);
+        const after = value.slice(selectionEnd);
+        const lines = selected
+            .split("\n")
+            .map((l) => (l.trim() ? prefix + l : l))
+            .join("\n");
+        setContent(before + lines + after);
+        setTimeout(() => ta?.focus(), 0);
+    };
+
+    const onChange = (e: ChangeEvent<HTMLTextAreaElement>) =>
+        setContent(e.target.value);
+
     return (
-        <div className="p-8">
-            <h2 className="text-xl font-bold mb-4">Editor</h2>
-            <div className="mb-4">
-                <label htmlFor="mode" className="mr-4 font-semibold">
-                    Mode:
-                </label>
-                <select
-                    id="mode"
-                    value={mode}
-                    onChange={(e) =>
-                        setMode(e.target.value as "markdown" | "latex")
-                    }
-                    className="p-2 border border-gray-300 rounded"
-                >
-                    <option value="markdown">Markdown</option>
-                    <option value="latex">LaTeX</option>
-                </select>
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* header */}
+            <div className="flex items-center justify-between bg-white px-6 py-4 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-800">Editor</h2>
+                <div>
+                    <label htmlFor="mode-select" className="sr-only">
+                        Editor mode
+                    </label>
+                    <select
+                        id="mode-select"
+                        value={mode}
+                        onChange={(e) =>
+                            setMode(e.target.value as "markdown" | "latex")
+                        }
+                        className="px-3 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                        <option value="markdown">Markdown</option>
+                        <option value="latex">LaTeX</option>
+                    </select>
+                </div>
             </div>
-            <div className="flex h-[80vh] border border-gray-300 rounded overflow-hidden">
-                <textarea
-                    className="w-1/2 h-full p-4 font-mono text-base resize-none border-r border-gray-300 outline-none focus:outline-none"
-                    placeholder={
-                        mode === "markdown"
-                            ? "Type Markdown here…"
-                            : "Type LaTeX here…"
-                    }
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                />
-                <div className="w-1/2 h-full p-4 overflow-auto bg-white">
-                    <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+
+            {/* toolbar */}
+            <div
+                role="toolbar"
+                aria-label="Formatting options"
+                className="flex flex-wrap items-center gap-2 px-6 pt-1 bg-white border-b border-gray-200"
+            >
+                {[
+                    {
+                        fn: () => applyInline("**"),
+                        icon: "format_bold",
+                        label: "Bold",
+                    },
+                    {
+                        fn: () => applyInline("_"),
+                        icon: "format_italic",
+                        label: "Italic",
+                    },
+                    {
+                        fn: () => applyLine("## "),
+                        icon: "title",
+                        label: "Heading",
+                    },
+                    {
+                        fn: () => applyLine("> "),
+                        icon: "format_quote",
+                        label: "Blockquote",
+                    },
+                    {
+                        fn: () => applyLine("- "),
+                        icon: "format_list_bulleted",
+                        label: "Bullet list",
+                    },
+                    {
+                        fn: () => applyLine("1. "),
+                        icon: "format_list_numbered",
+                        label: "Numbered list",
+                    },
+                    {
+                        fn: () => applyInline("`"),
+                        icon: "code",
+                        label: "Inline code",
+                    },
+                    {
+                        fn: () => applyInline("```\\n", "\\n```"),
+                        icon: "code",
+                        label: "Code block",
+                    },
+                    {
+                        fn: () => applyInline("$$", "$$"),
+                        icon: "functions",
+                        label: "Math",
+                    },
+                    {
+                        fn: () => applyInline("[", "](url)"),
+                        icon: "link",
+                        label: "Link",
+                    },
+                    {
+                        fn: () => applyInline("![](", ")"),
+                        icon: "image",
+                        label: "Image",
+                    },
+                ].map(({ fn, icon, label }) => (
+                    <button
+                        key={label}
+                        type="button"
+                        onClick={fn}
+                        aria-label={label}
+                        title={label}
+                        className="p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                        <span className="material-icons text-gray-600">
+                            {icon}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
+            {/* editor + preview */}
+            <div className="flex flex-1 divide-x divide-gray-200 overflow-hidden">
+                <div className="w-1/2 p-4">
+                    <label htmlFor="editor-area" className="sr-only">
+                        {mode === "markdown"
+                            ? "Markdown editor"
+                            : "LaTeX editor"}
+                    </label>
+                    <textarea
+                        id="editor-area"
+                        ref={textareaRef}
+                        value={content}
+                        onChange={onChange}
+                        placeholder={
+                            mode === "markdown"
+                                ? "Type Markdown here…"
+                                : "Type LaTeX here…"
+                        }
+                        className="w-full h-full p-2 font-mono text-sm text-gray-800 resize-none
+                       focus:outline-none focus:ring-2 rounded-sm focus:ring-orange-500 border border-transparent"
+                    />
+                </div>
+                <div
+                    className="w-1/2 p-4 overflow-auto bg-white"
+                    role="region"
+                    aria-label="Preview"
+                    aria-live="polite"
+                >
+                    <div
+                        className="prose prose-sm sm:prose lg:prose-lg text-gray-800"
+                        dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                    />
                 </div>
             </div>
         </div>
