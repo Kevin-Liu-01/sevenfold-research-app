@@ -95,7 +95,7 @@ const WorkbenchPage: React.FC = () => {
                 selectedPaperId={selectedPaper?.id || null}
                 onCreateDocument={createNewDocument}
             />
-            <main className="ml-[4rem] flex-1 mt-2 rounded-tl-2xl bg-white">
+            <main className="ml-[4.5rem] z-5 flex-1 my-2 mr-2 border overflow-hidden border-gray-200 rounded-lg bg-white">
                 {ViewerComponent}
             </main>
         </div>

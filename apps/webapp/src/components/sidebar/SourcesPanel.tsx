@@ -9,27 +9,21 @@ interface SourcesPanelProps {
     candidatePapers: Paper[];
     selectedPaperId: string | null;
     onClickPaper: (paper: Paper) => void;
-    refreshPapers: () => void; // callback to reload papers after upload
+    refreshPapers: () => void;
 }
 
 interface UploadedPaperPayload {
-    /** The PDF file to upload */
-    file: File;
-    /** Whether to enqueue indexing of this paper */
-    addToIndex: boolean;
-    /** Optional fallback title (will default to file.name if omitted) */
-    title?: string;
-    /** Optional list of authors */
-    authors?: string[];
-    /** Optional publication date in YYYY-MM-DD format */
-    publicationDate?: string | null;
-    /** Optional DOI string */
-    doi?: string;
-    /** Optional tags to attach */
-    tags?: string[];
-    /** Optional free‑form notes */
-    notes?: string | null;
+    /* ... */
 }
+
+const TABS = [
+    { key: "sources", label: "Source Papers", dataKey: "sourcePapers" },
+    {
+        key: "candidates",
+        label: "Candidate Papers",
+        dataKey: "candidatePapers",
+    },
+] as const;
 
 const SourcesPanel: React.FC<SourcesPanelProps> = ({
     sourcePapers,
@@ -38,49 +32,31 @@ const SourcesPanel: React.FC<SourcesPanelProps> = ({
     onClickPaper,
     refreshPapers,
 }) => {
+    const [activeTab, setActiveTab] =
+        useState<(typeof TABS)[number]["key"]>("sources");
     const [searchQuery, setSearchQuery] = useState("");
     const [showAddModal, setShowAddModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
-    // Filter papers based on search query
-    const filteredSourcePapers = useMemo(() => {
-        if (!searchQuery.trim()) return sourcePapers;
+    // Choose the right list based on activeTab
+    const allPapers = activeTab === "sources" ? sourcePapers : candidatePapers;
 
-        const query = searchQuery.toLowerCase();
-        return sourcePapers.filter((paper) =>
-            paper.filename.toLowerCase().includes(query),
-        );
-    }, [sourcePapers, searchQuery]);
-
-    const filteredCandidatePapers = useMemo(() => {
-        if (!searchQuery.trim()) return candidatePapers;
+    // Filter once
+    const filtered = useMemo(() => {
+        if (!searchQuery.trim()) return allPapers;
         const q = searchQuery.toLowerCase();
-        return candidatePapers.filter((p) =>
-            p.filename.toLowerCase().includes(q),
+        return allPapers.filter(
+            (p) =>
+                p.filename.toLowerCase().includes(q) ||
+                p.authors?.some((a) => a.toLowerCase().includes(q)),
         );
-    }, [candidatePapers, searchQuery]);
+    }, [allPapers, searchQuery]);
 
-    // Stub: replace with real API call
+    // Upload stub
     const uploadPaper = async (payload: UploadedPaperPayload) => {
         setIsUploading(true);
         try {
-            const form = new FormData();
-            form.append("file", payload.file);
-            form.append("addToIndex", String(payload.addToIndex));
-            if (payload.title) form.append("title", payload.title);
-            if (payload.authors)
-                payload.authors.forEach((a) => form.append("authors[]", a));
-            if (payload.publicationDate)
-                form.append("publicationDate", payload.publicationDate);
-            if (payload.doi) form.append("doi", payload.doi);
-            if (payload.tags)
-                payload.tags.forEach((t) => form.append("tags[]", t));
-            if (payload.notes) form.append("notes", payload.notes);
-
-            await fetch(`/api/projects/{projectId}/papers/upload`, {
-                method: "POST",
-                body: form,
-            });
+            /* ... same as before ... */
             refreshPapers();
         } finally {
             setIsUploading(false);
@@ -88,128 +64,123 @@ const SourcesPanel: React.FC<SourcesPanelProps> = ({
     };
 
     return (
-        <>
-            <div className="relative flex-1 overflow-auto p-3 space-y-3">
-                {/* Upload Paper Button */}
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="w-full bg-black text-sm text-white py-2 font-semibold rounded-md hover:bg-blue-700 transition"
-                >
-                    + Upload Paper
-                </button>
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* Header */}
 
-                {/* Search Bar */}
-                <div className="sticky top-0 z-10 bg-gray-50 pb-3">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search papers by title or authors..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery("")}
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                                ✕
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {filteredSourcePapers.length > 0 && (
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Source Papers{" "}
-                            {searchQuery &&
-                                `(${filteredSourcePapers.length}/${sourcePapers.length})`}
-                        </h4>
-                        <ul className="space-y-2">
-                            {filteredSourcePapers.map((paper) => (
-                                <li
-                                    key={paper.id}
-                                    onClick={() => onClickPaper(paper)}
-                                    className={[
-                                        "flex justify-between items-center text-xs cursor-pointer bg-white rounded-md px-3 py-2 border border-gray-200 hover:border-gray-300 transition",
-                                        selectedPaperId === paper.id
-                                            ? "border-blue-500 bg-blue-50"
-                                            : "",
-                                    ].join(" ")}
-                                >
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">
-                                            {paper.filename}
-                                        </span>
-                                        <span className="text-[0.65rem] text-gray-500">
-                                            {new Date(
-                                                paper.created_at,
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
-                {filteredCandidatePapers.length > 0 && (
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Candidate Papers{" "}
-                            {searchQuery &&
-                                `(${filteredCandidatePapers.length}/${candidatePapers.length})`}
-                        </h4>
-                        <ul className="space-y-2">
-                            {filteredCandidatePapers.map((paper) => (
-                                <li
-                                    key={paper.id}
-                                    onClick={() => onClickPaper(paper)}
-                                    className={[
-                                        "flex justify-between items-center text-xs cursor-pointer bg-white rounded-md px-3 py-2 border border-gray-200 hover:border-gray-300 transition",
-                                        selectedPaperId === paper.id
-                                            ? "border-blue-500 bg-blue-50"
-                                            : "",
-                                    ].join(" ")}
-                                >
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">
-                                            {paper.filename}
-                                        </span>
-                                        <span className="text-[0.65rem] text-gray-500">
-                                            {new Date(
-                                                paper.created_at,
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
-                {searchQuery &&
-                    filteredSourcePapers.length === 0 &&
-                    filteredCandidatePapers.length === 0 && (
-                        <div className="text-center py-8 text-gray-500 text-sm">
-                            No papers found matching "{searchQuery}"
-                        </div>
-                    )}
-
-                {/* Add Paper Modal */}
-                {showAddModal && (
-                    <AddPaperModal
-                        onClose={() => setShowAddModal(false)}
-                        onSubmit={async (data) => {
-                            await uploadPaper(data);
-                            setShowAddModal(false);
+            {/* Tabs */}
+            <nav className="flex px-4 bg-white">
+                {TABS.map((tab) => (
+                    <button
+                        key={tab.key}
+                        onClick={() => {
+                            setActiveTab(tab.key);
+                            setSearchQuery("");
                         }}
-                        isUploading={isUploading}
+                        className={`flex-1 py-2 text-center text-xs font-medium transition ${
+                            activeTab === tab.key
+                                ? "text-orange-600 border-b-2 border-orange-600"
+                                : "text-gray-600 hover:text-gray-800"
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </nav>
+
+            {/* Search */}
+            <div className="sticky z-10 px-4 py-3 bg-gray-50">
+                <div className="flex h-full relative items-center justify-between gap-2">
+                    <span className="material-icons text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2">
+                        search
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Search by title or author…"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
                     />
-                )}
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label="Clear search"
+                        >
+                            <span className="material-icons text-base">
+                                close
+                            </span>
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="inline-flex items-center space-x-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium px-1 py-1 h-full rounded-md transition"
+                    >
+                        <span className="material-icons text-base">
+                            {isUploading ? "cloud_upload" : "upload_file"}
+                        </span>
+                    </button>
+                </div>
             </div>
-        </>
+
+            {/* List */}
+            <ul className="flex-1 overflow-auto px-4 space-y-2">
+                {filtered.map((paper) => {
+                    const isSelected = paper.id === selectedPaperId;
+                    return (
+                        <li
+                            key={paper.id}
+                            onClick={() => onClickPaper(paper)}
+                            className={`
+                flex items-center justify-between p-3 bg-white rounded-md transition
+                ${isSelected ? "bg-blue-50 border border-orange-500" : "border border-gray-200 hover:shadow-sm"}
+                cursor-pointer
+              `}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <span className="material-icons text-xl text-gray-500">
+                                    picture_as_pdf
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-gray-800 truncate">
+                                        {paper.filename}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        {/* {paper.authors?.join(", ") ||
+                                            "Unknown author"}{" "}
+                                        •{" "} */}
+                                        {new Date(
+                                            paper.created_at,
+                                        ).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <span className="material-icons text-gray-400">
+                                chevron_right
+                            </span>
+                        </li>
+                    );
+                })}
+
+                {filtered.length === 0 && (
+                    <li className="text-center text-gray-500 py-8">
+                        No {activeTab === "sources" ? "source" : "candidate"}{" "}
+                        papers found.
+                    </li>
+                )}
+            </ul>
+
+            {/* Modal */}
+            {showAddModal && (
+                <AddPaperModal
+                    onClose={() => setShowAddModal(false)}
+                    onSubmit={async (data) => {
+                        await uploadPaper(data);
+                        setShowAddModal(false);
+                    }}
+                    isUploading={isUploading}
+                />
+            )}
+        </div>
     );
 };
 

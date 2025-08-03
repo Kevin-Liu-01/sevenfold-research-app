@@ -94,6 +94,45 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const currentTab = hoveredTab ?? "search";
   const togglePin = () => setIsPinned((p) => !p);
+    const renderPanel = () => {
+        const visible = isExpanded || isPinned;
+        return (
+            <div
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: sidebarWidth,
+                    height: "100vh",
+                    width: panelWidth,
+                }}
+                className={
+                    `bg-stone-50 border-r border-gray-200 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+                    (visible
+                        ? "translate-x-0 opacity-100 pointer-events-auto"
+                        : "-translate-x-full opacity-0 pointer-events-none")
+                }
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between pl-2 pr-4 py-1 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                        {currentTab}
+                    </h3>
+                    <button
+                        onClick={togglePin}
+                        className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-150 focus:outline-none"
+                        title={isPinned ? "Unpin panel" : "Pin panel"}
+                    >
+                        <span
+                            className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
+                                isPinned
+                                    ? "material-icons"
+                                    : "material-icons-outlined"
+                            }`}
+                        >
+                            push_pin
+                        </span>
+                    </button>
+                </div>
 
   const handleClickPaper = (paper: Paper) => {
     onPaperSelect(paper);
