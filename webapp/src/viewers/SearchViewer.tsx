@@ -2,14 +2,15 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
-interface Author { authorId: string; name: string }
 interface Paper {
-    paperId: string;
+    id: string;
+    paper_id: string;
     title: string;
     abstract?: string;
     year?: number;
-    url?: string;
-    authors?: Author[];
+    authors?: string[];
+    pdf_uri?: string;
+    doi?: string;
 }
 
 const SearchBox: React.FC<{
@@ -134,11 +135,11 @@ const ResultsList: React.FC<{ results: Paper[] }> = ({ results }) => (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {results.map((paper) => (
             <div
-                key={paper.paperId}
+                key={paper.paper_id}
                 className="p-4 rounded-md shadow-sm space-y-1"
             >
                 <a
-                    href={paper.url}
+                    href={paper.pdf_uri}
                     className="block text-lg font-semibold text-blue-800 hover:underline"
                 >
                     {paper.title}
@@ -146,7 +147,7 @@ const ResultsList: React.FC<{ results: Paper[] }> = ({ results }) => (
                 <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
                     {paper.authors && (
-                        <span>{paper.authors.map((a) => a.name).join(", ")}</span>
+                        <span>{paper.authors.join(", ")}</span>
                     )}
                 </div>
                 {paper.abstract && (
