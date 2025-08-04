@@ -1,6 +1,7 @@
 // src/components/viewers/SearchViewer.tsx
 import React, { useState, useEffect, FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BlockMath, InlineMath } from "react-katex";
 
 interface Paper {
     id: string;
@@ -18,41 +19,56 @@ const SearchBox: React.FC<{
     onQueryChange: (q: string) => void;
     onSubmit: (e: FormEvent) => void;
     loading: boolean;
-}> = ({ query, onQueryChange, onSubmit, loading }) => (
-    <div className="flex flex-col space-y-1 max-w-2xl w-full">
-        <h1 className="text-2xl font-semibold mb-4 text-gray-700">
-            What Will You Discover Today?
-        </h1>
-        <form onSubmit={onSubmit} className="flex-1">
-            <label className="sr-only">Search for papers</label>
-            <div className="relative">
-                <textarea
-                    rows={4}
-                    value={query}
-                    onChange={(e) => onQueryChange(e.target.value)}
-                    placeholder="Search for papers…"
-                    className={`
-                        w-full resize-none rounded-md border border-gray-300
-                        px-3 py-2 pr-10 text-gray-700 placeholder-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-kets-yellow
-                    `}
-                />
-                {loading && (
-                    <span className="material-icons animate-spin absolute top-2 right-10 text-gray-400">
-                        hourglass_empty
-                    </span>
-                )}
-                <button
-                    type="submit"
-                    className="absolute bottom-3 right-2 p-1 bg-kets-green hover:bg-green-400 text-black rounded-lg w-8 h-8 justify-center items-center"
-                    aria-label="Submit search"
-                >
-                    <span className="material-icons text-base">arrow_forward</span>
-                </button>
-            </div>
-        </form>
-    </div>
-);
+}> = ({ query, onQueryChange, onSubmit, loading }) => {
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault(); // prevent newline
+            // Create a synthetic form submit event
+            const form = e.currentTarget.form;
+            if (form) {
+                form.requestSubmit();
+            }
+        }
+    };
+
+    return (
+        <div className="flex flex-col space-y-1 max-w-2xl w-full">
+            <h1 className="text-2xl font-semibold mb-4 text-gray-700">
+                What Will You Discover Today?
+            </h1>
+            <form onSubmit={onSubmit} className="flex-1">
+                <label className="sr-only">Search for papers</label>
+                <div className="relative">
+                    <textarea
+                        rows={4}
+                        value={query}
+                        onChange={(e) => onQueryChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search for papers…"
+                        className={`
+                            w-full resize-none rounded-md border border-gray-300
+                            px-3 py-2 pr-10 text-gray-700 placeholder-gray-400
+                            focus:outline-none focus:ring-2 focus:ring-kets-yellow
+                        `}
+                    />
+                    {loading && (
+                        <span className="material-icons animate-spin absolute top-3 right-3 text-gray-400">
+                            hourglass_empty
+                        </span>
+                    )}
+                    <button
+                        type="submit"
+                        className="absolute bottom-3 right-2 p-1 bg-kets-green hover:bg-green-400 text-black rounded-lg w-8 h-8 justify-center items-center"
+                        aria-label="Submit search"
+                    >
+                        <span className="material-icons text-base">arrow_forward</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
 
 const YearFilter: React.FC<{
     year: number | "";
@@ -105,7 +121,6 @@ const YearFilter: React.FC<{
 };
 
 type Preset = "L" | "M" | "H";
-
 const WeightTabs: React.FC<{
     label: string;
     preset: Preset;
@@ -131,27 +146,40 @@ const WeightTabs: React.FC<{
     </div>
 );
 
+const renderWithLatex = (text: string) => {
+    // Replace LaTeX delimiters if needed
+    // Common formats: $...$, $$...$$, \(...\), \[...\]
+    return text.split(/(\$\$.*?\$\$|\$.*?\$)/g).map((part, i) => {
+        if (part.startsWith("$$") && part.endsWith("$$")) {
+            return <BlockMath key={i} math={part.slice(2, -2)} />;
+        }
+        if (part.startsWith("$") && part.endsWith("$")) {
+            return <InlineMath key={i} math={part.slice(1, -1)} />;
+        }
+        return part; // normal text
+    });
+};
+
 const ResultsList: React.FC<{ results: Paper[] }> = ({ results }) => (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {results.map((paper) => (
-            <div
-                key={paper.paper_id}
-                className="p-4 rounded-md shadow-sm space-y-1"
-            >
+            <div key={paper.paper_id} className="space-y-1 max-w-6xl">
                 <a
                     href={paper.pdf_uri}
-                    className="block text-lg font-semibold text-blue-800 hover:underline"
+                    className="block text-md font-semibold text-blue-800 hover:underline"
                 >
-                    {paper.title}
+                    {renderWithLatex(paper.title)}
                 </a>
-                <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
+                <div className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
                     {paper.authors && (
                         <span>{paper.authors.join(", ")}</span>
                     )}
                 </div>
                 {paper.abstract && (
-                    <p className="text-gray-700 line-clamp-3">{paper.abstract}</p>
+                    <p className="text-gray-700 line-clamp-3 text-sm">
+                        {renderWithLatex(paper.abstract)}
+                    </p>
                 )}
             </div>
         ))}
@@ -217,7 +245,7 @@ const SearchViewer: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen p-6">
-            <div className="flex flex-row gap-8 p-3">
+            <div className="flex flex-row gap-8 p-3 mb-4 border-b border-gray-200">
                 <SearchBox
                     query={query}
                     onQueryChange={setQuery}
