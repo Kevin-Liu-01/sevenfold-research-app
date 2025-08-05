@@ -1,30 +1,48 @@
+// Fully upgraded ChatViewer.tsx with:
+// - Project details integration via useWorkbench
+// - Suggested questions
+// - User & AI profile pictures
+// - Modern orange+white UI with material icons
+
 import React, { useState, useRef, useEffect } from "react";
+import { useWorkbench } from "../context/WorkbenchContext";
 
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
+  status?: "loading" | "error" | "sent";
 }
 
+const suggestions = [
+  "What are key gaps in the related literature?",
+  "Summarize this paper's contributions in 2 lines.",
+  "Suggest follow-up experiments based on our topic.",
+  "Help me create a new abstract for this project.",
+];
+
 const ChatViewer: React.FC = () => {
+  const { papers } = useWorkbench();
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-resize textarea
+  // Resize input
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [inputValue]);
 
-  // Scroll to bottom when new messages are added
+  // Auto-scroll
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -33,175 +51,192 @@ const ChatViewer: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
-  const sendMessage = () => {
-    if (inputValue.trim()) {
-      // Add user message
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        text: inputValue.trim(),
-        isUser: true,
-        timestamp: new Date()
-      };
+  const sendMessage = (customText?: string) => {
+    const text = (customText || inputValue).trim();
+    if (!text) return;
 
-      // Add AI response
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "Thank you for your message! I'm here to help with your research and questions. This is a placeholder response while the backend is being developed.",
-        isUser: false,
-        timestamp: new Date()
-      };
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      text,
+      isUser: true,
+      timestamp: new Date(),
+      status: "sent",
+    };
 
-      setMessages(prev => [...prev, userMessage, aiMessage]);
-      setInputValue("");
-    }
+    const placeholder: Message = {
+      id: (Date.now() + 1).toString(),
+      text: "Thinking...",
+      isUser: false,
+      timestamp: new Date(),
+      status: "loading",
+    };
+
+    setMessages((prev) => [...prev, userMsg, placeholder]);
+    setInputValue("");
+    setLoading(true);
+
+    // Simulate async response
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === placeholder.id
+            ? {
+                ...m,
+                text: `Response to: "${text}"`,
+                status: "sent",
+              }
+            : m
+        )
+      );
+      setLoading(false);
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-white" style={{ marginLeft: '70px' }}>
-      {messages.length === 0 ? (
-        // Initial state - centered layout
-        <div className="flex flex-col items-center justify-center h-screen px-8">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <h1 className="text-5xl font-bold text-gray-900">ketspen</h1>
-          </div>
-
-          {/* Centered Input Bar */}
-          <div className="w-full max-w-4xl">
-            <div className="bg-gray-50 rounded-xl p-4 flex items-start gap-3">
-              {/* Input Field */}
-              <div className="flex-1">
-                <textarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask anything..."
-                  className="w-full bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg resize-none overflow-y-auto"
-                  style={{ 
-                    minHeight: '24px', 
-                    maxHeight: '200px',
-                    lineHeight: '1.5'
-                  }}
-                  rows={1}
-                />
-              </div>
-
-              {/* Send Button */}
-              <div className="flex items-center pt-1">
-                <button 
-                  onClick={sendMessage}
-                  disabled={!inputValue.trim()}
-                  className="text-gray-600 hover:text-gray-800 transition-colors p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="material-icons text-lg">send</span>
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="h-full flex flex-col bg-gray-100">
+      {/* Header */}
+      <header className="bg-white flex items-center justify-between px-6 py-4 border-b border-orange-200 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="material-icons text-orange-500">psychology</span>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+            Chat
+          </h1>
         </div>
-      ) : (
-        // Chat state - professional layout
-        <div className="flex flex-col h-screen">
-          {/* Header */}
-          <div className="flex-shrink-0 py-6 px-8 border-b border-gray-100">
-            <h1 className="text-2xl font-semibold text-gray-900">ketspen</h1>
-          </div>
+        <div className="flex items-center gap-3 text-sm text-gray-600">
+          <span className="material-icons text-base">folder</span>
+          <span>{papers.length} papers loaded</span>
+        </div>
+      </header>
 
-          {/* Sticky User Query Header */}
-          {messages.length > 0 && messages.some(m => m.isUser) && (
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-8 py-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-900 truncate">
-                    {messages.filter(m => m.isUser).slice(-1)[0]?.text || "Current Question"}
-                  </h3>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* Suggestions */}
+      {messages.length === 0 && (
+        <div className="p-6 m-6 rounded-2xl border-b border-kets-orange-200 bg-kets-orange-100 flex flex-wrap gap-3">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => sendMessage(s)}
+              className="bg-white border border-orange-200 text-orange-600 text-sm px-4 py-2 rounded-full hover:bg-orange-50 transition"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
 
-          {/* Chat Messages Area */}
-          <div 
-            ref={chatContainerRef}
-            className="flex-1 overflow-y-auto px-8 py-6"
-            style={{ maxHeight: 'calc(100vh - 200px)' }}
+      {/* Chat body */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-6"
+      >
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${msg.isUser ? "justify-end" : "justify-start"}`}
           >
-            <div className="max-w-4xl mx-auto">
-              {messages.map((message, index) => {
-                // Check if this is the start of a new conversation (user message after an AI message)
-                const isNewConversation = message.isUser && index > 0 && !messages[index - 1].isUser;
-                
-                return (
-                  <div key={message.id} className={`${isNewConversation ? 'mt-12 pt-8 border-t border-gray-400' : ''}`}>
-                    <div className="space-y-4">
-                      {message.isUser ? (
-                        // User question as header
-                        <div>
-                          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            {message.text}
-                          </h2>
-                          <div className="w-16 h-px bg-gray-300"></div>
+            <div className="flex items-end gap-2 max-w-xl">
+              {!msg.isUser && (
+                <img
+                  src="/branding/logo-sq.png"
+                  alt="AI"
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
+              <div
+                className={`relative rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border max-w-xl whitespace-pre-line
+                  ${
+                    msg.isUser
+                      ? "bg-orange-500 text-white border-orange-300 rounded-br-none"
+                      : "bg-gray-50 text-gray-800 border-gray-200 rounded-bl-none"
+                  }`}
+              >
+                {msg.status === "loading" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-gray-400 italic">
+                      <span className="material-icons animate-spin text-sm">
+                        autorenew
+                      </span>
+                      <span>Thinking...</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {papers.slice(0, 3).map((p, i) => (
+                        <div
+                          key={i}
+                          className="text-xs bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-1"
+                        >
+                          {p.filename || "Untitled"}
                         </div>
-                      ) : (
-                        // AI response
-                        <div className="text-gray-700 leading-relaxed">
-                          <p className="text-base">{message.text}</p>
+                      ))}
+                      {papers.length > 3 && (
+                        <div className="text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-1">
+                          +{papers.length - 3} more
                         </div>
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Input Bar */}
-          <div className="flex-shrink-0 p-6 border-t border-gray-200">
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-gray-50 rounded-xl p-4 flex items-start gap-3">
-                {/* Input Field */}
-                <div className="flex-1">
-                  <textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask anything..."
-                    className="w-full bg-transparent text-gray-900 placeholder-gray-500 outline-none text-lg resize-none overflow-y-auto"
-                    style={{ 
-                      minHeight: '24px', 
-                      maxHeight: '200px',
-                      lineHeight: '1.5'
-                    }}
-                    rows={1}
-                  />
-                </div>
-
-                {/* Send Button */}
-                <div className="flex items-center pt-1">
-                  <button 
-                    onClick={sendMessage}
-                    disabled={!inputValue.trim()}
-                    className="text-gray-600 hover:text-gray-800 transition-colors p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className="material-icons text-lg">send</span>
-                  </button>
-                </div>
+                ) : (
+                  <>
+                    <p>{msg.text}</p>
+                    {!msg.isUser && msg.status === "sent" && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {papers.slice(0, 2).map((p, i) => (
+                          <div
+                            key={i}
+                            className="text-xs bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-1"
+                          >
+                            {p.filename || "Untitled"}
+                          </div>
+                        ))}
+                        {papers.length > 2 && (
+                          <div className="text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-1">
+                            +{papers.length - 2} more
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
+              {msg.isUser && (
+                <img
+                  src="/branding/default-avatar.jpg"
+                  alt="You"
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="bg-white border-t border-kets-orange-200 p-4">
+        <div className="flex items-center gap-3 bg-gray-50 border border-orange-200 rounded-2xl px-4 py-3 shadow-sm">
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask a research question..."
+            className="flex-1 bg-transparent resize-none text-gray-900 placeholder-gray-400 text-base focus:outline-none"
+            rows={1}
+          />
+          <button
+            onClick={() => sendMessage()}
+            disabled={!inputValue.trim() || loading}
+            className="text-kets-orange-500 hover:text-kets-orange-700 transition disabled:opacity-30"
+          >
+            <span className="material-icons ">send</span>
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default ChatViewer; 
+export default ChatViewer;
