@@ -1,5 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useWorkbench } from "../context/WorkbenchContext";
+
+// --- Toast Types ---
+type Toast = { id: number; message: string; type: "success" | "error" };
 
 const ChatViewer: React.FC = () => {
   const { papers } = useWorkbench();
@@ -14,23 +17,102 @@ const ChatViewer: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [responseHeight, setResponseHeight] = useState(0);
   const [loading, setLoading] = useState(false);
-
   const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(
     papers.map((p) => p.id)
   );
 
-  const responsesWrapperRef = useRef<HTMLDivElement>(null);
+  // --- Toast State & Handlers ---
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+  const addToast = (message: string, type: Toast["type"]) => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
 
-  useEffect(() => {
-    const el = responsesWrapperRef.current?.children[
-      currentIndex
-    ] as HTMLElement;
-    if (el) {
-      setResponseHeight(el.offsetHeight);
+  // --- File Upload Handlers ---
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleFile = async (file: File) => {
+    try {
+      // TODO: replace with real upload logic
+      console.log("Uploading file:", file.name);
+      addToast(`Uploaded: ${file.name}`, "success");
+    } catch (err) {
+      console.error("Upload error:", err);
+      addToast("File upload failed.", "error");
     }
-  }, [currentIndex]);
+  };
 
-  const handleSubmit = () => {
+  const handleFiles = (files: FileList) => {
+    Array.from(files).forEach(handleFile);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  // --- API UTILITIES ---
+  const fetchTabs = async () => {
+    try {
+      const res = await fetch("/tabs");
+      if (!res.ok) throw new Error("Failed to fetch tabs");
+      return await res.json();
+    } catch (err) {
+      console.error("Error fetching tabs:", err);
+      addToast("Error loading conversations.", "error");
+      return [];
+    }
+  };
+
+  const fetchProjectTabs = async (projectId: string) => {
+    try {
+      const res = await fetch(`/tabs/project/${projectId}`);
+      if (!res.ok) throw new Error("Failed to fetch project conversations");
+      return await res.json();
+    } catch (err) {
+      console.error("Error fetching project tabs:", err);
+      addToast("Could not load project conversations.", "error");
+      return [];
+    }
+  };
+
+  const fetchMessages = async (tabId: string) => {
+    try {
+      const res = await fetch(`/tabs/${tabId}/messages`);
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return await res.json();
+    } catch (err) {
+      console.error("Error loading conversation messages:", err);
+      addToast("Failed to load messages.", "error");
+      return [];
+    }
+  };
+
+  const deleteTab = async (tabId: string) => {
+    try {
+      const res = await fetch(`/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: tabId }),
+      });
+      if (!res.ok) throw new Error("Failed to delete tab");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      addToast("Could not delete conversation.", "error");
+    }
+  };
+
+  // --- SUBMIT MESSAGE ---
+  const handleSubmit = async () => {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
@@ -41,20 +123,38 @@ const ChatViewer: React.FC = () => {
     ]);
     setInputValue("");
 
-    setTimeout(() => {
+    try {
+      const chatRes = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: trimmed,
+          paperIds: selectedPaperIds,
+          useEmbeddings: true,
+        }),
+      });
+
+      if (!chatRes.ok) throw new Error("Chat request failed");
+
+      const data = await chatRes.json();
+      setResponses((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1].response = data.response || "No reply.";
+        return updated;
+      });
+      setCurrentIndex((prev) => responses.length);
+    } catch (err) {
+      console.error("Chat error:", err);
       setResponses((prev) => {
         const updated = [...prev];
         updated[updated.length - 1].response =
-          `This is a placeholder response using ${selectedPaperIds.length} paper(s).`;
+          "Error: Could not process your request.";
         return updated;
       });
-
-      if (responses.length > 0) {
-        setCurrentIndex(responses.length);
-      }
-
+      addToast("Could not process request.", "error");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const togglePaperSelection = (id: string) => {
@@ -63,33 +163,42 @@ const ChatViewer: React.FC = () => {
     );
   };
 
-  // Throttle scroll to once per 500ms
+  // --- HANDLE HEIGHT ---
+  useEffect(() => {
+    const el = responsesWrapperRef.current?.children[
+      currentIndex
+    ] as HTMLElement;
+    if (el) {
+      setResponseHeight(el.offsetHeight);
+    }
+  }, [currentIndex, responses.length]);
+
+  // refs for scroll & responses
+  const responsesWrapperRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // --- SCROLL EVENTS ---
   useEffect(() => {
     const container = responsesWrapperRef.current?.parentElement?.parentElement;
-
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
       if (scrollTimeout.current) return;
-
       if (e.deltaY > 30) {
         setCurrentIndex((i) => Math.min(i + 1, responses.length - 1));
       } else if (e.deltaY < -30) {
         setCurrentIndex((i) => Math.max(i - 1, 0));
       }
-
       scrollTimeout.current = setTimeout(() => {
         scrollTimeout.current = null;
-      }, 200); // throttle duration
+      }, 200);
     };
 
     container.addEventListener("wheel", handleWheel, { passive: true });
-
     return () => container.removeEventListener("wheel", handleWheel);
   }, [responses.length]);
 
+  // --- ARROW KEY SCROLL ---
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
@@ -98,13 +207,60 @@ const ChatViewer: React.FC = () => {
         setCurrentIndex((i) => Math.max(i - 1, 0));
       }
     };
-
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [responses.length]);
 
+  // --- LOAD INITIAL TAB/MESSAGES ---
+  useEffect(() => {
+    const loadInitial = async () => {
+      const tabs = await fetchTabs();
+      if (tabs.length > 0) {
+        const messages = await fetchMessages(tabs[0].id);
+        const conv = {
+          query: messages.find((m: any) => m.isUser)?.text || "User query",
+          response: messages.find((m: any) => !m.isUser)?.text || "AI response",
+          tab: "response" as const,
+        };
+        setResponses([conv]);
+      }
+    };
+    loadInitial();
+  }, []);
+
   return (
-    <div className="min-h-screen max-w-5xl mx-auto flex justify-center bg-white px-8 pt-10 pb-20">
+    <div
+      className="min-h-screen max-w-5xl mx-auto flex justify-center bg-white px-8 pt-10 pb-20"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Toast Container */}
+      <div className="fixed bottom-4 right-4 space-y-2 z-50">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`px-4 py-2 rounded-lg shadow-lg border text-white whitespace-nowrap ${
+              t.type === "success"
+                ? "bg-green-500"
+                : "bg-red-400 border-red-500"
+            }`}
+          >
+            <span className="material-icons align-middle mr-2">
+              {t.type === "success" ? "check_circle" : "error"}
+            </span>
+            {t.message}
+          </div>
+        ))}
+      </div>
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        className="hidden"
+        ref={fileInputRef}
+        multiple
+        onChange={(e) => e.target.files && handleFiles(e.target.files)}
+      />
       {responses.length === 0 && (
         <div className="flex flex-col w-full my-auto items-center text-center">
           <img
@@ -257,9 +413,9 @@ const ChatViewer: React.FC = () => {
             </div>
           </div>
 
-          {/* Follow-up input */}
+          {/* Input area */}
           <div className="fixed bottom-0 left-0 w-full py-4 z-10">
-            <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-3 shadow-sm">
+            <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
               <textarea
                 placeholder="Ask another question..."
                 className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
@@ -275,17 +431,17 @@ const ChatViewer: React.FC = () => {
               />
               <div className="flex justify-between items-center mt-3">
                 <div className="flex gap-2">
-                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-lg px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
+                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                     <span className="material-icons text-base">
                       attach_file
                     </span>
                     File
                   </button>
-                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-lg px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
+                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                     <span className="material-icons text-base">mic</span>
                     Dictate
                   </button>
-                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-lg px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
+                  <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                     <span className="material-icons text-base">smart_toy</span>
                     Model
                   </button>
@@ -301,7 +457,7 @@ const ChatViewer: React.FC = () => {
             </div>
           </div>
 
-          {/* Manual scroll controls */}
+          {/* Scroll controls */}
           <div className="absolute top-4 right-4 flex gap-2 z-10">
             <button
               onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))}
