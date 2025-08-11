@@ -21,10 +21,6 @@ model.load_adapter(
 model.set_active_adapters("specter2_adhoc_query")
 model.eval()
 
-class SearchRequest(BaseModel):
-    query: str
-    match_count: int = 30
-
 def embed_query(query: str) -> List[float]:
     with torch.no_grad():
         inputs = tokenizer(
@@ -117,20 +113,40 @@ def get_project_context_similarity(
                         for idx, (pid, score) in enumerate(ranked_papers)]
     }
 
+class SearchRequest(BaseModel):
+    query: str
+    # project_id: str
+    match_count: int = 30
+    lexical_weight: float = 1.0
+    semantic_weight: float = 1.0
+    context_weight: float = 1.0
+    rrf_k: int = 50
+    min_year: int = 2005
+
 @router.post("/", response_model=List[dict])
 async def hybrid_search(request: SearchRequest):
     """
     Perform hybrid search using query embeddings and lexical ranking.
     """
-    embedding = embed_query(request.query)
-    
+    query_embedding = embed_query(request.query)
+    # context_embedding = get_project_context(request.project_id)
+    context_embedding = np.zeros(768).tolist()
+
     resp = supabase.rpc(
         "hybrid_search",
         {
             "query_text": request.query,
-            "query_embedding": embedding,
+            "query_embedding": query_embedding,
+            "context_embedding": context_embedding,
             "match_count": request.match_count,
+            "lexical_weight": request.lexical_weight,
+            "semantic_weight": request.semantic_weight,
+            "context_weight": request.context_weight,
+            "rrf_k": request.rrf_k,
+            "min_year": request.min_year
         },
     ).execute()
+
+    print(resp)
 
     return resp.data or []

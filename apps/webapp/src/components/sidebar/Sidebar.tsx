@@ -20,266 +20,265 @@ import { useAuth } from "../../context/AuthContext";
 import SidebarButton from "./SidebarButton";
 import SourcesPanel from "./SourcesPanel";
 import type { Paper } from "../../../database.types";
+import DocumentsPanel from "./DocumentsPanel";
 import FeedbackPopup from "./FeedbackPopup";
 
 type NavItem = { icon: string; viewer: string; label: string };
 const navItems: NavItem[] = [
-  { icon: "search", label: "Search", viewer: "search" },
-  { icon: "source", label: "Sources", viewer: "paper" },
-  { icon: "3p", label: "Chat", viewer: "chat" },
-  { icon: "edit", label: "Editor", viewer: "editor" },
-  { icon: "settings", label: "Settings", viewer: "settings" },
+    { icon: "search", label: "Search", viewer: "search" },
+    { icon: "3p", label: "Chat", viewer: "chat" },
+    { icon: "source", label: "Sources", viewer: "paper" },
+    { icon: "edit", label: "Editor", viewer: "compose" },
+    { icon: "settings", label: "Settings", viewer: "settings" },
 ];
 
 interface SidebarProps {
-  activeViewer: string;
-  setActiveViewer: (view: string) => void;
-  sourcePapers: Paper[];
-  candidatePapers: Paper[];
-  onPaperSelect: (paper: Paper) => void;
-  selectedPaperId: string | null;
+    activeViewer: string;
+    setActiveViewer: (view: string) => void;
+    sourcePapers: Paper[];
+    candidatePapers: Paper[];
+    onPaperSelect: (paper: Paper) => void;
+    selectedPaperId: string | null;
+    onCreateDocument: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  activeViewer,
-  setActiveViewer,
-  sourcePapers,
-  candidatePapers,
-  onPaperSelect,
-  selectedPaperId,
+    activeViewer,
+    setActiveViewer,
+    sourcePapers,
+    candidatePapers,
+    onPaperSelect,
+    selectedPaperId,
+    // onCreateDocument,
 }) => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // Remove onMouseEnter/onMouseLeave from the sidebar container
-  // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-  // Only open the panel if a button is hovered or the panel is hovered
-  const [buttonHovered, setButtonHovered] = useState(false);
-  const [panelHovered, setPanelHovered] = useState(false);
+    const { user, signOut } = useAuth();
+    const navigate = useNavigate();
+    const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isPinned, setIsPinned] = useState(false);
+    const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+    // const [isLogoHovered, setIsLogoHovered] = useState(false);
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isPinned) {
-      if (buttonHovered || panelHovered) {
-        setIsExpanded(true);
-      } else {
-        setIsExpanded(false);
-        setHoveredTab(null);
-      }
-    }
-  }, [buttonHovered, panelHovered, isPinned]);
+    const sidebarWidth = 70;
+    const panelWidth = 280;
 
-  const sidebarWidth = 70;
-  const panelWidth = 280;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const avatarRef = useRef<HTMLDivElement>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const avatarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onClickOutside = (e: MouseEvent) => {
-      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
-        setAvatarMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
-
-  const currentTab = hoveredTab ?? "search";
-  const togglePin = () => setIsPinned((p) => !p);
-
-  const handleClickPaper = (paper: Paper) => {
-    onPaperSelect(paper);
-    setActiveViewer("paper");
-    if (!isPinned) setIsExpanded(false);
-  };
-
-  const renderPanel = () => {
-    const visible = isExpanded || isPinned;
-    return (
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: sidebarWidth,
-          height: "100vh",
-          width: panelWidth,
-        }}
-        className={
-          `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
-          (visible
-            ? "translate-x-0 opacity-100 pointer-events-auto"
-            : "-translate-x-full opacity-0 pointer-events-none")
-        }
-        onMouseEnter={() => setPanelHovered(true)}
-        onMouseLeave={() => setPanelHovered(false)}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">{currentTab}</h3>
-          <button
-            onClick={togglePin}
-            className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-150 focus:outline-none"
-            title={isPinned ? "Unpin panel" : "Pin panel"}
-          >
-            <span
-              className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
-                isPinned ? "material-icons" : "material-icons-outlined"
-              }`}
-            >
-              push_pin
-            </span>
-          </button>
-        </div>
-
-        {/* Body */}
-        {currentTab === "Sources" ? (
-          <SourcesPanel
-            sourcePapers={sourcePapers}
-            candidatePapers={candidatePapers}
-            selectedPaperId={selectedPaperId}
-            onClickPaper={handleClickPaper}
-          />
-        ) : (
-          <div className="p-4 text-gray-500">
-            {" "}
-            {/* stub for other panels */}
-            {currentTab} content…
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative"
-      // Remove onMouseEnter/onMouseLeave from the sidebar container
-      // Add buttonHovered state, set true on SidebarButton onMouseEnter, false onMouseLeave
-      // Only open the panel if a button is hovered or the panel is hovered
-      // onMouseEnter={() => {
-      //   if (!isPinned) setIsExpanded(true);
-      // }}
-      // onMouseLeave={() => {
-      //   if (!isPinned) setIsExpanded(false);
-      // }}
-    >
-      {/* Sidebar */}
-      <div
-        className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
-        style={{ width: sidebarWidth, height: "100vh" }}
-      >
-        {/* Logo */}
-        <div className="mb-12">
-          <button
-            onClick={() => navigate('/home')}
-            className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
-            title="Go to Homepage"
-          >
-            <img src="/images/logo.png" alt="Logo" className="h-12 w-12" />
-          </button>
-        </div>
-
-        {/* Nav buttons */}
-        <nav className="flex-1 flex flex-col justify-top space-y-6">
-          {navItems.map((item) => {
-            const isActive = activeViewer === item.viewer;
-            return (
-              <SidebarButton
-                key={item.viewer}
-                icon={item.icon}
-                label={item.label}
-                active={isActive}
-                onHover={() => setHoveredTab(item.label)}
-                onMouseEnter={() => setButtonHovered(true)}
-                onMouseLeave={() => setButtonHovered(false)}
-                onClick={() => setActiveViewer(item.viewer)}
-              />
-            );
-          })}
-        </nav>
-
-        {/* Move Feedback Button above Account/Avatar section */}
-        <div className="w-full flex flex-col items-center mt-6 mb-2">
-          <button
-            className="group flex flex-col items-center justify-center focus:outline-none"
-            style={{ width: 48, height: 48 }}
-            onClick={() => setFeedbackOpen(true)}
-            title="Send Feedback"
-          >
-            <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
-              <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
-                feedback
-              </span>
-            </div>
-            <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
-              Feedback
-            </span>
-          </button>
-          {feedbackOpen && (
-            <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
-          )}
-        </div>
-        {/* Avatar + popup */}
-        <div ref={avatarRef} className="relative mt-6">
-          <div
-            onClick={() => setAvatarMenuOpen((o) => !o)}
-            className="flex flex-col justify-center"
-          >
-            <img
-              src={
-                user?.user_metadata?.avatar_url ||
-                "https://avatars.githubusercontent.com/u/66856750?v=4"
-              }
-              alt="Avatar"
-              className="h-8 w-8 mx-auto rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
-            />
-            <span className="cursor-pointer text-[0.7rem] mt-0.5 transition-all duration-200">
-              Account
-            </span>
-          </div>
-
-          <div
-            className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${
-              avatarMenuOpen
-                ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
-                : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-            } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
-          >
-            <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-              onClick={() => setAvatarMenuOpen(false)}
-            >
-              Account
-            </button>
-            <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-              onClick={() => setAvatarMenuOpen(false)}
-            >
-              Settings
-            </button>
-            <button
-              className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
-              onClick={() => {
+    useEffect(() => {
+        const onClickOutside = (e: MouseEvent) => {
+            if (
+                avatarRef.current &&
+                !avatarRef.current.contains(e.target as Node)
+            ) {
                 setAvatarMenuOpen(false);
-                signOut();
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
+            }
+        };
+        document.addEventListener("mousedown", onClickOutside);
+        return () => document.removeEventListener("mousedown", onClickOutside);
+    }, []);
 
-      {/* Panel */}
-      {hoveredTab != "Settings" && renderPanel()}
-    </div>
-  );
+    const currentTab = hoveredTab ?? "search";
+    const togglePin = () => setIsPinned((p) => !p);
+
+    const handleClickPaper = (paper: Paper) => {
+        onPaperSelect(paper);
+        setActiveViewer("paper");
+        if (!isPinned) setIsExpanded(false);
+    };
+
+    const renderPanel = () => {
+        const visible = isExpanded || isPinned;
+        return (
+            <div
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: sidebarWidth,
+                    height: "100vh",
+                    width: panelWidth,
+                }}
+                className={
+                    `bg-stone-50 border-r border-gray-100 shadow-lg z-20 transform-gpu transition-all duration-300 ease-in-out ` +
+                    (visible
+                        ? "translate-x-0 opacity-100 pointer-events-auto"
+                        : "-translate-x-full opacity-0 pointer-events-none")
+                }
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                        {currentTab}
+                    </h3>
+                    <button
+                        onClick={togglePin}
+                        className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-150 focus:outline-none"
+                        title={isPinned ? "Unpin panel" : "Pin panel"}
+                    >
+                        <span
+                            className={`text-gray-500 hover:text-gray-700 transition-colors duration-150 ${
+                                isPinned
+                                    ? "material-icons"
+                                    : "material-icons-outlined"
+                            }`}
+                        >
+                            push_pin
+                        </span>
+                    </button>
+                </div>
+
+                {/* Body */}
+                {currentTab === "Sources" ? (
+                    <SourcesPanel
+                        sourcePapers={sourcePapers}
+                        candidatePapers={candidatePapers}
+                        selectedPaperId={selectedPaperId}
+                        onClickPaper={handleClickPaper}
+                        refreshPapers={function (): void {
+                            throw new Error("Function not implemented.");
+                        }}
+                    />
+                ) : currentTab === "Editor" ? (
+                    <DocumentsPanel
+                        documents={[
+                            { id: "doc1", title: "Research Outline" },
+                            { id: "doc2", title: "Meeting Notes" },
+                            { id: "doc3", title: "Draft Summary" },
+                        ]}
+                        selectedDocId={" your selected document ID "}
+                        onCreateDocument={function (): void {
+                            throw new Error("Function not implemented.");
+                        }}
+                        onClickDocument={function (): void {
+                            throw new Error("Function not implemented.");
+                        }}
+                    />
+                ) : (
+                    <div className="p-4 text-gray-500">
+                        {" "}
+                        {/* stub for other panels */}
+                        {currentTab} content…
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            className="relative"
+            onMouseEnter={() => {
+                if (!isPinned) setIsExpanded(true);
+            }}
+            onMouseLeave={() => {
+                if (!isPinned) setIsExpanded(false);
+            }}
+        >
+            {/* Sidebar */}
+            <div
+                className="fixed inset-y-0 left-0 bg-stone-50 z-30 flex flex-col items-center py-4"
+                style={{ width: sidebarWidth, height: "100vh" }}
+            >
+                {/* Logo */}
+                <div className="mb-12">
+                    <button
+                        onClick={() => navigate("/home")}
+                        className="hover:opacity-80 transition-opacity duration-200 focus:outline-none"
+                        title="Go to Homepage"
+                    >
+                        <img
+                            src="/branding/logo-sq.png"
+                            alt="Logo"
+                            className="h-12 w-12"
+                        />
+                    </button>
+                </div>
+
+                {/* Nav buttons */}
+                <nav className="flex-1 flex flex-col justify-top space-y-6">
+                    {navItems.map((item) => {
+                        const isActive = activeViewer === item.viewer;
+                        return (
+                            <SidebarButton
+                                key={item.viewer}
+                                icon={item.icon}
+                                label={item.label}
+                                active={isActive}
+                                onHover={() => setHoveredTab(item.label)}
+                                onClick={() => setActiveViewer(item.viewer)}
+                            />
+                        );
+                    })}
+                </nav>
+
+                {/* Move Feedback Button above Account/Avatar section */}
+                <div className="w-full flex flex-col items-center mt-6 mb-2">
+                    <button
+                        className="group flex flex-col items-center justify-center focus:outline-none"
+                        style={{ width: 48, height: 48 }}
+                        onClick={() => setFeedbackOpen(true)}
+                        title="Send Feedback"
+                    >
+                        <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
+                            <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
+                                feedback
+                            </span>
+                        </div>
+                        <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+                            Feedback
+                        </span>
+                    </button>
+                    {feedbackOpen && (
+                        <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+                    )}
+                </div>
+                {/* Avatar + popup */}
+                <div ref={avatarRef} className="relative mt-6">
+                    <div
+                        onClick={() => setAvatarMenuOpen((o) => !o)}
+                        className="flex flex-col justify-center"
+                    >
+                        <img
+                            src={
+                                user?.user_metadata?.avatar_url ||
+                                "https://avatars.githubusercontent.com/u/66856750?v=4"
+                            }
+                            alt="Avatar"
+                            className="h-8 w-8 mx-auto rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
+                        />
+                        <span className="cursor-pointer text-[0.7rem] mt-0.5 transition-all duration-200">
+                            Account
+                        </span>
+                    </div>
+
+                    <div
+                        className={`absolute text-xs left-[calc(100%-0.5rem)] transform-gpu transition-all duration-200 ease-out ${
+                            avatarMenuOpen
+                                ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
+                                : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
+                        } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
+                    >
+                        <button
+                            className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
+                            onClick={() => {
+                                setAvatarMenuOpen(false);
+                                signOut();
+                            }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Panel */}
+            {hoveredTab != "Settings" &&
+                hoveredTab != "Search" &&
+                renderPanel()}
+        </div>
+    );
 };
 
 export default Sidebar;
