@@ -230,7 +230,7 @@ const ChatViewer: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen max-w-5xl mx-auto flex justify-center bg-white px-8 pt-10 pb-20"
+      className="min-h-screen max-w-5xl mx-auto flex justify-center bg-app-inner px-8 pt-10 pb-20"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
