@@ -23,7 +23,7 @@ export default function SidebarButton({
     // conditional classes
     const boxState = active
         ? "bg-lime-500 text-black shadow-sm"
-        : "text-gray-500 group-hover:text-lime-500";
+        : "text-gray-700 group-hover:text-lime-500";
     const iconState = active
         ? "text-lg scale-110 text-white"
         : "text-base group-hover:scale-110";

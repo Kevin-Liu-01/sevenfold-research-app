@@ -116,7 +116,7 @@ const SourcesViewer: React.FC = () => {
 
     if (!selectedPaper) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-app-inner">
                 <span className="material-icons text-8xl text-orange-300 mb-4 animate-pulse">
                     description
                 </span>
