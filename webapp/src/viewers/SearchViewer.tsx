@@ -25,8 +25,7 @@ const SearchBox: React.FC<{
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault(); // prevent newline
-            // Create a synthetic form submit event
+            e.preventDefault();
             const form = e.currentTarget.form;
             if (form) {
                 form.requestSubmit();
@@ -122,7 +121,7 @@ const YearFilter: React.FC<{
     );
 };
 
-type Preset = "L" | "M" | "H";
+type Preset = "OFF" | "L" | "M" | "H";
 const WeightTabs: React.FC<{
     label: string;
     preset: Preset;
@@ -131,7 +130,7 @@ const WeightTabs: React.FC<{
     <div className="flex flex-col space-y-1">
         <span className="text-sm font-medium text-gray-500">{label} Weight</span>
         <div className="flex space-x-2">
-            {(["L", "M", "H"] as Preset[]).map((p) => (
+            {(["OFF", "L", "M", "H"] as Preset[]).map((p) => (
                 <button
                     key={p}
                     type="button"
@@ -375,9 +374,9 @@ const SearchViewer: React.FC = () => {
     const [semPreset, setSemPreset] = useState<Preset>("M");
     const [ctxPreset, setCtxPreset] = useState<Preset>("M");
 
-    const kwPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
-    const semPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
-    const ctxPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
+    const kwPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
+    const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
+    const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
     const doSearch = async () => {
         setLoading(true);
