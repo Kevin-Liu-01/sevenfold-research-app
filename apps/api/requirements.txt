@@ -11,3 +11,4 @@ torch
 adapters
 transformers
 numpy
+anthropic

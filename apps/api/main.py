@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.papers import router as papers_router
 from routes.projects import router as projects_router
 from routes.search import router as search_router
+from routes.chatbot import router as chatbot_router
 
 app = FastAPI()
 
@@ -25,3 +26,4 @@ app.add_middleware(
 app.include_router(papers_router)
 app.include_router(projects_router)
 app.include_router(search_router)
+app.include_router(chatbot_router)
