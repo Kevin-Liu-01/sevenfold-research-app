@@ -1,7 +1,10 @@
 // src/components/viewers/SearchViewer.tsx
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BlockMath, InlineMath } from "react-katex";
+import { useWorkbench } from "../context/WorkbenchContext";
+import supabase from "../auth/supabaseClient";
+
+import PaperDetailsModal from "./PaperDetailsModal";
 
 interface Paper {
     id: string;
@@ -23,8 +26,7 @@ const SearchBox: React.FC<{
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault(); // prevent newline
-            // Create a synthetic form submit event
+            e.preventDefault();
             const form = e.currentTarget.form;
             if (form) {
                 form.requestSubmit();
@@ -120,7 +122,7 @@ const YearFilter: React.FC<{
     );
 };
 
-type Preset = "L" | "M" | "H";
+type Preset = "OFF" | "L" | "M" | "H";
 const WeightTabs: React.FC<{
     label: string;
     preset: Preset;
@@ -129,7 +131,7 @@ const WeightTabs: React.FC<{
     <div className="flex flex-col space-y-1">
         <span className="text-sm font-medium text-gray-500">{label} Weight</span>
         <div className="flex space-x-2">
-            {(["L", "M", "H"] as Preset[]).map((p) => (
+            {(["OFF", "L", "M", "H"] as Preset[]).map((p) => (
                 <button
                     key={p}
                     type="button"
@@ -146,31 +148,25 @@ const WeightTabs: React.FC<{
     </div>
 );
 
-const renderWithLatex = (text: string) => {
-    // Replace LaTeX delimiters if needed
-    // Common formats: $...$, $$...$$, \(...\), \[...\]
-    return text.split(/(\$\$.*?\$\$|\$.*?\$)/g).map((part, i) => {
-        if (part.startsWith("$$") && part.endsWith("$$")) {
-            return <BlockMath key={i} math={part.slice(2, -2)} />;
-        }
-        if (part.startsWith("$") && part.endsWith("$")) {
-            return <InlineMath key={i} math={part.slice(1, -1)} />;
-        }
-        return part; // normal text
-    });
-};
 
-const ResultsList: React.FC<{ results: Paper[] }> = ({ results }) => (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+const ResultsList: React.FC<{ 
+    results: Paper[];
+    onPaperClick: (paper: Paper) => void;
+}> = ({ results, onPaperClick }) => (
+    <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {results.map((paper) => (
-            <div key={paper.paper_id} className="space-y-1 max-w-6xl">
+            <div
+                key={paper.paper_id}
+                onClick={onPaperClick}
+                className="p-4 rounded-md shadow-sm space-y-1"
+            >
                 <a
                     href={paper.pdf_uri}
-                    className="block text-md font-semibold text-blue-800 hover:underline"
+                    className="block text-lg font-semibold text-blue-800 hover:underline"
                 >
-                    {renderWithLatex(paper.title)}
+                    {paper.title}
                 </a>
-                <div className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
+                <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
                     {paper.authors && (
                         <span>{paper.authors.join(", ")}</span>
@@ -178,7 +174,7 @@ const ResultsList: React.FC<{ results: Paper[] }> = ({ results }) => (
                 </div>
                 {paper.abstract && (
                     <p className="text-gray-700 line-clamp-3 text-sm">
-                        {renderWithLatex(paper.abstract)}
+                        {paper.abstract}
                     </p>
                 )}
             </div>
@@ -194,6 +190,12 @@ const SearchViewer: React.FC = () => {
     const [query, setQuery] = useState(searchParams.get("q") ?? "");
     const [results, setResults] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
+    
+    // Modal state
+    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+
+    // Get workbench context for project management
+    const { refreshPapers } = useWorkbench();
 
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
@@ -201,9 +203,9 @@ const SearchViewer: React.FC = () => {
     const [semPreset, setSemPreset] = useState<Preset>("M");
     const [ctxPreset, setCtxPreset] = useState<Preset>("M");
 
-    const kwPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
-    const semPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
-    const ctxPresetVals: Record<Preset, number> = { L: 0.1, M: 0.5, H: 0.9 };
+    const kwPresetVals: Record<Preset, number> = { OFF: 0.1, L: 0.3, M: 0.7, H: 1.0 };
+    const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.2, M: 0.5, H: 0.9 };
+    const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
     const doSearch = async () => {
         setLoading(true);
@@ -239,6 +241,71 @@ const SearchViewer: React.FC = () => {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         doSearch();
+    };
+
+    const handlePaperClick = (paper: Paper) => {
+        setSelectedPaper(paper);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedPaper(null);
+    };
+
+    const handleAddToProject = async (paper: Paper) => {
+        try {
+            // Get auth session from Supabase
+            const { data, error: authErr } = await supabase.auth.getSession();
+            if (authErr || !data?.session?.access_token) {
+                throw new Error('No auth session found');
+            }
+
+            // Get project ID from URL or context
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project') || window.location.pathname.split('/').pop();
+            
+            if (!projectId) {
+                throw new Error('No project ID found');
+            }
+
+            if (!paper.pdf_uri) {
+                throw new Error('No PDF URI available for this paper');
+            }
+
+            // Create FormData for copy-from-library endpoint
+            const formData = new FormData();
+            formData.append('pdf_uri', paper.pdf_uri);
+            formData.append('project_id', projectId);
+            formData.append('paper_type', 'candidate');
+            formData.append('filename', `${paper.title || paper.paper_id}.pdf`);
+
+            // Use the new copy-from-library endpoint
+            const response = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/papers/copy-from-library`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${data.session.access_token}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to add paper: ${errorData.detail || 'Unknown error'}`);
+            }
+
+            // Refresh papers in the workbench
+            await refreshPapers();
+            
+            // Close modal and show success
+            setSelectedPaper(null);
+            console.log('Paper added to project successfully!');
+            
+        } catch (error) {
+            console.error("Failed to add paper to project:", error);
+            throw error; // Re-throw so the modal can handle the error state
+        }
     };
 
     useEffect(() => { if (query) doSearch(); }, []);
@@ -282,7 +349,13 @@ const SearchViewer: React.FC = () => {
                 </div>
             </div>
 
-            <ResultsList results={results} />
+            <ResultsList results={results} onPaperClick={handlePaperClick} />
+            
+            <PaperDetailsModal 
+                paper={selectedPaper}
+                onClose={handleCloseModal}
+                onAddToProject={handleAddToProject}
+            />
         </div>
     );
 };
