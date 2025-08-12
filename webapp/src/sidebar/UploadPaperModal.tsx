@@ -1,4 +1,3 @@
-// Modal to add new papers
 import React, { useState, useRef, type DragEvent } from "react";
 import Modal from "../components/ui/Modal";
 import type { Upload } from "lucide-react";

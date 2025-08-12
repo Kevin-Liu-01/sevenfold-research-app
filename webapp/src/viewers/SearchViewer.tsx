@@ -3,7 +3,8 @@ import React, { useState, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
-import { BlockMath, InlineMath } from "react-katex";
+
+import PaperDetailsModal from "./PaperDetailsModal";
 
 interface Paper {
     id: string;
@@ -147,188 +148,16 @@ const WeightTabs: React.FC<{
     </div>
 );
 
-const renderWithLatex = (text: string) => {
-    // Replace LaTeX delimiters if needed
-    // Common formats: $...$, $$...$$, \(...\), \[...\]
-    return text.split(/(\$\$.*?\$\$|\$.*?\$)/g).map((part, i) => {
-        if (part.startsWith("$$") && part.endsWith("$$")) {
-            return <BlockMath key={i} math={part.slice(2, -2)} />;
-        }
-        if (part.startsWith("$") && part.endsWith("$")) {
-            return <InlineMath key={i} math={part.slice(1, -1)} />;
-        }
-        return part; // normal text
-    });
-};
-
-const PaperModal: React.FC<{
-    paper: Paper | null;
-    onClose: () => void;
-    onAddToProject: (paper: Paper) => void;
-}> = ({ paper, onClose, onAddToProject }) => {
-    const [isAddingToProject, setIsAddingToProject] = useState(false);
-
-    if (!paper) return null;
-
-    const handleBackdropClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Escape') {
-            onClose();
-        }
-    };
-
-    const handleViewPDF = async () => {
-        if (!paper.pdf_uri) {
-            console.error('No PDF URI available for this paper');
-            return;
-        }
-
-        try {
-            // Get auth session from Supabase
-            const { data, error: authErr } = await supabase.auth.getSession();
-            if (authErr || !data?.session?.access_token) {
-                console.error('No auth session found');
-                return;
-            }
-
-            // Remove "library/" prefix if present to get the file path
-            const filePath = paper.pdf_uri.replace("library/", "");
-            
-            // Get signed URL for the library file
-            const response = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/papers/library/${filePath}/signed-url`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${data.session.access_token}`,
-                    },
-                }
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                window.open(data.signed_url, '_blank');
-            } else {
-                console.error('Failed to get signed URL for PDF');
-            }
-        } catch (error) {
-            console.error('Error getting PDF URL:', error);
-        }
-    };
-
-    const handleAddClick = async () => {
-        setIsAddingToProject(true);
-        try {
-            await onAddToProject(paper);
-        } finally {
-            setIsAddingToProject(false);
-        }
-    };
-
-    return (
-        <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={handleBackdropClick}
-            onKeyDown={handleKeyDown}
-            tabIndex={-1}
-        >
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-                <div className="p-6">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900 pr-4">
-                            {paper.title}
-                        </h2>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                            aria-label="Close modal"
-                        >
-                            <span className="material-icons">close</span>
-                        </button>
-                    </div>
-
-                    {/* Authors and Year */}
-                    <div className="text-sm text-gray-600 mb-4 flex flex-wrap items-center gap-1">
-                        {paper.year && <span className="font-medium">{paper.year}</span>}
-                        {paper.year && paper.authors && <span>•</span>}
-                        {paper.authors && (
-                            <span>{paper.authors.join(", ")}</span>
-                        )}
-                    </div>
-
-                    {/* DOI */}
-                    {paper.doi && (
-                        <div className="text-sm text-gray-600 mb-4">
-                            <span className="font-medium">DOI: </span>
-                            <a 
-                                href={`https://doi.org/${paper.doi}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                            >
-                                {paper.doi}
-                            </a>
-                        </div>
-                    )}
-
-                    {/* Abstract */}
-                    {paper.abstract && (
-                        <div className="mb-6">
-                            <h3 className="font-medium text-gray-900 mb-2">Abstract</h3>
-                            <p className="text-gray-700 leading-relaxed">
-                                {paper.abstract}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 pt-4 border-t">
-                        <button
-                            onClick={handleAddClick}
-                            disabled={isAddingToProject}
-                            className={`flex-1 font-medium py-2 px-4 rounded-md transition-colors ${
-                                isAddingToProject 
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-kets-green hover:bg-green-500 text-black'
-                            }`}
-                        >
-                            {isAddingToProject ? 'Adding...' : 'Add to Project'}
-                        </button>
-                        {paper.pdf_uri && (
-                            <button
-                                onClick={handleViewPDF}
-                                className="flex-1 font-medium py-2 px-4 rounded-md transition-colors bg-gray-100 hover:bg-gray-200 text-gray-800"
-                            >
-                                View PDF
-                            </button>
-                        )}
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const ResultsList: React.FC<{ 
     results: Paper[];
     onPaperClick: (paper: Paper) => void;
 }> = ({ results, onPaperClick }) => (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {results.map((paper) => (
             <div
                 key={paper.paper_id}
+                onClick={onPaperClick}
                 className="p-4 rounded-md shadow-sm space-y-1"
             >
                 <a
@@ -345,7 +174,7 @@ const ResultsList: React.FC<{
                 </div>
                 {paper.abstract && (
                     <p className="text-gray-700 line-clamp-3 text-sm">
-                        {renderWithLatex(paper.abstract)}
+                        {paper.abstract}
                     </p>
                 )}
             </div>
@@ -374,8 +203,8 @@ const SearchViewer: React.FC = () => {
     const [semPreset, setSemPreset] = useState<Preset>("M");
     const [ctxPreset, setCtxPreset] = useState<Preset>("M");
 
-    const kwPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
-    const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
+    const kwPresetVals: Record<Preset, number> = { OFF: 0.1, L: 0.3, M: 0.7, H: 1.0 };
+    const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.2, M: 0.5, H: 0.9 };
     const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
     const doSearch = async () => {
@@ -522,7 +351,7 @@ const SearchViewer: React.FC = () => {
 
             <ResultsList results={results} onPaperClick={handlePaperClick} />
             
-            <PaperModal 
+            <PaperDetailsModal 
                 paper={selectedPaper}
                 onClose={handleCloseModal}
                 onAddToProject={handleAddToProject}
