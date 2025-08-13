@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import WorkbenchPage from "./pages/WorkbenchPage";
 import NewProjectPage from "./pages/NewProjectPage";
 import { ForgotPasswordPage, SigninPage, SignupPage } from "./pages/AuthPages";
+import WelcomePage from "./pages/WelcomePage";
 
 // import { ChatProvider } from "./context/ChatContext";
 // import ChatPage from "./pages/ChatPage";
@@ -20,6 +21,7 @@ export default function App() {
                 <Route path="/signin" element={<SigninPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/welcome" element={<WelcomePage />} />
 
                 {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>

@@ -148,7 +148,7 @@ export const SigninPage: React.FC = () => {
         setError("");
         try {
             await signIn(email, password);
-            navigate("/home");
+            navigate("/");
         } catch (err: any) {
             setError(err.message || "Error signing in");
         } finally {
