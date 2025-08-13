@@ -8,36 +8,15 @@ export type UUID = string;
 export type Vector768 = number[]; // length 768 expected
 
 /** ---------- user_profiles ---------- */
-export interface UserProfilesRow {
+export interface UserProfile {
     user_id: UUID;
     first_name: string;
     last_name: string;
-    pfp_path: string | null;
-    institution: string | null;
-    settings: Record<string, unknown>;
+    pfp_path?: string | null;
+    institution?: string | null;
+    settings?: Record<string, unknown> | null;
     created_at: string;   // ISO timestamp
     updated_at: string;   // ISO timestamp
-}
-
-export interface UserProfilesInsert {
-    user_id: UUID;
-    first_name: string;
-    last_name: string;
-    pfp_path?: string | null;
-    institution?: string | null;
-    settings?: Record<string, unknown>;
-    created_at?: string;
-    updated_at?: string;
-}
-
-export interface UserProfilesUpdate {
-    first_name?: string;
-    last_name?: string;
-    pfp_path?: string | null;
-    institution?: string | null;
-    settings?: Record<string, unknown>;
-    created_at?: string;
-    updated_at?: string;
 }
 
 /** ---------- projects ---------- */
