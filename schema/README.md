@@ -142,3 +142,24 @@ Private user papers obtained from uploading. Link a user-uploaded paper (in `pap
 - `embedding` — VECTOR(768); optional semantic vector for private retrieval  
 - `created_at` — TIMESTAMPTZ
 
+## project_paper_links
+
+**Purpose**  
+`project_paper_links` is a junction table representing the many-to-many relationship between `projects` and `paper_attrs`.  
+It also stores metadata about each relationship.
+
+**Fields**
+- `project_id` (UUID, FK → `projects.id`): The project this link belongs to.
+- `paper_id` (UUID, FK → `paper_attrs.id`): The paper being linked to the project.
+- `has_paper` (BOOLEAN, default `TRUE`): Indicates if the paper is currently part of the project.  
+  Allows soft removal without deleting the link.
+- `annotations` (XML, nullable): XML-encoded annotations tied to this paper–project relationship.
+- `added_at` (TIMESTAMPTZ): Timestamp of when the link was created.
+
+**Indexes**
+- `idx_project_paper_links_project_id`: Speeds up lookups by project.
+- `idx_project_paper_links_paper_id`: Speeds up lookups by paper.
+
+**Primary Key**
+- Composite key `(project_id, paper_id)` ensures uniqueness of links.
+
