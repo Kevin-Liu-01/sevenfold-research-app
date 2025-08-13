@@ -92,7 +92,6 @@ const WelcomePage: React.FC = () => {
                 contentType: avatarFile.type || "image/png",
             });
         if (upErr) {
-            console.log("error");
             throw upErr;
         }
         return key;
