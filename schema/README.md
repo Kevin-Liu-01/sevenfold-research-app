@@ -1,7 +1,14 @@
 # Supabase Schema
 
-PK = Primary Key
-FK = Foreign Key
+You can connect to the Ketspen primary database in Supabase via cli (note you must have `psql` installed):
+
+```sh
+psql -h db.rivimoqvqpbypjxfpfhl.supabase.co -p 5432 -d postgres -U postgres
+```
+
+Keywords:
+- PK = Primary Key
+- FK = Foreign Key
 
 ## user_profiles
 
@@ -72,4 +79,87 @@ UPDATE projects SET name = 'Lit Review (ViT)' WHERE owner_id = auth.uid();
 
 -- Delete your project
 DELETE FROM projects WHERE owner_id = auth.uid();
+```
+
+## paper_attrs
+
+**Purpose**  
+Canonical metadata for any paper (public or private). Other corpus tables reference this via `id`.
+
+**Columns**  
+- `id` (UUID, PK, default `gen_random_uuid()`)  
+- `title` (TEXT, NOT NULL)  
+- `abstract` (TEXT)  
+- `authors` (TEXT[])  
+- `year` (INT), `month` (INT), `day` (INT)  
+- `doi` (TEXT)  
+- `category` (TEXT)  
+- `pdf_uri` (TEXT) — storage URI/path to the PDF  
+- `created_at` (TIMESTAMPTZ, default `NOW()`)
+
+**Example Usage**
+
+```sql
+INSERT INTO paper_attrs (title, abstract, authors, year, doi, category, pdf_uri)
+VALUES (
+    'A Survey of Vision Transformers',
+    'We review…',
+    ARRAY['Doe, J.', 'Smith, A.'],
+    2024,
+    '10.1234/vit.2024.001',
+    'cs.CV',
+    'publ-corpus/pdfs/1234.pdf'
+)
+RETURNING id;
+```
+
+### publ_corpus
+
+**Purpose**  
+Public corpus created from Ketspen indexing. Link a public paper (in `paper_attrs`) to search fields used for retrieval (FTS + embeddings).
+
+**Columns**  
+- `paper_id` — UUID, PK, FK → `paper_attrs.id`  
+- `search_text` — TEXT; source text used to build FTS (e.g., title || abstract || authors)  
+- `embedding` — VECTOR(768); semantic vector for ANN search  
+- `fts` — TSVECTOR (generated from `search_text`)  
+- `source` - TEXT; where this paper was indexed from
+- `source_id` - TEXT; the id of this paper from its source
+- `created_at` — TIMESTAMPTZ
+
+**Indexes**  
+- `publ_corpus_fts_idx` — GIN on `fts`  
+- `publ_corpus_embedding_hnsw_l2` — HNSW on `embedding` (L2)
+
+### priv_corpus
+
+**Purpose**  
+Private user papers obtained from uploading. Link a user-uploaded paper (in `paper_attrs`) to its owner and optional embedding. Not included in public search.
+
+**Columns**  
+- `paper_id` — UUID, PK, FK → `paper_attrs.id`  
+- `user_id` — UUID, FK → `auth.users.id` (uploader/owner)  
+- `embedding` — VECTOR(768); optional semantic vector for private retrieval  
+- `created_at` — TIMESTAMPTZ
+
+## project_paper_links
+
+**Purpose**  
+`project_paper_links` is a junction table representing the many-to-many relationship between `projects` and `paper_attrs`.  
+It also stores metadata about each relationship.
+
+**Fields**
+- `project_id` (UUID, FK → `projects.id`): The project this link belongs to.
+- `paper_id` (UUID, FK → `paper_attrs.id`): The paper being linked to the project.
+- `has_paper` (BOOLEAN, default `TRUE`): Indicates if the paper is currently part of the project.  
+  Allows soft removal without deleting the link.
+- `annotations` (XML, nullable): XML-encoded annotations tied to this paper–project relationship.
+- `added_at` (TIMESTAMPTZ): Timestamp of when the link was created.
+
+**Indexes**
+- `idx_project_paper_links_project_id`: Speeds up lookups by project.
+- `idx_project_paper_links_paper_id`: Speeds up lookups by paper.
+
+**Primary Key**
+- Composite key `(project_id, paper_id)` ensures uniqueness of links.
 
