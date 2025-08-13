@@ -36,3 +36,40 @@ SET first_name  = EXCLUDED.first_name,
 -- Read your profile
 SELECT * FROM user_profiles WHERE user_id = auth.uid();
 ```
+
+## projects
+
+**Purpose**  
+Project container owned by a single user **today**. Uses `owner_id` so you can add multi-user memberships later without breaking schema.
+
+**Columns**  
+- `id` (UUID, PK)  
+- `owner_id` (UUID, FK → `auth.users.id`) — current owner; future collaborators can be added via a membership table  
+- `name` (TEXT, NOT NULL)  
+- `description` (TEXT)  
+- `settings` (JSONB, default `{}`)  
+- `created_at` / `updated_at` (TIMESTAMPTZ) — `updated_at` maintained by trigger
+
+**Indexes**  
+- `idx_projects_owner` on (`owner_id`) for fast "my projects" queries.
+
+**Security (RLS)**  
+- Enabled.  
+- Policies allow the **owner** to `SELECT / INSERT / UPDATE / DELETE`.  
+- When adding multi-user support later, introduce `project_memberships` and broaden policies to check membership.
+
+**Example usage**
+```sql
+-- Create a project you own
+INSERT INTO projects (owner_id, name, description)
+VALUES (auth.uid(), 'Lit Review', 'Vision Transformers');
+
+-- Read your project(s)
+SELECT * FROM projects WHERE owner_id = auth.uid();
+
+-- Update your project
+UPDATE projects SET name = 'Lit Review (ViT)' WHERE owner_id = auth.uid();
+
+-- Delete your project
+DELETE FROM projects WHERE owner_id = auth.uid();
+
