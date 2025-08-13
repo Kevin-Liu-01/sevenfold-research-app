@@ -4,28 +4,21 @@
 node_modules/
 .pnp/
 .pnp.js
-.pnp.*            # Covers variations
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.pnp.*
 
 # ------------------------------------------------------------------------------
 # Build Outputs
 # ------------------------------------------------------------------------------
-*.next/
-*out/
-*build/
-*dist/
-*.turbo/            # Turborepo cache
-*./turbo/
+dist/
+build/
+.vite/
+.turbo/
 
 # ------------------------------------------------------------------------------
 # Environment Files
 # ------------------------------------------------------------------------------
-*.env
-*.env.*
+.env
+.env.*
 
 # ------------------------------------------------------------------------------
 # Logs & Debug
@@ -42,13 +35,7 @@ lerna-debug.log*
 # Testing
 # ------------------------------------------------------------------------------
 coverage/
-*.tsbuildinfo      # TypeScript build info
-next-env.d.ts      # Next.js generated types
-
-# ------------------------------------------------------------------------------
-# Platform Specific
-# ------------------------------------------------------------------------------
-.vercel/           # Vercel build output
+*.tsbuildinfo
 
 # ------------------------------------------------------------------------------
 # Editor / OS
@@ -65,4 +52,3 @@ next-env.d.ts      # Next.js generated types
 # Misc
 # ------------------------------------------------------------------------------
 *.pem
-public/webviewer/* # PDFJS express static files
