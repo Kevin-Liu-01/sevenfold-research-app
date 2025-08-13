@@ -5,14 +5,9 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Eye, EyeOff, Github } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const AuthHeader: React.FC<{ title: string; description?: string }> = ({
-    title,
-    description,
-}) => (
+const AuthHeader: React.FC<{ title: string; description?: string }> = ({ title, description }) => (
     <div className="text-center">
-        <h1 className="text-4xl font-inter font-medium text-gray-900 mb-3">
-            {title}
-        </h1>
+        <h1 className="text-4xl font-inter font-medium text-gray-900 mb-3">{title}</h1>
         {description && <p className="text-gray-600">{description}</p>}
     </div>
 );
@@ -51,10 +46,7 @@ const InputField: React.FC<{
     type?: string;
 }> = ({ id, label, value, onChange, placeholder, type = "text" }) => (
     <div>
-        <label
-            htmlFor={id}
-            className="block text-sm font-medium text-gray-700 mb-2"
-        >
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
             {label}
         </label>
         <input
@@ -76,45 +68,34 @@ const PasswordField: React.FC<{
     placeholder: string;
     showPassword: boolean;
     setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
-}> = ({
-    id,
-    label,
-    value,
-    onChange,
-    placeholder,
-    showPassword,
-    setShowPassword,
-}) => (
-        <div>
-            <label
-                htmlFor={id}
-                className="block text-sm font-medium text-gray-700 mb-2"
+}> = ({ id, label, value, onChange, placeholder, showPassword, setShowPassword }) => (
+    <div>
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+        </label>
+        <div className="relative">
+            <input
+                id={id}
+                type={showPassword ? "text" : "password"}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10"
+            />
+            <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-                {label}
-            </label>
-            <div className="relative">
-                <input
-                    id={id}
-                    type={showPassword ? "text" : "password"}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10"
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                    {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                    ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                    )}
-                </button>
-            </div>
+                {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                )}
+            </button>
         </div>
-    );
+    </div>
+);
 
 const OAuthButton: React.FC<{
     icon?: React.ReactNode;
@@ -158,10 +139,7 @@ export const SigninPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="max-w-md w-full space-y-8">
-                <AuthHeader
-                    title="Welcome Back"
-                    description="Sign in to your account"
-                />
+                <AuthHeader title="Welcome Back" description="Sign in to your account" />
 
                 {successMessage && (
                     <div className="text-green-700 text-sm bg-green-100 p-3 rounded-md border border-green-300">
@@ -222,9 +200,7 @@ export const SigninPage: React.FC = () => {
                         />
                     </div>
 
-                    {error && (
-                        <div className="text-red-600 text-sm">{error}</div>
-                    )}
+                    {error && <div className="text-red-600 text-sm">{error}</div>}
 
                     <button
                         type="submit"
@@ -237,10 +213,7 @@ export const SigninPage: React.FC = () => {
 
                 <p className="text-center text-gray-600">
                     Don't have an account?{" "}
-                    <Link
-                        to="/signup"
-                        className="text-black hover:underline font-medium"
-                    >
+                    <Link to="/signup" className="text-black hover:underline font-medium">
                         Sign Up Now
                     </Link>
                 </p>
@@ -288,10 +261,7 @@ export const SignupPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="max-w-md w-full space-y-8">
-                <AuthHeader
-                    title="Get Started"
-                    description="Create a new account"
-                />
+                <AuthHeader title="Get Started" description="Create a new account" />
 
                 <div className="space-y-4">
                     <OAuthButton
@@ -344,9 +314,7 @@ export const SignupPage: React.FC = () => {
                             setShowPassword={setShowPassword}
                         />
 
-                        {error && (
-                            <div className="text-red-600 text-sm">{error}</div>
-                        )}
+                        {error && <div className="text-red-600 text-sm">{error}</div>}
                         <button
                             type="submit"
                             disabled={loading}
@@ -358,10 +326,7 @@ export const SignupPage: React.FC = () => {
 
                     <p className="text-center text-gray-600">
                         Have an account?{" "}
-                        <Link
-                            to="/signin"
-                            className="text-black hover:underline font-medium"
-                        >
+                        <Link to="/signin" className="text-black hover:underline font-medium">
                             Sign In Now
                         </Link>
                     </p>
@@ -401,14 +366,11 @@ export const ForgotPasswordPage: React.FC = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
                 <div className="max-w-md w-full space-y-4 text-center">
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Check your email
-                    </h1>
+                    <h1 className="text-3xl font-bold text-gray-900">Check your email</h1>
                     <p className="text-gray-600">
                         We’ve sent a password reset link to{" "}
-                        <span className="font-medium">{email}</span>. Please
-                        follow the instructions in the email to reset your
-                        password.
+                        <span className="font-medium">{email}</span>. Please follow the instructions
+                        in the email to reset your password.
                     </p>
                     <Link
                         to="/signin"
@@ -438,9 +400,7 @@ export const ForgotPasswordPage: React.FC = () => {
                         type="email"
                     />
 
-                    {error && (
-                        <div className="text-red-600 text-sm">{error}</div>
-                    )}
+                    {error && <div className="text-red-600 text-sm">{error}</div>}
 
                     <button
                         type="submit"
@@ -452,10 +412,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 </form>
 
                 <div className="text-center">
-                    <Link
-                        to="/signin"
-                        className="text-gray-600 hover:text-gray-800"
-                    >
+                    <Link to="/signin" className="text-gray-600 hover:text-gray-800">
                         Back to Sign In
                     </Link>
                 </div>

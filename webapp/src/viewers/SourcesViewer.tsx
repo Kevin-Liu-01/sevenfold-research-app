@@ -27,10 +27,8 @@ const SourcesViewer: React.FC = () => {
         (async () => {
             setLoading(true);
             try {
-                const { data, error: authErr } =
-                    await supabase.auth.getSession();
-                if (authErr || !data?.session?.access_token)
-                    throw new Error("Not authenticated");
+                const { data, error: authErr } = await supabase.auth.getSession();
+                if (authErr || !data?.session?.access_token) throw new Error("Not authenticated");
 
                 const res = await fetch(
                     `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/signed-url`,
@@ -38,7 +36,7 @@ const SourcesViewer: React.FC = () => {
                         headers: {
                             Authorization: `Bearer ${data.session.access_token}`,
                         },
-                    },
+                    }
                 );
                 if (!res.ok) {
                     const text = await res.text();
@@ -58,26 +56,24 @@ const SourcesViewer: React.FC = () => {
     useEffect(() => {
         if (viewerRef.current && !initRef.current) {
             initRef.current = true;
-            WebViewer({ path: "/webviewer" }, viewerRef.current).then(
-                (inst) => {
-                    setInstance(inst);
-                    inst.UI.disableElements(["ribbons", "toolsHeader"]);
-                    inst.UI.setZoomStepFactors([
-                        { step: 2, startZoom: 0 },
-                        { step: 5, startZoom: 50 },
-                        { step: 7, startZoom: 100 },
-                        { step: 15, startZoom: 200 },
-                    ]);
-                    const dv = inst.Core.documentViewer;
-                    dv.addEventListener("documentLoaded", () => {
-                        setPageCount(dv.getPageCount());
-                        setCurrentPage(dv.getCurrentPage());
-                        dv.addEventListener("pageNumberUpdated", (e: any) => {
-                            setCurrentPage(e.pageNumber);
-                        });
+            WebViewer({ path: "/webviewer" }, viewerRef.current).then((inst) => {
+                setInstance(inst);
+                inst.UI.disableElements(["ribbons", "toolsHeader"]);
+                inst.UI.setZoomStepFactors([
+                    { step: 2, startZoom: 0 },
+                    { step: 5, startZoom: 50 },
+                    { step: 7, startZoom: 100 },
+                    { step: 15, startZoom: 200 },
+                ]);
+                const dv = inst.Core.documentViewer;
+                dv.addEventListener("documentLoaded", () => {
+                    setPageCount(dv.getPageCount());
+                    setCurrentPage(dv.getCurrentPage());
+                    dv.addEventListener("pageNumberUpdated", (e: any) => {
+                        setCurrentPage(e.pageNumber);
                     });
-                },
-            );
+                });
+            });
         }
     }, []);
 
@@ -97,7 +93,7 @@ const SourcesViewer: React.FC = () => {
             const next = Math.min(Math.max(1, currentPage + delta), pageCount);
             instance.UI.setCurrentPage(next);
         },
-        [instance, currentPage, pageCount],
+        [instance, currentPage, pageCount]
     );
 
     const zoom = useCallback(
@@ -106,7 +102,7 @@ const SourcesViewer: React.FC = () => {
             instance.UI.zoomTo(zoomLevel + factor);
             setZoomLevel((z) => Math.min(Math.max(10, z + factor), 400));
         },
-        [instance, zoomLevel],
+        [instance, zoomLevel]
     );
 
     const retry = () => {
@@ -120,9 +116,7 @@ const SourcesViewer: React.FC = () => {
                 <span className="material-icons text-8xl text-orange-300 mb-4 animate-pulse">
                     description
                 </span>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                    No Paper Selected
-                </h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">No Paper Selected</h2>
                 <p className="text-gray-600 text-sm">
                     Please select a paper from the list to begin.
                 </p>
@@ -146,38 +140,26 @@ const SourcesViewer: React.FC = () => {
                         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                             {selectedPaper.authors && (
                                 <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">
-                                        people
-                                    </span>
-                                    <span>
-                                        {selectedPaper.authors.join(", ")}
-                                    </span>
+                                    <span className="material-icons text-base">people</span>
+                                    <span>{selectedPaper.authors.join(", ")}</span>
                                 </span>
                             )}
                             {selectedPaper.created_at && (
                                 <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">
-                                        calendar_today
-                                    </span>
+                                    <span className="material-icons text-base">calendar_today</span>
                                     <span>
-                                        {new Date(
-                                            selectedPaper.created_at,
-                                        ).toLocaleDateString()}
+                                        {new Date(selectedPaper.created_at).toLocaleDateString()}
                                     </span>
                                 </span>
                             )}
                             {pageCount > 0 && (
                                 <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">
-                                        menu_book
-                                    </span>
+                                    <span className="material-icons text-base">menu_book</span>
                                     <span>{pageCount} pages</span>
                                 </span>
                             )}
                             <span className="flex items-center space-x-1">
-                                <span className="material-icons text-base">
-                                    note
-                                </span>
+                                <span className="material-icons text-base">note</span>
                                 <span>—</span>
                             </span>
                         </div>
@@ -191,9 +173,7 @@ const SourcesViewer: React.FC = () => {
                         disabled={currentPage <= 1}
                         className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
                     >
-                        <span className="material-icons text-gray-600">
-                            chevron_left
-                        </span>
+                        <span className="material-icons text-gray-600">chevron_left</span>
                     </button>
                     <span className="text-sm text-gray-700">
                         {currentPage} / {pageCount || "—"}
@@ -203,9 +183,7 @@ const SourcesViewer: React.FC = () => {
                         disabled={currentPage >= pageCount}
                         className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
                     >
-                        <span className="material-icons text-gray-600">
-                            chevron_right
-                        </span>
+                        <span className="material-icons text-gray-600">chevron_right</span>
                     </button>
 
                     <div className="h-6 border-l border-gray-300" />
@@ -215,9 +193,7 @@ const SourcesViewer: React.FC = () => {
                         download={selectedPaper.filename}
                         className="p-2 rounded hover:bg-gray-100"
                     >
-                        <span className="material-icons text-gray-600">
-                            download
-                        </span>
+                        <span className="material-icons text-gray-600">download</span>
                     </a>
                 </div>
             </header>

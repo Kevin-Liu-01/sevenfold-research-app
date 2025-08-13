@@ -12,9 +12,7 @@ const COOKIE_NAME = "editorMode";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 function getCookie(name: string): string | null {
-    const match = document.cookie.match(
-        new RegExp("(?:^|; )" + name + "=([^;]*)"),
-    );
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
     return match ? decodeURIComponent(match[1]) : null;
 }
 function setCookie(name: string, value: string, maxAgeSeconds: number) {
@@ -26,7 +24,7 @@ function setCookie(name: string, value: string, maxAgeSeconds: number) {
 const Editor: React.FC<EditorProps> = ({ projectId }) => {
     // state & refs
     const [mode, setMode] = useState<"markdown" | "latex">(() =>
-        getCookie(COOKIE_NAME) === "latex" ? "latex" : "markdown",
+        getCookie(COOKIE_NAME) === "latex" ? "latex" : "markdown"
     );
     const [content, setContent] = useState("");
     const [renderedHtml, setRenderedHtml] = useState("");
@@ -53,7 +51,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                     headers: {
                         Authorization: `Bearer ${session.access_token}`,
                     },
-                },
+                }
             );
             if (res.ok) {
                 const data = await res.json();
@@ -72,7 +70,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                         breaks: true,
                         headerIds: true,
                         mangle: false,
-                    }),
+                    })
                 );
             } else {
                 try {
@@ -80,7 +78,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                         katex.renderToString(content, {
                             throwOnError: false,
                             displayMode: true,
-                        }),
+                        })
                     );
                 } catch {
                     setRenderedHtml(content);
@@ -112,7 +110,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                             Authorization: `Bearer ${session.access_token}`,
                         },
                         body: JSON.stringify({ editor_content: content }),
-                    },
+                    }
                 );
             })();
         }, 1000);
@@ -126,18 +124,14 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
         const { selectionStart, selectionEnd, value } = ta;
         const selected = value.slice(selectionStart, selectionEnd);
         const newText =
-            value.slice(0, selectionStart) +
-            pre +
-            selected +
-            post +
-            value.slice(selectionEnd);
+            value.slice(0, selectionStart) + pre + selected + post + value.slice(selectionEnd);
         setContent(newText);
         // restore cursor
         setTimeout(() => {
             ta.focus();
             ta.setSelectionRange(
                 selectionStart + pre.length,
-                selectionStart + pre.length + selected.length,
+                selectionStart + pre.length + selected.length
             );
         }, 0);
     };
@@ -157,8 +151,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
         setTimeout(() => ta?.focus(), 0);
     };
 
-    const onChange = (e: ChangeEvent<HTMLTextAreaElement>) =>
-        setContent(e.target.value);
+    const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value);
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
@@ -172,9 +165,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                     <select
                         id="mode-select"
                         value={mode}
-                        onChange={(e) =>
-                            setMode(e.target.value as "markdown" | "latex")
-                        }
+                        onChange={(e) => setMode(e.target.value as "markdown" | "latex")}
                         className="px-3 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
                         <option value="markdown">Markdown</option>
@@ -254,9 +245,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                         title={label}
                         className="p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
-                        <span className="material-icons text-gray-600">
-                            {icon}
-                        </span>
+                        <span className="material-icons text-gray-600">{icon}</span>
                     </button>
                 ))}
             </div>
@@ -265,9 +254,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
             <div className="flex flex-1 divide-x divide-gray-200 overflow-hidden">
                 <div className="w-1/2 p-4">
                     <label htmlFor="editor-area" className="sr-only">
-                        {mode === "markdown"
-                            ? "Markdown editor"
-                            : "LaTeX editor"}
+                        {mode === "markdown" ? "Markdown editor" : "LaTeX editor"}
                     </label>
                     <textarea
                         id="editor-area"
@@ -275,9 +262,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                         value={content}
                         onChange={onChange}
                         placeholder={
-                            mode === "markdown"
-                                ? "Type Markdown here…"
-                                : "Type LaTeX here…"
+                            mode === "markdown" ? "Type Markdown here…" : "Type LaTeX here…"
                         }
                         className="w-full h-full p-2 font-mono text-sm text-gray-800 resize-none
                        focus:outline-none focus:ring-2 rounded-sm focus:ring-orange-500 border border-transparent"

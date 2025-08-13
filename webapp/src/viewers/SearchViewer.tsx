@@ -5,17 +5,8 @@ import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
 
 import PaperDetailsModal from "./PaperDetailsModal";
+import type { Paper } from "../../../schema/db-types";
 
-interface Paper {
-    id: string;
-    paper_id: string;
-    title: string;
-    abstract?: string;
-    year?: number;
-    authors?: string[];
-    pdf_uri?: string;
-    doi?: string;
-}
 
 const SearchBox: React.FC<{
     query: string;
@@ -23,7 +14,6 @@ const SearchBox: React.FC<{
     onSubmit: (e: FormEvent) => void;
     loading: boolean;
 }> = ({ query, onQueryChange, onSubmit, loading }) => {
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -88,10 +78,11 @@ const YearFilter: React.FC<{
                             key={n}
                             type="button"
                             onClick={() => onYearChange(val)}
-                            className={`px-2 py-1 text-sm rounded ${year === val
-                                ? "bg-gray-800 text-white"
-                                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                                }`}
+                            className={`px-2 py-1 text-sm rounded ${
+                                year === val
+                                    ? "bg-gray-800 text-white"
+                                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            }`}
                         >
                             {n}Y
                         </button>
@@ -100,10 +91,11 @@ const YearFilter: React.FC<{
                 <button
                     type="button"
                     onClick={() => onYearChange("")}
-                    className={`px-2 py-1 text-sm rounded ${year === ""
-                        ? "bg-gray-800 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                        }`}
+                    className={`px-2 py-1 text-sm rounded ${
+                        year === ""
+                            ? "bg-gray-800 text-white"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
                 >
                     Custom
                 </button>
@@ -112,9 +104,7 @@ const YearFilter: React.FC<{
                 type="number"
                 max={current}
                 value={year}
-                onChange={(e) =>
-                    onYearChange(e.target.value === "" ? "" : +e.target.value)
-                }
+                onChange={(e) => onYearChange(e.target.value === "" ? "" : +e.target.value)}
                 placeholder="e.g. 2018"
                 className="border border-gray-300 rounded-md px-2 py-1 mt-2 text-sm focus:outline-none focus:ring-2 focus:ring-kets-yellow"
             />
@@ -136,10 +126,11 @@ const WeightTabs: React.FC<{
                     key={p}
                     type="button"
                     onClick={() => onChange(p)}
-                    className={`px-5 py-3/4 text-sm rounded ${preset === p
-                        ? "bg-kets-orange-400 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                        }`}
+                    className={`px-5 py-3/4 text-sm rounded ${
+                        preset === p
+                            ? "bg-kets-orange-400 text-white"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
                 >
                     {p}
                 </button>
@@ -148,8 +139,7 @@ const WeightTabs: React.FC<{
     </div>
 );
 
-
-const ResultsList: React.FC<{ 
+const ResultsList: React.FC<{
     results: Paper[];
     onPaperClick: (paper: Paper) => void;
 }> = ({ results, onPaperClick }) => (
@@ -168,20 +158,14 @@ const ResultsList: React.FC<{
                 </a>
                 <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
-                    {paper.authors && (
-                        <span>{paper.authors.join(", ")}</span>
-                    )}
+                    {paper.authors && <span>{paper.authors.join(", ")}</span>}
                 </div>
                 {paper.abstract && (
-                    <p className="text-gray-700 line-clamp-3 text-sm">
-                        {paper.abstract}
-                    </p>
+                    <p className="text-gray-700 line-clamp-3 text-sm">{paper.abstract}</p>
                 )}
             </div>
         ))}
-        {results.length === 0 && (
-            <p className="text-center text-gray-500 mt-8">No papers found.</p>
-        )}
+        {results.length === 0 && <p className="text-center text-gray-500 mt-8">No papers found.</p>}
     </div>
 );
 
@@ -190,12 +174,12 @@ const SearchViewer: React.FC = () => {
     const [query, setQuery] = useState(searchParams.get("q") ?? "");
     const [results, setResults] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
-    
+
     // Modal state
     const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
 
     // Get workbench context for project management
-    const { refreshPapers } = useWorkbench();
+    const { projectId, refreshPapers } = useWorkbench();
 
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
@@ -219,14 +203,11 @@ const SearchViewer: React.FC = () => {
                 context_weight: ctxPresetVals[ctxPreset],
                 ...(yearFilter !== "" && { min_year: yearFilter }),
             };
-            const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/search/`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                }
-            );
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
             if (!res.ok) throw new Error(await res.text());
             const data: Paper[] = await res.json();
             setResults(data);
@@ -253,62 +234,32 @@ const SearchViewer: React.FC = () => {
 
     const handleAddToProject = async (paper: Paper) => {
         try {
-            // Get auth session from Supabase
-            const { data, error: authErr } = await supabase.auth.getSession();
-            if (authErr || !data?.session?.access_token) {
-                throw new Error('No auth session found');
+            const { error: insertErr } = await supabase
+                .from("project_paper_links")
+                .insert({
+                    project_id: projectId,
+                    paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
+                    has_paper: true,
+                    annotations: null
+                });
+
+            if (insertErr) {
+                throw new Error(`Failed to link paper: ${insertErr.message}`);
             }
 
-            // Get project ID from URL or context
-            const urlParams = new URLSearchParams(window.location.search);
-            const projectId = urlParams.get('project') || window.location.pathname.split('/').pop();
-            
-            if (!projectId) {
-                throw new Error('No project ID found');
-            }
-
-            if (!paper.pdf_uri) {
-                throw new Error('No PDF URI available for this paper');
-            }
-
-            // Create FormData for copy-from-library endpoint
-            const formData = new FormData();
-            formData.append('pdf_uri', paper.pdf_uri);
-            formData.append('project_id', projectId);
-            formData.append('paper_type', 'candidate');
-            formData.append('filename', `${paper.title || paper.paper_id}.pdf`);
-
-            // Use the new copy-from-library endpoint
-            const response = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/papers/copy-from-library`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${data.session.access_token}`,
-                    },
-                    body: formData,
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to add paper: ${errorData.detail || 'Unknown error'}`);
-            }
-
-            // Refresh papers in the workbench
             await refreshPapers();
-            
-            // Close modal and show success
+
             setSelectedPaper(null);
-            console.log('Paper added to project successfully!');
-            
+            console.log("Paper linked to project successfully!");
         } catch (error) {
-            console.error("Failed to add paper to project:", error);
-            throw error; // Re-throw so the modal can handle the error state
+            console.error("Failed to link paper to project:", error);
+            throw error;
         }
     };
 
-    useEffect(() => { if (query) doSearch(); }, []);
+    useEffect(() => {
+        if (query) doSearch();
+    }, []);
 
     return (
         <div className="flex flex-col h-screen p-6">
@@ -321,21 +272,9 @@ const SearchViewer: React.FC = () => {
                 />
 
                 <div className="flex flex-col justify-between p-1">
-                    <WeightTabs
-                        label="Keyword"
-                        preset={kwPreset}
-                        onChange={setKwPreset}
-                    />
-                    <WeightTabs
-                        label="Semantic"
-                        preset={semPreset}
-                        onChange={setSemPreset}
-                    />
-                    <WeightTabs
-                        label="Context"
-                        preset={ctxPreset}
-                        onChange={setCtxPreset}
-                    />
+                    <WeightTabs label="Keyword" preset={kwPreset} onChange={setKwPreset} />
+                    <WeightTabs label="Semantic" preset={semPreset} onChange={setSemPreset} />
+                    <WeightTabs label="Context" preset={ctxPreset} onChange={setCtxPreset} />
                 </div>
                 <div className="flex flex-col justify-between p-1">
                     <YearFilter year={yearFilter} onYearChange={setYearFilter} />
@@ -350,8 +289,8 @@ const SearchViewer: React.FC = () => {
             </div>
 
             <ResultsList results={results} onPaperClick={handlePaperClick} />
-            
-            <PaperDetailsModal 
+
+            <PaperDetailsModal
                 paper={selectedPaper}
                 onClose={handleCloseModal}
                 onAddToProject={handleAddToProject}

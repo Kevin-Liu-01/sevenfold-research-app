@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import supabase from "../auth/supabaseClient";
-import type { Project } from "../../database.types";
+
+import type { Project } from "../../../schema/db-types";
 
 type ViewType = "card" | "table";
 
@@ -28,7 +29,7 @@ const HomePage: React.FC = () => {
                 const { data, error } = await supabase
                     .from("projects")
                     .select("*")
-                    .eq("user_id", user.id)
+                    .eq("owner_id", user.id)
                     .order("created_at", { ascending: false });
 
                 if (error) {
@@ -59,12 +60,10 @@ const HomePage: React.FC = () => {
     const filteredProjects = projects.filter(
         (project) =>
             project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.research_question
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
+            project.research_question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             project.keywords?.some((keyword) =>
-                keyword.toLowerCase().includes(searchTerm.toLowerCase()),
-            ),
+                keyword.toLowerCase().includes(searchTerm.toLowerCase())
+            )
     );
 
     if (loading) {
@@ -102,9 +101,7 @@ const HomePage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-600">
-                                {user?.email}
-                            </span>
+                            <span className="text-sm text-gray-600">{user?.email}</span>
                             <button
                                 onClick={handleSignOut}
                                 className="text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition-all duration-200"
@@ -124,9 +121,7 @@ const HomePage: React.FC = () => {
                         onClick={() => navigate("/newproject")}
                         className="inline-flex items-center gap-2 pr-4 pl-3 py-3 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200 hover:shadow-lg font-medium"
                     >
-                        <span className="material-icons-outlined text-xl">
-                            add
-                        </span>
+                        <span className="material-icons-outlined text-xl">add</span>
                         Create New Project
                     </button>
 
@@ -149,26 +144,24 @@ const HomePage: React.FC = () => {
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1 shadow-sm">
                         <button
                             onClick={() => setViewType("card")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${viewType === "card"
-                                ? "bg-[#f57920] text-white shadow-sm"
-                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                                }`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                                viewType === "card"
+                                    ? "bg-[#f57920] text-white shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            }`}
                         >
-                            <span className="material-icons-outlined text-lg">
-                                grid_view
-                            </span>
+                            <span className="material-icons-outlined text-lg">grid_view</span>
                             <span className="hidden sm:inline">Cards</span>
                         </button>
                         <button
                             onClick={() => setViewType("table")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${viewType === "table"
-                                ? "bg-[#f57920] text-white shadow-sm"
-                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                                }`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                                viewType === "table"
+                                    ? "bg-[#f57920] text-white shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            }`}
                         >
-                            <span className="material-icons-outlined text-lg">
-                                view_list
-                            </span>
+                            <span className="material-icons-outlined text-lg">view_list</span>
                             <span className="hidden sm:inline">Table</span>
                         </button>
                     </div>
@@ -183,9 +176,7 @@ const HomePage: React.FC = () => {
                             </span>
                         </div>
                         <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                            {projects.length === 0
-                                ? "No projects yet"
-                                : "No projects found"}
+                            {projects.length === 0 ? "No projects yet" : "No projects found"}
                         </h3>
                         <p className="text-gray-500 mb-6">
                             {projects.length === 0
@@ -197,9 +188,7 @@ const HomePage: React.FC = () => {
                                 onClick={() => navigate("/newproject")}
                                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                             >
-                                <span className="material-icons-outlined text-xl">
-                                    add
-                                </span>
+                                <span className="material-icons-outlined text-xl">add</span>
                                 Create Your First Project
                             </button>
                         )}
@@ -224,9 +213,7 @@ const HomePage: React.FC = () => {
                                 {filteredProjects.map((project) => (
                                     <div
                                         key={project.id}
-                                        onClick={() =>
-                                            navigate(`/project/${project.id}`)
-                                        }
+                                        onClick={() => navigate(`/project/${project.id}`)}
                                         className="group bg-white p-6 rounded-2xl border border-gray-200 hover:border-[#f57920] hover:shadow-md transition-all duration-200 cursor-pointer"
                                     >
                                         <div className="flex items-start justify-between mb-4">
@@ -235,44 +222,13 @@ const HomePage: React.FC = () => {
                                                     {project.name}
                                                 </h3>
                                                 <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-                                                    {project.research_question}
+                                                    {project.description}
                                                 </p>
                                             </div>
                                             <span className="material-icons-outlined text-gray-400 group-hover:text-[#f57920] transition-colors duration-200">
                                                 arrow_forward_ios
                                             </span>
                                         </div>
-
-                                        {project.keywords &&
-                                            project.keywords.length > 0 && (
-                                                <div className="flex flex-wrap gap-2 mb-4">
-                                                    {project.keywords
-                                                        .slice(0, 3)
-                                                        .map(
-                                                            (
-                                                                keyword,
-                                                                index,
-                                                            ) => (
-                                                                <span
-                                                                    key={index}
-                                                                    className="px-3 py-1 bg-orange-50 text-[#f57920] text-xs font-medium rounded-full"
-                                                                >
-                                                                    {keyword}
-                                                                </span>
-                                                            ),
-                                                        )}
-                                                    {project.keywords.length >
-                                                        3 && (
-                                                            <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                                                                +
-                                                                {project.keywords
-                                                                    .length -
-                                                                    3}{" "}
-                                                                more
-                                                            </span>
-                                                        )}
-                                                </div>
-                                            )}
 
                                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -282,7 +238,7 @@ const HomePage: React.FC = () => {
                                                 <span>
                                                     Created{" "}
                                                     {new Date(
-                                                        project.created_at,
+                                                        project.created_at
                                                     ).toLocaleDateString()}
                                                 </span>
                                             </div>
@@ -309,10 +265,7 @@ const HomePage: React.FC = () => {
                                                     Project
                                                 </th>
                                                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
-                                                    Research Question
-                                                </th>
-                                                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
-                                                    Keywords
+                                                    Description
                                                 </th>
                                                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
                                                     Created
@@ -327,9 +280,7 @@ const HomePage: React.FC = () => {
                                                 <tr
                                                     key={project.id}
                                                     onClick={() =>
-                                                        navigate(
-                                                            `/project/${project.id}`,
-                                                        )
+                                                        navigate(`/project/${project.id}`)
                                                     }
                                                     className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                                                 >
@@ -340,50 +291,13 @@ const HomePage: React.FC = () => {
                                                     </td>
                                                     <td className="py-4 px-6">
                                                         <div className="text-sm text-gray-600 max-w-md truncate">
-                                                            {
-                                                                project.research_question
-                                                            }
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {project.keywords
-                                                                ?.slice(0, 2)
-                                                                .map(
-                                                                    (
-                                                                        keyword,
-                                                                        index,
-                                                                    ) => (
-                                                                        <span
-                                                                            key={
-                                                                                index
-                                                                            }
-                                                                            className="px-2 py-1 bg-orange-50 text-[#f57920] text-xs rounded-full"
-                                                                        >
-                                                                            {
-                                                                                keyword
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )}
-                                                            {project.keywords &&
-                                                                project.keywords
-                                                                    .length >
-                                                                2 && (
-                                                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                                                        +
-                                                                        {project
-                                                                            .keywords
-                                                                            .length -
-                                                                            2}
-                                                                    </span>
-                                                                )}
+                                                            {project.description}
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6">
                                                         <div className="text-sm text-gray-600">
                                                             {new Date(
-                                                                project.created_at,
+                                                                project.created_at
                                                             ).toLocaleDateString()}
                                                         </div>
                                                     </td>

@@ -103,9 +103,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                     {file ? (
                         <span className="truncate">{file.name}</span>
                     ) : (
-                        <span>
-                            Drag &amp; drop PDF here, or click to select
-                        </span>
+                        <span>Drag &amp; drop PDF here, or click to select</span>
                     )}
                     <input
                         ref={fileInputRef}
@@ -123,9 +121,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                         onChange={() => setAddToIndex(!addToIndex)}
                         className="text-sm"
                     />
-                    <span className="text-sm">
-                        Add to our index (improves your search results)
-                    </span>
+                    <span className="text-sm">Add to our index (improves your search results)</span>
                 </label>
 
                 <input
@@ -171,10 +167,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                 />
 
                 <div className="flex justify-end space-x-2">
-                    <button
-                        onClick={onClose}
-                        className="px-3 py-1 text-sm cursor-pointer"
-                    >
+                    <button onClick={onClose} className="px-3 py-1 text-sm cursor-pointer">
                         Cancel
                     </button>
                     <button

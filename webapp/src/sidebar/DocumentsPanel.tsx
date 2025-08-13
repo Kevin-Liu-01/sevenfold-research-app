@@ -49,9 +49,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                             aria-label="Clear search"
                             className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
                         >
-                            <span className="material-icons text-xs">
-                                close
-                            </span>
+                            <span className="material-icons text-xs">close</span>
                         </button>
                     )}
                     <button
@@ -68,9 +66,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             {/* Document List */}
             <ul className="flex-1 overflow-auto px-3 pt-1 space-y-2">
                 {filtered.length === 0 ? (
-                    <li className="text-center text-gray-500 py-6 text-xs">
-                        No documents found.
-                    </li>
+                    <li className="text-center text-gray-500 py-6 text-xs">No documents found.</li>
                 ) : (
                     filtered.map((doc) => {
                         const isSelected = doc.id === selectedDocId;

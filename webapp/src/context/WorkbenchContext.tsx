@@ -1,41 +1,45 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import supabase from '../auth/supabaseClient';
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import supabase from "../auth/supabaseClient";
 
-import type { Paper } from '../../database.types';
+import type { Paper } from "../../../schema/db-types";
 
 export enum ViewType {
-    Search = 'search',
-    Chat    = 'chat',
-    Sources = 'sources',
-    Compose = 'compose',
-    Settings= 'settings',
+    Search = "search",
+    Chat = "chat",
+    Sources = "sources",
+    Compose = "compose",
+    Settings = "settings",
 }
 
 interface WorkbenchContextType {
+    projectId: string;
 
     // View management
-    currentView         : ViewType;
-    setCurrentView      : (view: ViewType) => void;
-    hoveredView         : ViewType | null;
-    setHoveredView      : (view: ViewType | null) => void;
+    currentView: ViewType;
+    setCurrentView: (view: ViewType) => void;
+    hoveredView: ViewType | null;
+    setHoveredView: (view: ViewType | null) => void;
 
     // TODO: Chat
 
     // Sources
-    papers              : Paper[];  
-    refreshPapers      : () => Promise<void>;
-    selectedPaper       : Paper | null;
-    setSelectedPaper    : (paper: Paper | null) => void;
+    papers: Paper[];
+    refreshPapers: () => Promise<void>;
+    selectedPaper: Paper | null;
+    setSelectedPaper: (paper: Paper | null) => void;
 
     // Compose
-    createNewDocument   : () => Promise<void>;
+    createNewDocument: () => Promise<void>;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
 
-export const WorkbenchProvider: React.FC<{ projectId: string; children: React.ReactNode }> = ({ projectId, children }) => {
+export const WorkbenchProvider: React.FC<{ projectId: string; children: React.ReactNode }> = ({
+    projectId,
+    children,
+}) => {
     const [currentView, setCurrentView] = useState<ViewType>(ViewType.Search);
-    const [hoveredView, setHoveredView] = useState<ViewType | null>(null)
+    const [hoveredView, setHoveredView] = useState<ViewType | null>(null);
 
     // Sources
     const [papers, setPapers] = useState<Paper[]>([]);
@@ -43,18 +47,25 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
 
     const refreshPapers = useCallback(async () => {
         if (!projectId) return;
-        const { data: papers, error } = await supabase
-            .from('papers')
-            .select('*')
-            .eq('project_id', projectId);
+
+        const { data, error } = await supabase
+            .from("project_paper_links")
+            .select("paper:paper_attrs(*)")
+            .eq("project_id", projectId)
+            .eq("has_paper", true);
+
         if (error) {
-            console.error('Error fetching papers:', error.message);
+            console.error("Error fetching project papers:", error.message);
             return;
         }
-        setPapers(papers || []);
+
+        const papers = (data ?? []).map((p: any) => p.paper).filter((p): p is Paper => !!p);
+        setPapers(papers);
     }, [projectId]);
-    
-    useEffect(() => { refreshPapers(); }, [refreshPapers]);
+
+    useEffect(() => {
+        refreshPapers();
+    }, [refreshPapers]);
 
     // const createNewDocument = useCallback(async () => {
     //     if (!projectId) return;
@@ -71,14 +82,20 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
     // }, [projectId]);
 
     return (
-        <WorkbenchContext.Provider value={{
-            currentView, setCurrentView,
-            hoveredView, setHoveredView,
-            papers,
-            refreshPapers,
-            selectedPaper, setSelectedPaper,
-            // createNewDocument,
-        }}>
+        <WorkbenchContext.Provider
+            value={{
+                projectId,
+                currentView,
+                setCurrentView,
+                hoveredView,
+                setHoveredView,
+                papers,
+                refreshPapers,
+                selectedPaper,
+                setSelectedPaper,
+                // createNewDocument,
+            }}
+        >
             {children}
         </WorkbenchContext.Provider>
     );
@@ -86,6 +103,6 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
 
 export const useWorkbench = () => {
     const ctx = useContext(WorkbenchContext);
-    if (!ctx) throw new Error('useWorkbench must be used within WorkbenchProvider');
+    if (!ctx) throw new Error("useWorkbench must be used within WorkbenchProvider");
     return ctx;
 };

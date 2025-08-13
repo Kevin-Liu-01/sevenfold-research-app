@@ -32,9 +32,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-    children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
@@ -74,13 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         // Listen for auth changes
-        const { data: { subscription } } =
-            supabase.auth.onAuthStateChange((_event, session) => {
-                setSession(session);
-                setUser(session?.user ?? null);
-                void loadProfile(session?.user ?? null);
-                setLoading(false);
-            });
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            setUser(session?.user ?? null);
+            void loadProfile(session?.user ?? null);
+            setLoading(false);
+        });
 
         return () => subscription.unsubscribe();
     }, []);
@@ -160,9 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         resetPassword,
     };
 
-    return (
-        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

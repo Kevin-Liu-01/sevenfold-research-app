@@ -1,11 +1,11 @@
 import React from "react";
 import { useParams, Navigate } from "react-router-dom";
 
-import { useWorkbench, ViewType, WorkbenchProvider } from '../context/WorkbenchContext';
+import { useWorkbench, ViewType, WorkbenchProvider } from "../context/WorkbenchContext";
 
 import Sidebar from "../sidebar/Sidebar";
 
-import SourcesPanel from "../sidebar/SourcesPanel"
+import SourcesPanel from "../sidebar/SourcesPanel";
 
 import SearchViewer from "../viewers/SearchViewer";
 import ChatViewer from "../viewers/ChatViewer";
@@ -14,14 +14,14 @@ import ComposeViewer from "../viewers/ComposeViewer";
 import SettingsViewer from "../viewers/SettingsViewer";
 
 const SidepanelMap: Partial<Record<ViewType, React.FC<any>>> = {
-    [ViewType.Chat]: () => <div/>,
+    [ViewType.Chat]: () => <div />,
     [ViewType.Sources]: () => <SourcesPanel />,
-    [ViewType.Compose]: () => <div/>,
+    [ViewType.Compose]: () => <div />,
 };
 
 const Sidepanel: React.FC = () => {
-    const { hoveredView, setHoveredView} = useWorkbench()
-    const SidepanelComponent = hoveredView ? SidepanelMap[hoveredView] : null
+    const { hoveredView, setHoveredView } = useWorkbench();
+    const SidepanelComponent = hoveredView ? SidepanelMap[hoveredView] : null;
     const showSidepanel = Boolean(SidepanelComponent);
 
     return (
@@ -30,10 +30,14 @@ const Sidepanel: React.FC = () => {
                 fixed top-0 left-0 z-1 w-64 ml-20 p-4
                 h-screen shadow-lg bg-app-outer
                 transform transition-transform duration-350 ease-in-out
-                ${showSidepanel ? 'translate-x-0' : '-translate-x-full'}
+                ${showSidepanel ? "translate-x-0" : "-translate-x-full"}
             `}
-            onMouseEnter={() => { if (showSidepanel) setHoveredView(hoveredView); }}
-            onMouseLeave={() => { setHoveredView(null); }}
+            onMouseEnter={() => {
+                if (showSidepanel) setHoveredView(hoveredView);
+            }}
+            onMouseLeave={() => {
+                setHoveredView(null);
+            }}
         >
             {SidepanelComponent && <SidepanelComponent />}
         </div>
@@ -72,4 +76,4 @@ export default function WorkbenchPage() {
             </main>
         </WorkbenchProvider>
     );
-};
+}

@@ -34,84 +34,47 @@ def embed_query(query: str) -> List[float]:
         embedding = outputs.last_hidden_state[:, 0, :]
         return embedding.squeeze(0).tolist()
 
-def get_project_context_similarity(
-    project_id: str,
-    candidate_paper_ids: List[str],
-    user_id: str
-) -> Dict:
+def get_project_context(project_id: str) -> List[float]:
     """
-    Get similarity scores between project context and candidate papers.
-    Returns scores that can be integrated with RRF for hybrid search.
+    Get the context vector of a project. This is done by averaging the embeddings
+    of all papers stored in the project.
     """
-    _verify_project(project_id, user_id)
-    
-    papers_response = (
+
+    junction_resp = (
         supabase
-        .table("project_papers")
+        .table("project_paper_links")
         .select("paper_id")
         .eq("project_id", project_id)
         .execute()
     )
-    
-    if not papers_response.data:
-        raise HTTPException(status_code=404, detail="No papers found in project")
-    
-    project_paper_ids = [p["paper_id"] for p in papers_response.data]
-    
-    project_embeddings_response = (
+
+    project_paper_ids = [p["paper_id"] for p in junction_resp.data]
+
+    publ_resp = (
         supabase
-        .table("paper_embeddings")
+        .table("publ_corpus")
         .select("paper_id, embedding")
         .in_("paper_id", project_paper_ids)
         .execute()
     )
-    
-    if not project_embeddings_response.data:
-        raise HTTPException(status_code=404, detail="No embeddings found for project papers")
-    
-    embeddings = []
-    for emb_data in project_embeddings_response.data:
-        if emb_data.get("embedding"):
-            # Supabase returns embeddings as lists
-            embeddings.append(np.array(emb_data["embedding"]))
-    
-    if not embeddings:
-        raise HTTPException(status_code=404, detail="No valid embeddings found for project papers")
-    
-    project_embedding = np.mean(embeddings, axis=0)
-    project_embedding = project_embedding / np.linalg.norm(project_embedding)
-    
-    candidate_embeddings_response = (
+
+    publ_resp = (
         supabase
-        .table("paper_embeddings")
+        .table("priv_corpus")
         .select("paper_id, embedding")
-        .in_("paper_id", candidate_paper_ids)
+        .in_("paper_id", project_paper_ids)
         .execute()
     )
-    
-    similarity_scores = {}
-    for candidate in candidate_embeddings_response.data:
-        if candidate.get("embedding"):
-            candidate_vec = np.array(candidate["embedding"])
-            # We already normalize in SPECTER2 embedding implementation
-            similarity = float(np.dot(project_embedding, candidate_vec))
-            similarity_scores[candidate["paper_id"]] = similarity
-    
-    # Add zero scores for papers without embeddings
-    for paper_id in candidate_paper_ids:
-        if paper_id not in similarity_scores:
-            similarity_scores[paper_id] = 0.0
-    
-    # Convert to ranked list for RRF integration
-    ranked_papers = sorted(similarity_scores.items(), key=lambda x: x[1], reverse=True)
-    
-    return {
-        "project_id": project_id,
-        "method": "project_context",
-        "scores": similarity_scores,
-        "ranked_papers": [{"paper_id": pid, "score": score, "rank": idx + 1} 
-                        for idx, (pid, score) in enumerate(ranked_papers)]
-    }
+
+    embeddings = []
+    for source in [publ_response.data, priv_response.data]:
+        for row in source:
+            if row.get("embedding"):
+                embeddings.append(np.array(row["embedding"]))
+
+    project_embedding = np.mean(embeddings, axis=0)
+    project_embedding /= np.linalg.norm(project_embedding)
+    return project_embedding
 
 class SearchRequest(BaseModel):
     query: str
@@ -129,8 +92,8 @@ async def hybrid_search(request: SearchRequest):
     Perform hybrid search using query embeddings and lexical ranking.
     """
     query_embedding = embed_query(request.query)
-    # context_embedding = get_project_context(request.project_id)
-    context_embedding = np.zeros(768).tolist()
+    context_embedding = get_project_context(request.project_id)
+    # context_embedding = np.zeros(768).tolist()
 
     resp = supabase.rpc(
         "hybrid_search",

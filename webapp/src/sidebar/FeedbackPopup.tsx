@@ -27,9 +27,7 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                 ×
             </button>
             <div className="mb-2 w-full">
-                <span className="font-semibold text-gray-800 text-base">
-                    Feedback
-                </span>
+                <span className="font-semibold text-gray-800 text-base">Feedback</span>
             </div>
             <div className="mb-3 w-full text-xs text-gray-600">
                 Join our Discord community:{" "}
@@ -47,10 +45,7 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                     Thank you for your feedback!
                 </div>
             ) : (
-                <form
-                    className="w-full flex flex-col gap-2"
-                    onSubmit={handleSend}
-                >
+                <form className="w-full flex flex-col gap-2" onSubmit={handleSend}>
                     <input
                         type="email"
                         placeholder="Your email (optional)"

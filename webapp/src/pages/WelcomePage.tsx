@@ -54,11 +54,8 @@ const WelcomePage: React.FC = () => {
     }, [avatarFile]);
 
     const canSubmit = useMemo(
-        () =>
-            form.first_name.trim().length > 0 &&
-            form.last_name.trim().length > 0 &&
-            !submitting,
-        [form, submitting],
+        () => form.first_name.trim().length > 0 && form.last_name.trim().length > 0 && !submitting,
+        [form, submitting]
     );
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,13 +81,11 @@ const WelcomePage: React.FC = () => {
         if (!avatarFile || !user) return null;
         const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
         const key = `users/${user.id}/avatar-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-            .from("user_pfps")
-            .upload(key, avatarFile, {
-                cacheControl: "3600",
-                upsert: true,
-                contentType: avatarFile.type || "image/png",
-            });
+        const { error: upErr } = await supabase.storage.from("user_pfps").upload(key, avatarFile, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: avatarFile.type || "image/png",
+        });
         if (upErr) {
             throw upErr;
         }
@@ -109,7 +104,9 @@ const WelcomePage: React.FC = () => {
                 try {
                     pfp_path = await uploadAvatarIfAny();
                 } catch (uploadErr: any) {
-                    setError(uploadErr?.message ?? "Avatar upload failed. Please try another image.");
+                    setError(
+                        uploadErr?.message ?? "Avatar upload failed. Please try another image."
+                    );
                     setSubmitting(false);
                     return;
                 }
@@ -176,7 +173,7 @@ const WelcomePage: React.FC = () => {
                                             onClick={() => setAvatarFile(null)}
                                             className="ml-3 inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
                                         >
-                                        Remove
+                                            Remove
                                         </button>
                                     )}
                                     <p className="text-xs text-gray-400 mt-1">

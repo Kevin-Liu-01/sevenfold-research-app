@@ -2,7 +2,7 @@
 
 ## Auth
 
-All components of the webapp are surrounded by an auth provider which manages 
+All components of the webapp are surrounded by an auth provider which manages
 user session and data.
 
 ## Workbench

@@ -9,36 +9,37 @@ CREATE OR REPLACE FUNCTION hybrid_search(
     rrf_k             INT   = 50,
     min_year          INT   = 2005
 )
-RETURNS SETOF library
+RETURNS SETOF paper_attrs
 LANGUAGE SQL
 AS $$
 WITH 
--- 2. Lexical search (FTS index)
+
+-- 1. Lexical search (FTS index)
 lexical AS (
-    SELECT id,
+    SELECT paper_id,
            ROW_NUMBER() OVER (
                ORDER BY ts_rank_cd(fts, websearch_to_tsquery(query_text)) DESC
            ) AS rank_ix
-    FROM library
-WHERE fts @@ websearch_to_tsquery(query_text) AND "year" >= min_year
+    FROM publ_corpus
+    WHERE fts @@ websearch_to_tsquery(query_text) AND "year" >= min_year
     LIMIT LEAST(match_count, 30) * 2
 ),
 
--- 3. Semantic ANN search (full HNSW scan)
+-- 2. Semantic ANN search
 semantic AS (
-    SELECT id, embedding,
+    SELECT paper_id, embedding,
            ROW_NUMBER() OVER (
                ORDER BY embedding <-> query_embedding
            ) AS rank_ix
-    FROM library
-WHERE "year" >= min_year
+    FROM publ_corpus
+    WHERE "year" >= min_year
     ORDER BY embedding <-> query_embedding
     LIMIT LEAST(match_count, 30) * 5
 ),
 
--- 4. Context ANN search (on semantic results)
+-- 3. Context ANN search
 context AS (
-    SELECT s.id,
+    SELECT s.paper_id,
            ROW_NUMBER() OVER (
                ORDER BY s.embedding <-> context_embedding
            ) AS rank_ix
@@ -46,15 +47,17 @@ context AS (
     LIMIT LEAST(match_count, 30) * 2
 )
 
--- 5. Combine & rank (Reciprocal Rank Fusion)
-SELECT lib.*
+-- 4. Combine & rank (RRF) and join to paper_attrs
+SELECT pa.*
 FROM lexical
 FULL OUTER JOIN semantic
-    ON lexical.id = semantic.id
+    ON lexical.paper_id = semantic.paper_id
 FULL OUTER JOIN context
-    ON COALESCE(lexical.id, semantic.id) = context.id
-JOIN library lib
-    ON lib.id = COALESCE(lexical.id, semantic.id, context.id)
+    ON COALESCE(lexical.paper_id, semantic.paper_id) = context.paper_id
+JOIN publ_corpus pc
+    ON pc.paper_id = COALESCE(lexical.paper_id, semantic.paper_id, context.paper_id)
+JOIN paper_attrs pa
+    ON pa.id = pc.paper_id
 ORDER BY
     COALESCE(1.0 / (rrf_k + lexical.rank_ix), 0.0) * lexical_weight +
     COALESCE(1.0 / (rrf_k + semantic.rank_ix), 0.0) * semantic_weight +

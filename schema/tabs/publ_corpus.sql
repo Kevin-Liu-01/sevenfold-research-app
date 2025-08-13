@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS publ_corpus (
     paper_id        UUID PRIMARY KEY REFERENCES paper_attrs(id) ON DELETE CASCADE,
     search_text     TEXT,
+    year            INT,
     embedding       VECTOR(768),
     fts             TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('english', COALESCE(search_text, ''))

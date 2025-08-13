@@ -1,677 +1,287 @@
-import React, { useEffect, useState } from "react";
+// src/viewers/SettingsViewer.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import supabase from "../auth/supabaseClient";
 import { useAuth } from "../context/AuthContext";
-import { useParams } from "react-router-dom";
+import { useWorkbench } from "../context/WorkbenchContext";
 
-interface Project {
-    id: string;
-    name: string;
-    research_question: string;
-    keywords: string[];
-    created_at: string;
-    research_goal?: string;
-    topic_tags?: string[];
-    focus_domains?: string[];
-    custom_query_boosts?: string[];
-    collaborators?: string[];
-    use_highlights_in_search?: boolean;
-    project_aware_reranking?: boolean;
-    auto_suggest_papers?: boolean;
-    citation_style?: string;
-    agent_tone?: string;
-    memory_scope?: string;
-    summarization_style?: string;
-    citation_insertion?: string;
-}
+import type { Project } from "../../../schema/db-types";
+type Json = Record<string, unknown>;
 
 const SettingsViewer: React.FC = () => {
-    const { projectId } = useParams();
+    const { profile } = useAuth();
+    const { projectId } = useWorkbench();
+
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
-    const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
-    const [saveSuccess, setSaveSuccess] = useState(false);
-    const [formData, setFormData] = useState<Partial<Project>>({});
-    const { user } = useAuth();
+    const [isEditing, setIsEditing] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    // form state
+    const [name, setName] = useState("");
+    const [description, setDescription] = useState<string>("");
+    const [settingsText, setSettingsText] = useState<string>("{}");
+    const [error, setError] = useState<string | null>(null);
+
+    const canEdit = useMemo(() => {
+        if (!project || !profile) return false;
+        return !project.owner_id || project.owner_id === profile.user_id;
+    }, [project, profile]);
 
     useEffect(() => {
         const fetchProject = async () => {
-            try {
-                if (!user) return;
-                let query = supabase
-                    .from("projects")
-                    .select("*")
-                    .eq("user_id", user.id);
-                if (projectId) {
-                    query = query.eq("id", projectId);
-                } else {
-                    query = query
-                        .order("created_at", { ascending: false })
-                        .limit(1);
-                }
-                const { data, error } = await query.single();
-                if (error) throw error;
-                setProject(data);
-                setFormData(data);
-            } catch (error) {
-                console.error("Error fetching project:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProject();
-    }, [user, projectId]);
-
-    const handleSave = async () => {
-        if (!project) return;
-        setSaving(true);
-        setSaveError(null);
-        setSaveSuccess(false);
-        try {
-            // Only update fields that exist in the project
-            const updateData: Partial<Project> = {};
-            Object.keys(formData).forEach((key) => {
-                if (
-                    key in project &&
-                    key !== "id" &&
-                    key !== "created_at" &&
-                    formData[key as keyof typeof formData] !== undefined
-                ) {
-                    updateData[key as keyof Project] = formData[
-                        key as keyof typeof formData
-                    ] as any;
-                }
-            });
+            if (!projectId) return;
+            setLoading(true);
+            setError(null);
             const { data, error } = await supabase
                 .from("projects")
-                .update(updateData)
-                .eq("id", project.id)
-                .select();
-            if (error) throw error;
-            if (data && data[0]) {
-                setProject(data[0]);
-                setFormData(data[0]);
+                .select("id, owner_id, name, description, settings")
+                .eq("id", projectId)
+                .maybeSingle();
+
+            if (error) {
+                setError(error.message);
+            } else if (data) {
+                setProject(data as Project);
+                setName(data.name ?? "");
+                setDescription(data.description ?? "");
+                setSettingsText(JSON.stringify(data.settings ?? {}, null, 2));
             }
-            setEditing(false);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2000);
-        } catch (error: any) {
-            setSaveError(
-                error?.message || "Failed to save changes. Please try again.",
-            );
-            console.error("Error saving project:", error);
-        } finally {
+            setLoading(false);
+        };
+
+        fetchProject();
+    }, [projectId]);
+
+    const onEdit = () => {
+        if (!canEdit) return;
+        setIsEditing(true);
+    };
+
+    const onCancel = () => {
+        if (!project) return;
+        setIsEditing(false);
+        setName(project.name ?? "");
+        setDescription(project.description ?? "");
+        setSettingsText(JSON.stringify(project.settings ?? {}, null, 2));
+        setError(null);
+    };
+
+    const onSave = async () => {
+        if (!project) return;
+        setSaving(true);
+        setError(null);
+
+        let parsed: Json = {};
+        try {
+            parsed = settingsText.trim() ? (JSON.parse(settingsText) as Json) : {};
+        } catch {
             setSaving(false);
+            setError("Settings must be valid JSON.");
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from("projects")
+            .update({
+                name: name?.trim() || project.name,
+                description: description?.trim() || null,
+                settings: parsed,
+            })
+            .eq("id", project.id)
+            .select("id, owner_id, name, description, settings")
+            .maybeSingle();
+
+        setSaving(false);
+
+        if (error) {
+            setError(error.message);
+            return;
+        }
+
+        if (data) {
+            setProject(data as Project);
+            setIsEditing(false);
         }
     };
 
-    const handleCancel = () => {
-        setFormData(project || {});
-        setEditing(false);
-        setSaveError(null);
-        setSaveSuccess(false);
+    const copyProjectId = async () => {
+        if (!project) return;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(project.id);
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = project.id;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+            }
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch (e) {
+            console.error("Copy failed", e);
+        }
     };
 
-    const handleArrayChange = (field: string, value: string) => {
-        const array = value
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item);
-        setFormData((prev) => ({ ...prev, [field]: array }));
+    const deleteProject = async () => {
+        if (!project) return;
+        if (!canEdit) return;
+        const ok = window.confirm(
+            "Are you sure you want to delete this project? This action cannot be undone."
+        );
+        if (!ok) return;
+
+        const { error } = await supabase.from("projects").delete().eq("id", project.id);
+        if (error) {
+            setError(error.message);
+            return;
+        }
+        // Redirect out of the project view
+        window.location.href = "/"; // change if your app uses a different home route
     };
 
     if (loading) {
-        return <div className="p-8">Loading project settings...</div>;
+        return <div className="p-8 text-gray-500">Loading project settings…</div>;
     }
 
     if (!project) {
-        return <div className="p-8">No project found</div>;
+        return <div className="p-8 text-gray-500">No project found.</div>;
     }
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-extrabold">Project Settings</h1>
-                <div className="space-x-2">
-                    {editing ? (
-                        <>
+        <div className="p-6 md:p-10">
+            {/* Header card */}
+            <div className="mx-auto max-w-4xl rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-emerald-50 shadow-sm">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-amber-200/70">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800">Project Settings</h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Manage the project name, description, and raw settings JSON.
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        {!isEditing ? (
                             <button
-                                onClick={handleSave}
-                                className="pl-2 pr-4 py-2 text-sm font-semibold bg-green-500 text-white rounded-lg hover:bg-green-700 transition flex items-center"
-                                disabled={saving}
+                                onClick={onEdit}
+                                disabled={!canEdit}
+                                className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition
+                                    ${canEdit ? "bg-lime-500 text-gray-800 hover:bg-lime-600" : "bg-gray-300 text-gray-600 cursor-not-allowed"}`}
                             >
-                                {saving ? (
-                                    <span className="material-icons align-middle mr-2 animate-spin">
-                                        autorenew
-                                    </span>
-                                ) : (
-                                    <span className="material-icons align-middle mr-2">
-                                        save
-                                    </span>
-                                )}
-                                {saving ? "Saving..." : "Save Changes"}
+                                Edit
                             </button>
-                            <button
-                                onClick={handleCancel}
-                                className="pl-2 pr-4 py-2 text-sm font-semibold bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-                                disabled={saving}
-                            >
-                                <span className="material-icons align-middle mr-2">
-                                    cancel
-                                </span>
-                                Cancel
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={() => setEditing(true)}
-                            className="pl-3 pr-5 py-2 text-sm flex items-center bg-green-400 text-black rounded-lg hover:bg-green-600 transition-all"
-                        >
-                            <span className="material-icons align-middle mr-2">
-                                edit
-                            </span>
-                            <div className="font-semibold mb-0.5">
-                                Edit Settings
-                            </div>
-                        </button>
-                    )}
-                </div>
-            </div>
-            {saveError && (
-                <div className="mb-4 text-red-600 font-semibold">
-                    {saveError}
-                </div>
-            )}
-            {saveSuccess && (
-                <div className="mb-4 text-green-600 font-semibold">
-                    Changes saved successfully!
-                </div>
-            )}
-            <div className="flex bg-orange-100 p-3 rounded-lg border border-orange-200 flex-row items-center mb-8">
-                <span className="material-icons text-orange-400 mr-2">
-                    info
-                </span>
-                <p className="text-orange-700 max-w-2xl">
-                    Each project in Ketspen is a self-evolving research
-                    workspace. These settings help personalize and control its
-                    behavior.
-                </p>
-            </div>
-            <div className="space-y-8">
-                {/* Core Project Settings */}
-                <section className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="material-icons mr-2 text-gray-400">
-                            settings
-                        </span>
-                        Core Settings
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Project Title
-                            </label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={formData.name || ""}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            name: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <p className="text-gray-700">{formData.name}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Research Goal
-                            </label>
-                            {editing ? (
-                                <textarea
-                                    value={
-                                        formData.research_goal ||
-                                        formData.research_question ||
-                                        ""
-                                    }
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            research_goal: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows={3}
-                                />
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.research_goal ||
-                                        formData.research_question}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Topic Tags
-                            </label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={(
-                                        formData.topic_tags ||
-                                        formData.keywords ||
-                                        []
-                                    ).join(", ")}
-                                    onChange={(e) =>
-                                        handleArrayChange(
-                                            "topic_tags",
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="e.g., transformers, QA, NLP"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {(
-                                        formData.topic_tags ||
-                                        formData.keywords ||
-                                        []
-                                    ).map((tag, index) => (
-                                        <span
-                                            key={index}
-                                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Focus Domains
-                            </label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={(formData.focus_domains || []).join(
-                                        ", ",
-                                    )}
-                                    onChange={(e) =>
-                                        handleArrayChange(
-                                            "focus_domains",
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="e.g., cs.CL, cs.LG, cs.AI"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {(formData.focus_domains || []).map(
-                                        (domain, index) => (
-                                            <span
-                                                key={index}
-                                                className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm"
-                                            >
-                                                {domain}
-                                            </span>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Custom Query Boosts
-                            </label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={(
-                                        formData.custom_query_boosts || []
-                                    ).join(", ")}
-                                    onChange={(e) =>
-                                        handleArrayChange(
-                                            "custom_query_boosts",
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="Keywords or concepts to prioritize"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {(formData.custom_query_boosts || []).map(
-                                        (boost, index) => (
-                                            <span
-                                                key={index}
-                                                className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-sm"
-                                            >
-                                                {boost}
-                                            </span>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Collaborators
-                            </label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={(formData.collaborators || []).join(
-                                        ", ",
-                                    )}
-                                    onChange={(e) =>
-                                        handleArrayChange(
-                                            "collaborators",
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="Email addresses of collaborators"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {(formData.collaborators || []).map(
-                                        (collaborator, index) => (
-                                            <span
-                                                key={index}
-                                                className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm"
-                                            >
-                                                {collaborator}
-                                            </span>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={onCancel}
+                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={onSave}
+                                    disabled={saving}
+                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60"
+                                >
+                                    {saving ? "Saving…" : "Save"}
+                                </button>
+                            </>
+                        )}
                     </div>
-                </section>
+                </div>
 
-                {/* Smart Context Settings */}
-                <section className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="material-icons mr-2 text-gray-400">
-                            fingerprint
-                        </span>
-                        Smart Context Settings
-                    </h2>
-
-                    <div className="space-y-4">
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="use_highlights"
-                                checked={
-                                    formData.use_highlights_in_search ?? true
-                                }
-                                onChange={(e) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        use_highlights_in_search:
-                                            e.target.checked,
-                                    }))
-                                }
-                                disabled={!editing}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label
-                                htmlFor="use_highlights"
-                                className="ml-2 text-sm text-gray-700"
-                            >
-                                Use Highlights in Search - Toggle whether
-                                highlights influence retrieval
-                            </label>
-                        </div>
-
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="project_aware_reranking"
-                                checked={
-                                    formData.project_aware_reranking ?? true
-                                }
-                                onChange={(e) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        project_aware_reranking:
-                                            e.target.checked,
-                                    }))
-                                }
-                                disabled={!editing}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label
-                                htmlFor="project_aware_reranking"
-                                className="ml-2 text-sm text-gray-700"
-                            >
-                                Project-Aware Reranking - Enable context-aware
-                                reranking of search results
-                            </label>
-                        </div>
-
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="auto_suggest"
-                                checked={formData.auto_suggest_papers ?? true}
-                                onChange={(e) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        auto_suggest_papers: e.target.checked,
-                                    }))
-                                }
-                                disabled={!editing}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label
-                                htmlFor="auto_suggest"
-                                className="ml-2 text-sm text-gray-700"
-                            >
-                                Auto-suggest Papers - Recommend papers based on
-                                recent notes or highlights
-                            </label>
-                        </div>
-
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Citation Style
-                            </label>
-                            {editing ? (
-                                <select
-                                    value={formData.citation_style || "APA"}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            citation_style: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="APA">APA</option>
-                                    <option value="MLA">MLA</option>
-                                    <option value="Chicago">Chicago</option>
-                                    <option value="Harvard">Harvard</option>
-                                    <option value="BibTeX">BibTeX</option>
-                                </select>
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.citation_style || "APA"}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* AI Assistant Customization */}
-                <section className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="material-icons mr-2 text-gray-400">
-                            lightbulb
-                        </span>
-                        AI Assistant Customization
-                    </h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Agent Tone
-                            </label>
-                            {editing ? (
-                                <select
-                                    value={formData.agent_tone || "Curious"}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            agent_tone: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="Concise">Concise</option>
-                                    <option value="Curious">Curious</option>
-                                    <option value="Pedagogical">
-                                        Pedagogical
-                                    </option>
-                                    <option value="Technical">Technical</option>
-                                </select>
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.agent_tone || "Curious"}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Memory Scope
-                            </label>
-                            {editing ? (
-                                <select
-                                    value={
-                                        formData.memory_scope || "Full Context"
-                                    }
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            memory_scope: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="Papers Only">
-                                        Papers Only
-                                    </option>
-                                    <option value="Notes Only">
-                                        Notes Only
-                                    </option>
-                                    <option value="Full Context">
-                                        Full Context
-                                    </option>
-                                </select>
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.memory_scope || "Full Context"}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Summarization Style
-                            </label>
-                            {editing ? (
-                                <select
-                                    value={
-                                        formData.summarization_style ||
-                                        "Bullet Points"
-                                    }
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            summarization_style: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="Bullet Points">
-                                        Bullet Points
-                                    </option>
-                                    <option value="Paragraph">Paragraph</option>
-                                    <option value="Visual">Visual</option>
-                                </select>
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.summarization_style ||
-                                        "Bullet Points"}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block uppercase text-xs font-bold text-gray-700 mb-2">
-                                Citation Insertion
-                            </label>
-                            {editing ? (
-                                <select
-                                    value={
-                                        formData.citation_insertion || "Inline"
-                                    }
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            citation_insertion: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="Inline">Inline</option>
-                                    <option value="Footnote">Footnote</option>
-                                    <option value="Appendix">Appendix</option>
-                                </select>
-                            ) : (
-                                <p className="text-gray-700">
-                                    {formData.citation_insertion || "Inline"}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Project Metadata */}
-                <section className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <h2 className="text-xl font-semibold mb-4">
-                        Project Metadata
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <h3 className="font-medium text-gray-700">
-                                Project ID
-                            </h3>
-                            <p className="text-sm text-gray-600">
+                {/* General settings */}
+                <div className="px-6 py-6 grid grid-cols-1 gap-6">
+                    {/* Project ID */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700">Project ID</label>
+                        <div className="mt-2 flex items-center gap-3">
+                            <code className="rounded-lg bg-white/70 px-3 py-2 text-sm text-gray-700 border border-gray-300">
                                 {project.id}
-                            </p>
-                        </div>
-                        <div>
-                            <h3 className="font-medium text-gray-700">
-                                Created At
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                                {new Date(project.created_at).toLocaleString()}
-                            </p>
+                            </code>
+                            <button
+                                onClick={copyProjectId}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                {copied ? "Copied!" : "Copy"}
+                            </button>
                         </div>
                     </div>
-                </section>
+
+                    {/* Name */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700">Project name</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            disabled={!isEditing}
+                            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm disabled:bg-gray-100"
+                            placeholder="Project name"
+                        />
+                    </div>
+
+                    {/* Description below name with larger box */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea
+                            value={description ?? ""}
+                            onChange={(e) => setDescription(e.target.value)}
+                            disabled={!isEditing}
+                            rows={5}
+                            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm disabled:bg-gray-100"
+                            placeholder="Optional description"
+                        />
+                    </div>
+
+                    {/* Settings JSON */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Settings (JSON)</label>
+                        <textarea
+                            value={settingsText}
+                            onChange={(e) => setSettingsText(e.target.value)}
+                            disabled={!isEditing}
+                            rows={12}
+                            className="w-full rounded-xl border border-gray-300 bg-slate-900 text-slate-100 font-mono text-sm p-4 shadow-inner disabled:opacity-80"
+                            placeholder="{ }"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">
+                            No settings yet — you can store arbitrary configuration here as JSON.
+                        </p>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="px-6 pb-6">
+                        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+                            {error}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Danger zone only */}
+            <div className="mx-auto max-w-4xl mt-8">
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-rose-900">Danger zone</h3>
+                            <p className="text-sm text-rose-800">Delete project and all associated data.</p>
+                        </div>
+                        <button
+                            onClick={deleteProject}
+                            disabled={!canEdit}
+                            className={`rounded-lg px-3 py-2 text-sm font-semibold text-white ${
+                                canEdit
+                                    ? "bg-rose-600 hover:bg-rose-700"
+                                    : "bg-rose-300 cursor-not-allowed"
+                            }`}
+                        >
+                            Delete project
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
