@@ -13,7 +13,7 @@ from utils.auth import get_user_id_from_token
 
 load_dotenv()
 
-router = APIRouter(prefix="/chatbot", tags=["chatbot"])
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 # Initialize Anthropic client
 client = anthropic.Anthropic(
@@ -274,21 +274,45 @@ async def get_tab_messages(
     
     return result.data if result.data else []
 
-@router.post("/chat", status_code=200)
+@router.post("/new_message", status_code=200)
 async def send_chat_message(
     tab_id: str = Body(...),
     message: str = Body(...),
-    paper_ids: Optional[List[str]] = Body(None),
-    # FINDING SIMILAR PAPERS TO ADD TO CONTEXT NOT IMPLEMENTED YET
-    # include_similar_papers: bool = Body(True),
-    # max_similar_papers: int = Body(3),
-    authorization: str = Header(...),
+    # authorization: str = Header(...),
 ):
     """Send a message to the chatbot with optional PDF upload."""
     # Authenticate & authorize
-    user_id = _get_user_id(authorization)
-    tab_data = _verify_tab_access(tab_id, user_id)
-    
+    # user_id = _get_user_id(authorization)
+    print("hit")
+    # tab_data = _verify_tab_access(tab_id, user_id)
+
+    print("you got mail")
+    print(tab_id)
+    print(message)
+    user_message_result = (
+        supabase
+        .table("chat_messages")
+        .insert({
+            "convo_id": tab_id,
+            "role": "user",
+            "data": message,
+        })
+        .execute()
+    )
+
+    assistant_message_result = (
+        supabase
+        .table("chat_messages")
+        .insert({
+            "convo_id": tab_id,
+            "role": "assistant",
+            "data": "YOU GOT A RESPONSE!",
+        })
+        .execute()
+    )
+
+    return
+
     # Fetch PDFs from storage if paper_ids provided
     pdf_contents = []
     paper_filenames = []
