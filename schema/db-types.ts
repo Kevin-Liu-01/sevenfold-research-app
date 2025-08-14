@@ -28,7 +28,7 @@ export interface Project {
     updated_at: string;
 }
 
-export interface PaperAttr {
+export interface Paper {
     id: UUID;
     title: string;
     abstract: string | null;

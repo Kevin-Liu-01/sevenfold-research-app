@@ -58,7 +58,7 @@ def get_project_context(project_id: str) -> List[float]:
         .execute()
     )
 
-    publ_resp = (
+    priv_resp = (
         supabase
         .table("priv_corpus")
         .select("paper_id, embedding")
@@ -67,18 +67,28 @@ def get_project_context(project_id: str) -> List[float]:
     )
 
     embeddings = []
-    for source in [publ_response.data, priv_response.data]:
+    for source in [publ_resp.data, priv_resp.data]:
         for row in source:
-            if row.get("embedding"):
-                embeddings.append(np.array(row["embedding"]))
+            emb = row.get("embedding")
+            if emb:
+                if isinstance(emb, str):
+                    try:
+                        emb = json.loads(emb)
+                    except Exception:
+                        continue
 
-    project_embedding = np.mean(embeddings, axis=0)
-    project_embedding /= np.linalg.norm(project_embedding)
-    return project_embedding
+                arr = np.asarray(emb, dtype=np.float32).ravel()
+                embeddings.append(arr)
+
+    if not embeddings:
+        return np.zeros(768).tolist()
+    else:
+        project_embedding = np.stack(embeddings, axis=0).mean(axis=0)
+        return project_embedding.tolist()
 
 class SearchRequest(BaseModel):
     query: str
-    # project_id: str
+    project_id: str
     match_count: int = 30
     lexical_weight: float = 1.0
     semantic_weight: float = 1.0
@@ -93,7 +103,6 @@ async def hybrid_search(request: SearchRequest):
     """
     query_embedding = embed_query(request.query)
     context_embedding = get_project_context(request.project_id)
-    # context_embedding = np.zeros(768).tolist()
 
     resp = supabase.rpc(
         "hybrid_search",

@@ -301,7 +301,7 @@ const ChatViewer: React.FC = () => {
                             : "bg-gray-100 border-gray-300 text-gray-500"
                     }`}
                                 >
-                                    {paper.filename || "Untitled"}
+                                    {paper.title || "Untitled"}
                                 </div>
                             ))}
                         </div>

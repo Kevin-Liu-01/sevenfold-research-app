@@ -58,18 +58,17 @@ const PaperBox: React.FC<{
     return (
         <div
             onClick={onClick}
-            className={`flex items-center justify-between p-1 rounded-md cursor-pointer transition
+            className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
                 ${isSelected ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
             `}
         >
             <div className="flex items-center space-x-1">
                 <div className="flex flex-col">
                     <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
-                        {paper.filename || "Untitled Paper"}
+                        {paper.title || "Untitled Paper"}
                     </span>
-                    <span className="text-xs text-gray-500">
-                        {paper.authors?.join(", ") || "Unknown author"} •{" "}
-                        {new Date(paper.created_at).toLocaleDateString()}
+                    <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                        {paper.authors?.join(", ") || "Unknown author"}
                     </span>
                 </div>
             </div>
