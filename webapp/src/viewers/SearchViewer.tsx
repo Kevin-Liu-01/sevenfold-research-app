@@ -146,8 +146,8 @@ const ResultsList: React.FC<{
     <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {results.map((paper) => (
             <div
-                key={paper.paper_id}
-                onClick={onPaperClick}
+                key={paper.id}
+                onClick={() => onPaperClick(paper)}
                 className="p-4 rounded-md shadow-sm space-y-1"
             >
                 <a
@@ -197,6 +197,7 @@ const SearchViewer: React.FC = () => {
         try {
             const payload = {
                 query: query.trim(),
+                project_id: projectId,
                 match_count: 30,
                 lexical_weight: kwPresetVals[kwPreset],
                 semantic_weight: semPresetVals[semPreset],
@@ -225,6 +226,7 @@ const SearchViewer: React.FC = () => {
     };
 
     const handlePaperClick = (paper: Paper) => {
+        console.log("clicked");
         setSelectedPaper(paper);
     };
 
@@ -234,6 +236,7 @@ const SearchViewer: React.FC = () => {
 
     const handleAddToProject = async (paper: Paper) => {
         try {
+            console.log("hello" + paper.id);
             const { error: insertErr } = await supabase
                 .from("project_paper_links")
                 .insert({
