@@ -1,71 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
-import type { ChatConvo, ChatMessage } from "../../../schema/db-types";
+import type { Paper, ChatConvo, ChatMessage } from "../../../schema/db-types";
 
-/**
- * Subscribe to chat_messages for a convo and keep them ordered.
- * Fetches initial history and then streams INSERTs in realtime.
- */
-function useConvoMessages(convoId: string | null) {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-    useEffect(() => {
-        if (!convoId) {
-            setMessages([]);
-            return;
-        }
-
-        let isCancelled = false;
-
-        const load = async () => {
-            const { data, error } = await supabase
-                .from("chat_messages")
-                .select("*")
-                .eq("convo_id", convoId)
-                .order("created_at", { ascending: true });
-
-            if (!isCancelled) {
-                if (error) {
-                    console.error("Failed to load messages:", error.message);
-                    setMessages([]);
-                } else {
-                    setMessages((data ?? []) as ChatMessage[]);
-                }
-            }
-        };
-
-        load();
-
-        const channel = supabase
-            .channel(`chat_messages:${convoId}`)
-            .on(
-                "postgres_changes",
-                { event: "INSERT", schema: "public", table: "chat_messages", filter: `convo_id=eq.${convoId}` },
-                (payload) => {
-                    const msg = payload.new as ChatMessage;
-                    // de-dupe by id
-                    setMessages((prev) => {
-                        if (prev.some((m) => m.id === msg.id)) return prev;
-                        const next = [...prev, msg];
-                        next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                        return next;
-                    });
-                }
-            )
-            .subscribe();
-
-        return () => {
-            isCancelled = true;
-            supabase.removeChannel(channel);
-        };
-    }, [convoId]);
-
-    return messages;
-}
-
-/** Small header for a convo */
-function MessageHeader({ convo }: { convo: ChatConvo }) {
+function ConvoHeader({ convo }: { convo: ChatConvo }) {
     return (
         <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur border-b border-gray-200 px-4 py-3">
             <div className="flex items-center justify-between">
@@ -78,67 +16,281 @@ function MessageHeader({ convo }: { convo: ChatConvo }) {
     );
 }
 
-/** One bubble, fades in on mount */
-function MessageBubble({ message }: { message: ChatMessage }) {
-    const isUser = message.role === "user";
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        const t = requestAnimationFrame(() => setMounted(true));
-        return () => cancelAnimationFrame(t);
-    }, []);
 
-    const align = isUser ? "justify-end" : "justify-start";
-    const bubble =
-        message.role === "system"
-            ? "bg-gray-100 text-gray-700 border border-gray-200"
-            : isUser
-            ? "bg-orange-500 text-white"
-            : "bg-white text-gray-900 border border-gray-200";
-
+const QueryResultTabs: React.FC<{
+    active: "response" | "papers";
+    onChange: (tab: "response" | "papers") => void;
+    papersCount: number;
+}> = ({ active, onChange, papersCount }) => {
     return (
-        <div className={`w-full flex ${align} my-1 transition-all duration-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
-            <div className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${bubble}`}>
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{message.data}</pre>
-            </div>
-        </div>
-    );
-}
-
-/** Scrollable list that sticks to bottom on new messages */
-function MessageList({ messages }: { messages: ChatMessage[] }) {
-    const scrollerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const el = scrollerRef.current;
-        if (el) el.scrollTop = el.scrollHeight;
-    }, [messages]);
-
-    return (
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto px-4 py-4">
-            {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+        <div className="border-b border-gray-100 mb-3 flex gap-4 text-sm">
+            {(["response", "papers"] as const).map((tab) => (
+                <button
+                    key={tab}
+                    onClick={() => onChange(tab)}
+                    className={`pb-1 ${
+                        active === tab
+                            ? "border-b-2 border-orange-500 text-orange-600 font-medium"
+                            : "text-gray-500"
+                    }`}
+                >
+                    {tab === "papers" ? `Papers (${papersCount})` : "Response"}
+                </button>
             ))}
         </div>
     );
-}
+};
 
-/** Bottom input bar (existing chat) */
-function ChatInput({
-    value,
-    setValue,
-    onSend,
-    disabled,
-}: {
-    value: string;
-    setValue: (v: string) => void;
-    onSend: () => Promise<void>;
-    disabled: boolean;
-}) {
+const QueryResultBody: React.FC<{
+    tab: "response" | "papers";
+    response?: string;           // undefined while pending
+    isPending: boolean;
+    papers: { id: string; title?: string; filename?: string }[];
+    selectedPaperIds: string[];
+}> = ({ tab, response, isPending, papers, selectedPaperIds }) => {
+    if (tab === "response") {
+        return (
+            <div className="mb-4">
+                {isPending ? (
+                    <div className="text-gray-400 text-base leading-relaxed">
+                        <span className="mr-2">Thinking</span>
+                        <span className="inline-flex items-center gap-1 align-middle">
+                            <span className="animate-pulse">●</span>
+                            <span className="animate-pulse [animation-delay:150ms]">●</span>
+                            <span className="animate-pulse [animation-delay:300ms]">●</span>
+                        </span>
+                    </div>
+                ) : (
+                    <p className="text-gray-800 whitespace-pre-line text-base leading-relaxed">
+                        {response}
+                    </p>
+                )}
+            </div>
+        );
+    }
+
+    // Papers tab
     return (
-        <div className="border-t border-gray-200 bg-app-inner px-4 py-3">
-            <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-3 shadow-sm">
+        <div className="text-sm text-gray-700 space-y-2 mb-4">
+            {selectedPaperIds.length === 0 && (
+                <div className="text-sm text-gray-400 italic mb-4">
+                    (No papers selected.)
+                </div>
+            )}
+            {papers
+                .filter((p) => selectedPaperIds.includes(p.id))
+                .map((p) => (
+                    <div
+                        key={p.id}
+                        className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm"
+                    >
+                        {p.filename || p.title || "Untitled Paper"}
+                    </div>
+                ))}
+        </div>
+    );
+};
+
+const QueryResultCard: React.FC<{
+    query: string;
+    response?: string;
+    isPending: boolean;
+    papers: { id: string; title?: string; filename?: string }[];
+    selectedPaperIds: string[];
+    tab: "response" | "papers";
+    onTabChange: (tab: "response" | "papers") => void;
+}> = ({ query, response, isPending, papers, selectedPaperIds, tab, onTabChange }) => {
+    return (
+        <div className="p-6 w-full min-h-[calc(100vh-12rem)]">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2 whitespace-pre-wrap">
+                {query}
+            </h2>
+
+            <QueryResultTabs
+                active={tab}
+                onChange={onTabChange}
+                papersCount={selectedPaperIds.length}
+            />
+
+            <QueryResultBody
+                tab={tab}
+                response={response}
+                isPending={isPending}
+                papers={papers}
+                selectedPaperIds={selectedPaperIds}
+            />
+
+            <div className="flex gap-3 text-gray-400 text-sm">
+                <button className="hover:text-orange-600">
+                    <span className="material-icons text-base">thumb_up</span>
+                </button>
+                <button className="hover:text-orange-600">
+                    <span className="material-icons text-base">thumb_down</span>
+                </button>
+                <button className="hover:text-orange-600">
+                    <span className="material-icons text-base">content_copy</span>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const QueryResultsPager: React.FC<{
+    items: { query: string; response?: string; isPending: boolean }[];
+    papers: { id: string; title?: string; filename?: string }[];
+    selectedPaperIds: string[];
+}> = ({ items, papers, selectedPaperIds }) => {
+    const [tabs, setTabs] = useState<Record<number, "response" | "papers">>({});
+    useEffect(() => {
+        setTabs((old) => {
+            const next = { ...old };
+            for (let i = 0; i < items.length; i++) if (!next[i]) next[i] = "response";
+            return next;
+        });
+    }, [items.length]);
+
+    // Always focus the newest item
+    const [currentIndex, setCurrentIndex] = useState(Math.max(items.length - 1, 0));
+    useEffect(() => {
+        setCurrentIndex(Math.max(items.length - 1, 0));
+    }, [items.length]);
+
+    // Measure current slide height for translate
+    const [pageHeight, setPageHeight] = useState(0);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = wrapperRef.current?.children[currentIndex] as HTMLElement | null;
+        if (el) setPageHeight(el.offsetHeight);
+    }, [currentIndex, items, tabs]);
+
+    // Mouse wheel navigation (throttled & jitter-filtered)
+    const lastScrollRef = useRef(0);
+    const handleWheel = useCallback(
+        (e: React.WheelEvent<HTMLDivElement>) => {
+            e.stopPropagation();
+            const now = Date.now();
+            if (now - lastScrollRef.current < 160) return;
+            if (Math.abs(e.deltaY) < 12) return;
+            if (e.deltaY > 0) {
+                setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
+            } else {
+                setCurrentIndex((i) => Math.max(i - 1, 0));
+            }
+            lastScrollRef.current = now;
+        },
+        [items.length]
+    );
+
+    // Keyboard arrows
+    useEffect(() => {
+        const onKey = (ev: KeyboardEvent) => {
+            if (ev.key === "ArrowDown") {
+                setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
+            } else if (ev.key === "ArrowUp") {
+                setCurrentIndex((i) => Math.max(i - 1, 0));
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [items.length]);
+
+    return (
+        <div
+            className="relative w-full h-[calc(100vh-12rem)] overflow-hidden"
+            onWheel={handleWheel}
+        >
+            <div
+                className="transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateY(-${currentIndex * pageHeight}px)` }}
+            >
+                <div className="flex flex-col w-full" ref={wrapperRef}>
+                    {items.map((it, i) => (
+                        <QueryResultCard
+                            key={i}
+                            query={it.query}
+                            response={it.response}
+                            isPending={it.isPending}
+                            papers={papers}
+                            selectedPaperIds={selectedPaperIds}
+                            tab={tabs[i] ?? "response"}
+                            onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* On-screen arrows */}
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+                <button
+                    onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))}
+                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                    ↑
+                </button>
+                <button
+                    onClick={() => setCurrentIndex((i) => Math.min(i + 1, items.length - 1))}
+                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                    ↓
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export const MessageList: React.FC<{
+    messages: ChatMessage[];
+}> = ({ messages }) => {
+    const { papers, selectedConvo } = useWorkbench();
+
+    // Build list for the pager with optimistic pending card:
+    // - Only start a card on a user message
+    // - If immediately followed by assistant, it's ready
+    // - If not, it's pending (shows thinking until assistant arrives)
+    const items = useMemo(() => {
+        const out: { query: string; response?: string; isPending: boolean }[] = [];
+        let i = 0;
+        while (i < messages.length) {
+            const a = messages[i];
+            if (a?.role !== "user") {
+                i += 1;
+                continue;
+            }
+            const b = messages[i + 1];
+            if (b?.role === "assistant") {
+                out.push({ query: a.data, response: b.data, isPending: false });
+                i += 2;
+            } else {
+                out.push({ query: a.data, response: undefined, isPending: true });
+                i += 1;
+            }
+        }
+        return out;
+    }, [messages]);
+
+    const selectedPaperIds: string[] = Array.isArray(selectedConvo?.paper_ids)
+        ? (selectedConvo!.paper_ids as string[])
+        : [];
+
+    return (
+        <QueryResultsPager
+            items={items}
+            papers={papers}
+            selectedPaperIds={selectedPaperIds}
+        />
+    );
+};
+const ChatInput: React.FC<{
+     value: string;
+     setValue: (v: string) => void;
+     onSend: () => Promise<void>;
+     disabled: boolean;
+}> = ({value, setValue, onSend, disabled }) => {
+    return (
+        <div className="fixed bottom-0 left-0 w-full py-4 z-10">
+            <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
                 <textarea
-                    placeholder="Ask something..."
+                    placeholder="Ask another question..."
                     className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
                     rows={2}
                     value={value}
@@ -149,24 +301,28 @@ function ChatInput({
                             onSend();
                         }
                     }}
-                    disabled={disabled}
                 />
-                <div className="flex justify-between items-center mt-2">
+                <div className="flex justify-between items-center mt-3">
                     <div className="flex gap-2">
-                        <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50 disabled:opacity-40" disabled={disabled}>
-                            <span className="material-icons text-base">attach_file</span>
-                            File
+                        <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
+                            <span className="material-icons text-base">
+                                attach_file
+                            </span>
+                           Source 
                         </button>
-                        <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50 disabled:opacity-40" disabled={disabled}>
+                        <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                             <span className="material-icons text-base">mic</span>
                             Dictate
+                        </button>
+                        <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
+                            <span className="material-icons text-base">smart_toy</span>
+                            Model
                         </button>
                     </div>
                     <button
                         onClick={onSend}
-                        disabled={!value.trim() || disabled}
+                        disabled={disabled}
                         className="text-orange-500 hover:text-orange-700 transition disabled:opacity-30"
-                        title="Send"
                     >
                         <span className="material-icons text-xl">send</span>
                     </button>
@@ -176,24 +332,15 @@ function ChatInput({
     );
 }
 
-/** New chat landing screen */
-function NewChatPage({
-    value,
-    setValue,
-    onSend,
-    papers,
-    selectedPaperIds,
-    togglePaper,
-    disabled,
-}: {
-    value: string;
-    setValue: (v: string) => void;
-    onSend: () => Promise<void>;
-    papers: { id: string; title?: string; filename?: string }[];
-    selectedPaperIds: string[];
-    togglePaper: (id: string) => void;
-    disabled: boolean;
-}) {
+const NewChatPage: React.FC<{
+    value: string,
+    setValue: (v: string) => void,
+    onSend: () => Promise<void>,
+    papers: Paper[];
+    selectedPaperIds: string[],
+    togglePaper: (id: string) => void,
+    disabled: boolean,
+}> = ({ value, setValue, onSend, papers, selectedPaperIds, togglePaper, disabled }) => {
     return (
         <div className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center">
             <img src="/branding/logo-long.png" className="text-4xl h-12 font-bold text-gray-900 mb-6" />
@@ -261,9 +408,6 @@ function NewChatPage({
     );
 }
 
-// -----------------------------------------------------------------------------
-// Container
-// -----------------------------------------------------------------------------
 
 const ChatViewer: React.FC = () => {
     const { projectId, papers, selectedConvo, setSelectedConvo, refreshConvos } = useWorkbench();
@@ -271,11 +415,49 @@ const ChatViewer: React.FC = () => {
     const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() => papers.map((p) => p.id));
     useEffect(() => setSelectedPaperIds(papers.map((p) => p.id)), [papers]);
 
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
+    const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
-    // messages stream
-    const messages = useConvoMessages(selectedConvo?.id ?? null);
+
+    useEffect(() => {
+        const load = async () => {
+            if (!selectedConvo?.id) {
+                setMessages([]);
+                return;
+            }
+            const convoId = selectedConvo.id;
+
+            const { data, error } = await supabase
+                .from("chat_messages")
+                .select("*")
+                .eq("convo_id", convoId)
+                .order("created_at", { ascending: true });
+
+            if (error) {
+                console.error("Failed to load messages:", error.message);
+                setMessages((prev) =>
+                    prev.filter((m) => m.convo_id === convoId && m.id.startsWith("local-"))
+                );
+                return;
+            }
+
+            const remote = (data ?? []) as ChatMessage[];
+            setMessages((prev) => {
+                const locals = prev.filter(
+                    (m) => m.convo_id === convoId && m.id.startsWith("local-")
+                );
+                const merged = [...remote, ...locals];
+                merged.sort(
+                    (a, b) =>
+                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+                return merged;
+            });
+        };
+        load();
+    }, [selectedConvo?.id]);
 
     const togglePaper = (id: string) =>
         setSelectedPaperIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -286,9 +468,11 @@ const ChatViewer: React.FC = () => {
         if (!projectId) return;
 
         setSending(true);
+        setAwaitingAssistant(true);
         try {
-            // Ensure a convo exists
             let convoId = selectedConvo?.id;
+
+            // Create convo if needed
             if (!convoId) {
                 const { data, error } = await supabase
                     .from("chat_convos")
@@ -302,39 +486,93 @@ const ChatViewer: React.FC = () => {
 
                 if (error || !data) {
                     console.error("Error creating conversation:", error?.message);
-                    setSending(false);
+                    setAwaitingAssistant(false);
                     return;
                 }
 
                 convoId = data.id as string;
+
+                // 1) Optimistically append the FIRST user message *before* switching view
+                const userMsg: ChatMessage = {
+                    id: `local-user-${Date.now()}`,
+                    convo_id: convoId,
+                    role: "user",
+                    data: trimmed,
+                    created_at: new Date().toISOString(),
+                    metadata: {},
+                };
+                setMessages([userMsg]); // fresh thread: start with first message
+                setInput("");
+
+                // 2) Switch to the convo (header etc.)
                 setSelectedConvo(data);
                 await refreshConvos();
+            } else {
+                // Existing convo: optimistic user message as usual
+                const userMsg: ChatMessage = {
+                    id: `local-user-${Date.now()}`,
+                    convo_id: convoId,
+                    role: "user",
+                    data: trimmed,
+                    created_at: new Date().toISOString(),
+                    metadata: {},
+                };
+                setMessages((prev) => [...prev, userMsg]);
+                setInput("");
             }
 
-            // Hit API – it will write both user + assistant messages.
+            // Hit API – server writes both messages; we animate assistant on return
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tab_id: convoId, message: trimmed }),
-            }).catch((e) => {
-                console.error("Chat request failed:", e);
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({ convo_id: convoId, message: trimmed, paper_ids: null }),
             });
 
-            setInput(""); // clear input; new messages will arrive via realtime
+            if (!res.ok) {
+                const txt = await res.text();
+                try {
+                    console.error("Chat API error", res.status, JSON.parse(txt));
+                } catch {
+                    console.error("Chat API error", res.status, txt);
+                }
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `local-assistant-error-${Date.now()}`,
+                        convo_id: convoId!,
+                        role: "assistant",
+                        data: "Sorry — I couldn’t process that request.",
+                        created_at: new Date().toISOString(),
+                        metadata: {},
+                    },
+                ]);
+                setAwaitingAssistant(false);
+                return;
+            }
+
+            const data = await res.json();
+            const assistantText: string = data?.message ?? "…";
+
+            const assistantMsg: ChatMessage = {
+                id: `local-assistant-${Date.now()}`,
+                convo_id: convoId!,
+                role: "assistant",
+                data: assistantText,
+                created_at: new Date().toISOString(),
+                metadata: {},
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+        } catch (e) {
+            console.error("Send error:", e);
         } finally {
+            setAwaitingAssistant(false);
             setSending(false);
         }
     }, [input, sending, projectId, selectedConvo?.id, selectedPaperIds, setSelectedConvo, refreshConvos]);
 
-    const isNewChat = !selectedConvo;
-    const paperCount = useMemo(
-        () => (Array.isArray(selectedConvo?.paper_ids) ? selectedConvo!.paper_ids.length : selectedPaperIds.length),
-        [selectedConvo?.paper_ids, selectedPaperIds.length]
-    );
-
     return (
         <div className="min-h-screen max-w-5xl mx-auto flex flex-col bg-app-inner">
-            {isNewChat ? (
+            {!selectedConvo ? (
                 <div className="flex-1 px-8 pt-10 pb-20">
                     <NewChatPage
                         value={input}
@@ -348,8 +586,8 @@ const ChatViewer: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <MessageHeader convo={selectedConvo} />
-                    <MessageList messages={messages} />
+                    <ConvoHeader convo={selectedConvo} />
+                    <MessageList messages={messages} awaitingAssistant={awaitingAssistant} />
                     <ChatInput value={input} setValue={setInput} onSend={sendMessage} disabled={sending} />
                 </>
             )}
