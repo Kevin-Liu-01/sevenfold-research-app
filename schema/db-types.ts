@@ -56,3 +56,23 @@ export interface PrivCorpusPaper {
     embedding: Vector768 | null;
     created_at: string;
 }
+
+export interface ChatConvo {
+    id: UUID;
+    project_id: UUID;
+    name: string;
+    paper_ids: string[];
+    created_at: string;
+    updated_at: string;
+    metadata: Record<string. unknown> | null;
+}
+
+export type ChatMessageRole = 'user' | 'assistant' | 'system';
+export interface ChatMessage {
+    id: UUID;
+    convo_id: UUID;
+    role: ChatMessageRole;
+    data: string;
+    created_at: string;
+    metadata: Record<string, unknown> | null;
+}
