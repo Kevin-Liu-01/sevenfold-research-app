@@ -13,7 +13,7 @@ from utils.auth import get_user_id_from_token
 
 load_dotenv()
 
-router = APIRouter(prefix="/chatbot", tags=["chatbot"])
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 # Initialize Anthropic client
 client = anthropic.Anthropic(
@@ -146,7 +146,7 @@ Be concise but thorough, and always ground your responses in the actual paper co
     for msg in conversation_history:
         messages.append({
             "role": msg["role"],
-            "content": msg["content"]
+            "content": msg["data"]
         })
     
     messages.append({
@@ -274,7 +274,7 @@ async def _generate_tab_name(user_message: str, paper_filenames: Optional[List[s
     
 #     return result.data if result.data else []
 
-@router.post("/chat/new_message", status_code=200)
+@router.post("/new_message", status_code=200)
 async def send_chat_message(
     convo_id: str = Body(...),
     message: str = Body(...),
@@ -334,20 +334,23 @@ async def send_chat_message(
     if not result.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    existing_ids = set(result.data.get("paper_ids", []) or [])
-    new_ids = set(paper_ids)
-    ids_to_add = new_ids - existing_ids
-    updated_paper_ids = list(existing_ids | ids_to_add)
-
-    update_result = (
-        supabase
-        .table("chat_convos")
-        .update({"paper_ids": updated_paper_ids})
-        .eq("id", convo_id)
-        .execute()
-    )
-    if not update_result.data:
-        raise HTTPException(status_code=500, detail="Failed to update paper_ids")
+    if paper_ids:
+        existing_ids = set(result.data.get("paper_ids", []) or [])
+        new_ids = set(paper_ids)
+        ids_to_add = new_ids - existing_ids
+        
+        # Only update database if there are actually new IDs
+        if ids_to_add:
+            updated_paper_ids = list(existing_ids | ids_to_add)
+            update_result = (
+                supabase
+                .table("chat_convos")
+                .update({"paper_ids": updated_paper_ids})
+                .eq("id", convo_id)
+                .execute()
+            )
+            if not update_result.data:
+                raise HTTPException(status_code=500, detail="Failed to update paper_ids")
     
     # # Get paper context if provided (and no PDF uploaded) - CAN GET PAPER CONTEXT WITH OR WITHOUT PDF UPLOAD SO CHANGE LATER
     # paper_context = None
@@ -419,7 +422,7 @@ Provide detailed analysis based on the PDF content. Help the user understand the
             if msg["role"] != "system":
                 claude_messages.append({
                     "role": msg["role"],
-                    "content": msg["content"]
+                    "content": msg["data"]
                 })
         
         # Build user message with all PDFs
@@ -466,7 +469,7 @@ Provide detailed analysis based on the PDF content. Help the user understand the
         
         for msg in messages:
             if msg["role"] == "system":
-                system_message = msg["content"]
+                system_message = msg["content"] # Accessing with keyword 'content' here is fine since _build_chat_prompt() creates new message dictionaries with the 'content' field
             else:
                 claude_messages.append({
                     "role": msg["role"],
