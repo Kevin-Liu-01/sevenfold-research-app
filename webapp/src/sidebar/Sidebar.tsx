@@ -30,6 +30,7 @@ const HomeButton: React.FC = () => {
 
 const AvatarButton: React.FC = () => {
     const { profile, signOut } = useAuth();
+    const navigate = useNavigate();
     const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const avatarRef = useRef<HTMLDivElement>(null);
@@ -110,7 +111,10 @@ const AvatarButton: React.FC = () => {
                 </button>
                 <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-                    onClick={() => setAvatarMenuOpen(false)}
+                    onClick={() => {
+                        setAvatarMenuOpen(false);
+                        navigate("/settings");
+                    }}
                 >
                     Settings
                 </button>
