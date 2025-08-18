@@ -196,7 +196,10 @@ const SearchViewer: React.FC = () => {
     const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
     const doSearch = async () => {
-        if (!query.trim()) return;
+        if (!query.trim()) {
+            setResults([]);
+            return;
+        }
 
         setLoading(true);
         setSearchParams({ q: query });
