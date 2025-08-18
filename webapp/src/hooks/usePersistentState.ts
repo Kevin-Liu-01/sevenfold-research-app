@@ -7,7 +7,16 @@ import { useState, useEffect } from "react";
 export function usePersistentState<T>(key: string, initial: T) {
     const [state, setState] = useState<T>(() => {
         const saved = localStorage.getItem(key);
-        return saved ? (JSON.parse(saved) as T) : initial;
+        if (saved) {
+            try {
+                return JSON.parse(saved) as T;
+            } catch (e) {
+                // If parsing fails, fall back to initial value
+                return initial;
+            }
+        } else {
+            return initial;
+        }
     });
 
     // Update localStorage whenever state changes
