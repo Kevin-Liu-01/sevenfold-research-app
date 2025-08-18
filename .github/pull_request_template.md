@@ -5,7 +5,9 @@ Briefly describe the purpose of this PR.
 ## Related Issues
 
 Closes KETS-XXX (if applicable)
+
 Closes Issue #XXX (if applicable)
+
 Depends on Issue #XXX (if applicable)
 
 ## Changes
