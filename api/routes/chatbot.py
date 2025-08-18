@@ -290,6 +290,7 @@ async def send_chat_message(
     # tab_data = _verify_tab_access(tab_id, user_id)
     
     # Fetch PDFs from storage if paper_ids provided
+
     pdf_contents = []
     paper_filenames = []
     
@@ -539,7 +540,7 @@ Provide detailed analysis based on the PDF content. Help the user understand the
             .execute()
     
     response_data = {
-        "message": assistant_message_result.data[0],
+        "message": assistant_content,
         # "paper_context": paper_context, - NOT IMPLEMENTED YET
         # "similar_papers": similar_papers - NOT IMPLEMENTED YET
     }
