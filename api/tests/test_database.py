@@ -32,7 +32,7 @@ def test_database():
     # Test 1: Connection
     print("\nTest 1: Database Connection")
     try:
-        result = supabase.table("chatbot_tabs").select("id").limit(1).execute()
+        result = supabase.table("chat_convos").select("id").limit(1).execute()
         print("✓ Database connected")
     except Exception as e:
         print(f"✗ Connection failed: {e}")
@@ -43,9 +43,10 @@ def test_database():
         print("\nTest 2: Write Operations")
         try:
             # Create tab
-            tab_result = supabase.table("chatbot_tabs").insert({
+            tab_result = supabase.table("chat_convos").insert({
                 "project_id": TEST_PROJECT_ID,
                 "name": "Test Tab",
+                "paper_ids": ["test.pdf"],
                 "metadata": {"test": True}
             }).execute()
             
@@ -53,11 +54,10 @@ def test_database():
             print(f"✓ Created tab: {test_tab_id[:8]}...")
             
             # Create message
-            msg_result = supabase.table("chatbot_messages").insert({
-                "tab_id": test_tab_id,
+            msg_result = supabase.table("chat_messages").insert({
+                "convo_id": test_tab_id,
                 "role": "user",
-                "content": "Test message",
-                "paper_ids": ["test.pdf"]
+                "data": "Test message"
             }).execute()
             
             print(f"✓ Created message: {msg_result.data[0]['id'][:8]}...")
@@ -73,14 +73,14 @@ def test_database():
     print("\nTest 3: Read Operations")
     try:
         # Read tabs
-        tabs = supabase.table("chatbot_tabs").select("*").limit(3).execute()
+        tabs = supabase.table("chat_convos").select("*").limit(3).execute()
         print(f"✓ Read {len(tabs.data)} tabs")
         
         # Read with filter
         if test_tab_id:
-            filtered = supabase.table("chatbot_messages")\
+            filtered = supabase.table("chat_messages")\
                 .select("*")\
-                .eq("tab_id", test_tab_id)\
+                .eq("convo_id", test_tab_id)\
                 .execute()
             print(f"✓ Filtered query returned {len(filtered.data)} messages")
         
@@ -91,7 +91,7 @@ def test_database():
     if test_tab_id:
         print("\nTest 4: Cleanup")
         try:
-            supabase.table("chatbot_tabs").delete().eq("id", test_tab_id).execute()
+            supabase.table("chat_convos").delete().eq("id", test_tab_id).execute()
             print("✓ Test data cleaned up")
         except Exception as e:
             print(f"✗ Cleanup failed: {e}")
