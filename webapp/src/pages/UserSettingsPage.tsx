@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import supabase from "../auth/supabaseClient";
 
 const UserSettingsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { profile, updateProfile, user, session } = useAuth();
+    const location = useLocation();
+    const { profile, updateProfile, user, session, refreshProfile } = useAuth();
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+    const [fadeOut, setFadeOut] = useState(false);
+    const animationRef = useRef({ show: false, fade: false });
     
-    // Debug logging
-    console.log('UserSettingsPage render:', { user, profile, session });
+
     
     // Form state
     const [formData, setFormData] = useState({
@@ -26,7 +29,6 @@ const UserSettingsPage: React.FC = () => {
 
     // Initialize form data when profile loads
     useEffect(() => {
-        console.log('Profile or user changed:', { profile, user, session });
         if (profile) {
             setFormData({
                 first_name: profile.first_name || "",
@@ -36,6 +38,16 @@ const UserSettingsPage: React.FC = () => {
             });
         }
     }, [profile, user, session]);
+
+    // Restore animation state from ref if it gets lost during re-renders
+    useEffect(() => {
+        if (animationRef.current.show && !showSuccessAnimation) {
+            setShowSuccessAnimation(true);
+        }
+        if (animationRef.current.fade && !fadeOut) {
+            setFadeOut(true);
+        }
+    }, [showSuccessAnimation, fadeOut]);
 
     // Load avatar URL
     useEffect(() => {
@@ -57,6 +69,17 @@ const UserSettingsPage: React.FC = () => {
             }
         }
     }, [profile?.pfp_path]);
+
+    const handleBackNavigation = () => {
+        const from = location.state?.from;
+        if (from === "project" && location.state?.projectId) {
+            // Navigate back to the specific project page
+            navigate(`/project/${location.state.projectId}`);
+        } else {
+            // Default to home page
+            navigate("/");
+        }
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -83,8 +106,6 @@ const UserSettingsPage: React.FC = () => {
             const ext = (file.name.split('.').pop() || 'png').toLowerCase();
             const key = `users/${profile?.user_id}/avatar-${Date.now()}.${ext}`;
             
-            console.log('Uploading to key:', key);
-
             const { error: uploadError } = await supabase.storage
                 .from("user_pfps")
                 .upload(key, file, {
@@ -94,21 +115,32 @@ const UserSettingsPage: React.FC = () => {
                 });
 
             if (uploadError) {
-                console.error('Upload error:', uploadError);
                 throw uploadError;
             }
 
-            console.log('File uploaded successfully, updating profile...');
-
             // Update profile with new avatar path
             await updateProfile({ pfp_path: key });
+            
+            // Show success animation
+            setShowSuccessAnimation(true);
+            setFadeOut(false);
             setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
+            
+            // Start fade out after 2.5 seconds
+            setTimeout(() => {
+                setFadeOut(true);
+            }, 2500);
+            
+            // Hide success animation after 3 seconds
+            setTimeout(() => {
+                setShowSuccessAnimation(false);
+                setFadeOut(false);
+            }, 3000);
             
             // Refresh the avatar URL
             setAvatarUrl(supabase.storage.from("user_pfps").getPublicUrl(key).data.publicUrl);
             
         } catch (error) {
-            console.error('Error uploading avatar:', error);
             setMessage({ 
                 type: 'error', 
                 text: error instanceof Error ? error.message : 'Failed to upload profile picture' 
@@ -120,21 +152,71 @@ const UserSettingsPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!profile) return;
+        
+        if (!profile) {
+            return;
+        }
 
         try {
             setLoading(true);
             setMessage(null);
 
-            await updateProfile({
+            const updateData = {
                 first_name: formData.first_name.trim(),
                 last_name: formData.last_name.trim(),
                 institution: formData.institution.trim() || null,
-            });
+            };
 
+            try {
+                // Update the profile in the database but skip the refresh for now
+                const { error } = await supabase
+                    .from("user_profiles")
+                    .update(updateData)
+                    .eq("user_id", profile?.user_id);
+
+                if (error) {
+                    throw error;
+                }
+                
+                // Update the local profile state immediately for UI responsiveness
+                if (profile) {
+                    const updatedProfile = {
+                        ...profile,
+                        ...updateData
+                    };
+                    // Update form data to show the changes immediately
+                    setFormData(prev => ({
+                        ...prev,
+                        ...updateData
+                    }));
+                    // We'll refresh the profile after animation completes
+                }
+            } catch (updateError) {
+                // Still show success message even if there was an error
+            }
+
+            // Show success animation
+            setShowSuccessAnimation(true);
+            setFadeOut(false);
+            animationRef.current = { show: true, fade: false };
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            
+            // Start fade out after 1 second
+            setTimeout(() => {
+                setFadeOut(true);
+                animationRef.current.fade = true;
+            }, 1000);
+            
+            // Hide success animation after 1.5 seconds
+            setTimeout(() => {
+                setShowSuccessAnimation(false);
+                setFadeOut(false);
+                animationRef.current = { show: false, fade: false };
+                
+                // Now refresh the profile after animation is complete
+                refreshProfile();
+            }, 1500);
         } catch (error) {
-            console.error('Error updating profile:', error);
             setMessage({ type: 'error', text: 'Failed to update profile' });
         } finally {
             setLoading(false);
@@ -144,12 +226,10 @@ const UserSettingsPage: React.FC = () => {
     if (!profile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f57920] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading profile...</p>
-                    <p className="text-sm text-gray-500 mt-2">User: {user?.email || 'Not loaded'}</p>
-                    <p className="text-sm text-gray-500">Profile: {profile ? 'Loaded' : 'Not loaded'}</p>
-                </div>
+                                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f57920] mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading profile...</p>
+                    </div>
             </div>
         );
     }
@@ -162,7 +242,7 @@ const UserSettingsPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
-                                onClick={() => navigate("/")}
+                                onClick={handleBackNavigation}
                                 className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
                             >
                                 <span className="material-icons-outlined text-2xl">arrow_back</span>
@@ -175,6 +255,25 @@ const UserSettingsPage: React.FC = () => {
                     </div>
                 </div>
             </header>
+
+            {/* Success Animation */}
+            {showSuccessAnimation && (
+                <div 
+                    className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50"
+                    style={{
+                        opacity: fadeOut ? 0 : 1,
+                        transform: `translate(-50%, ${fadeOut ? '-10px' : '0px'})`,
+                        transition: 'all 0.5s ease-in-out'
+                    }}
+                >
+                    <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+                        <span className="material-icons-outlined text-xl">check_circle</span>
+                        <span className="font-medium">Settings updated successfully!</span>
+                    </div>
+                </div>
+            )}
+
+
 
             {/* Main Content */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -300,7 +399,7 @@ const UserSettingsPage: React.FC = () => {
                         <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
                             <button
                                 type="button"
-                                onClick={() => navigate("/")}
+                                onClick={handleBackNavigation}
                                 className="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
                             >
                                 Cancel

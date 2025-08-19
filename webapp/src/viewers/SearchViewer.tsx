@@ -226,7 +226,7 @@ const SearchViewer: React.FC = () => {
     };
 
     const handlePaperClick = (paper: Paper) => {
-        console.log("clicked");
+
         setSelectedPaper(paper);
     };
 
@@ -236,7 +236,7 @@ const SearchViewer: React.FC = () => {
 
     const handleAddToProject = async (paper: Paper) => {
         try {
-            console.log("hello" + paper.id);
+    
             const { error: insertErr } = await supabase
                 .from("project_paper_links")
                 .insert({
@@ -253,7 +253,7 @@ const SearchViewer: React.FC = () => {
             await refreshPapers();
 
             setSelectedPaper(null);
-            console.log("Paper linked to project successfully!");
+
         } catch (error) {
             console.error("Failed to link paper to project:", error);
             throw error;

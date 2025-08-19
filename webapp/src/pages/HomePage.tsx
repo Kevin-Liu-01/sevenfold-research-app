@@ -109,7 +109,7 @@ const HomePage: React.FC = () => {
                                 Sign Out
                             </button>
                             <button
-                                onClick={() => navigate("/settings")}
+                                onClick={() => navigate("/settings", { state: { from: "home" } })}
                                 className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
                                 title="User Settings"
                             >
