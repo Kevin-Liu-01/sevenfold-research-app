@@ -6,7 +6,7 @@ import supabase from "../auth/supabaseClient";
 
 import PaperDetailsModal from "./PaperDetailsModal";
 import type { Paper } from "../../../schema/db-types";
-
+import { usePersistentState } from "../hooks/usePersistentState";
 
 const SearchBox: React.FC<{
     query: string;
@@ -171,8 +171,12 @@ const ResultsList: React.FC<{
 
 const SearchViewer: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [query, setQuery] = useState(searchParams.get("q") ?? "");
-    const [results, setResults] = useState<Paper[]>([]);
+    const [query, setQuery] = usePersistentState<string>(
+        "search:query",
+        searchParams.get("q") ?? ""
+    );
+
+    const [results, setResults] = usePersistentState<Paper[]>("search:results", []);
     const [loading, setLoading] = useState(false);
 
     // Modal state
@@ -182,18 +186,21 @@ const SearchViewer: React.FC = () => {
     const { projectId, refreshPapers } = useWorkbench();
 
     // filters state
-    const [yearFilter, setYearFilter] = useState<number | "">("");
-    const [kwPreset, setKwPreset] = useState<Preset>("M");
-    const [semPreset, setSemPreset] = useState<Preset>("M");
-    const [ctxPreset, setCtxPreset] = useState<Preset>("M");
+    const [yearFilter, setYearFilter] = usePersistentState<number | "">("search:yearFilter", "");
+    const [kwPreset, setKwPreset] = usePersistentState<Preset>("search:kwPreset", "M");
+    const [semPreset, setSemPreset] = usePersistentState<Preset>("search:semPreset", "M");
+    const [ctxPreset, setCtxPreset] = usePersistentState<Preset>("search:ctxPreset", "M");
 
     const kwPresetVals: Record<Preset, number> = { OFF: 0.1, L: 0.3, M: 0.7, H: 1.0 };
     const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.2, M: 0.5, H: 0.9 };
     const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
     const doSearch = async () => {
+        if (!query.trim()) return;
+
         setLoading(true);
         setSearchParams({ q: query });
+
         try {
             const payload = {
                 query: query.trim(),
@@ -204,14 +211,16 @@ const SearchViewer: React.FC = () => {
                 context_weight: ctxPresetVals[ctxPreset],
                 ...(yearFilter !== "" && { min_year: yearFilter }),
             };
+
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
+
             if (!res.ok) throw new Error(await res.text());
             const data: Paper[] = await res.json();
-            setResults(data);
+            setResults(data); // persisted now
         } catch (err) {
             console.error(err);
             setResults([]);
@@ -219,7 +228,6 @@ const SearchViewer: React.FC = () => {
             setLoading(false);
         }
     };
-
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         doSearch();
@@ -237,14 +245,12 @@ const SearchViewer: React.FC = () => {
     const handleAddToProject = async (paper: Paper) => {
         try {
             console.log("hello" + paper.id);
-            const { error: insertErr } = await supabase
-                .from("project_paper_links")
-                .insert({
-                    project_id: projectId,
-                    paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
-                    has_paper: true,
-                    annotations: null
-                });
+            const { error: insertErr } = await supabase.from("project_paper_links").insert({
+                project_id: projectId,
+                paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
+                has_paper: true,
+                annotations: null,
+            });
 
             if (insertErr) {
                 throw new Error(`Failed to link paper: ${insertErr.message}`);
@@ -261,7 +267,9 @@ const SearchViewer: React.FC = () => {
     };
 
     useEffect(() => {
-        if (query) doSearch();
+        if (query && results.length === 0) {
+            doSearch();
+        }
     }, []);
 
     return (
