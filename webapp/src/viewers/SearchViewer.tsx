@@ -236,15 +236,12 @@ const SearchViewer: React.FC = () => {
 
     const handleAddToProject = async (paper: Paper) => {
         try {
-    
-            const { error: insertErr } = await supabase
-                .from("project_paper_links")
-                .insert({
-                    project_id: projectId,
-                    paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
-                    has_paper: true,
-                    annotations: null
-                });
+            const { error: insertErr } = await supabase.from("project_paper_links").insert({
+                project_id: projectId,
+                paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
+                has_paper: true,
+                annotations: null,
+            });
 
             if (insertErr) {
                 throw new Error(`Failed to link paper: ${insertErr.message}`);

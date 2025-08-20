@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import SidebarButton from "./SidebarButton";
 import FeedbackPopup from "./FeedbackPopup";
+import Modal from "../components/ui/Modal";
 
 const navItems = [
     { view: ViewType.Search, label: "Search", icon: "search" },
@@ -151,7 +152,13 @@ const FeedbackButton: React.FC = () => {
                     Feedback
                 </span>
             </button>
-            {feedbackOpen && <FeedbackPopup onClose={() => setFeedbackOpen(false)} />}
+            {feedbackOpen && (
+                <Modal onClose={() => setFeedbackOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-xl p-6 w-[400px] max-w-full">
+                        <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
