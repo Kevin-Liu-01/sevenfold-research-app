@@ -81,7 +81,7 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
 
         try {
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/compositions/project/${projectId}`,
+                `${import.meta.env.VITE_API_BASE_URL}/compose/project/${projectId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${session.access_token}`,

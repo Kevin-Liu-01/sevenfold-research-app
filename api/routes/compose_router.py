@@ -1,29 +1,14 @@
+import os
+import sys
 from fastapi import APIRouter, Header, HTTPException, Body, Query
-from pydantic import BaseModel
 from typing import List, Optional, Literal
 from utils.auth import get_user_id_from_token
 from db.supabase import supabase
 
-router = APIRouter(prefix="/compositions", tags=["compositions"])
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from schema.db_types import CompositionCreate, CompositionUpdate, CompositionResponse
 
-# Pydantic models for request/response
-class CompositionCreate(BaseModel):
-    project_id: str
-    type: Literal["latex", "markdown"]
-    title: Optional[str] = None
-    contents: Optional[str] = None
-
-class CompositionUpdate(BaseModel):
-    title: Optional[str] = None
-    contents: Optional[str] = None
-    type: Optional[Literal["latex", "markdown"]] = None
-
-class CompositionResponse(BaseModel):
-    id: str
-    project_id: str
-    type: str
-    title: Optional[str]
-    contents: Optional[str]
+router = APIRouter(prefix="/compose", tags=["compose"])
 
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""
@@ -62,7 +47,7 @@ def _verify_composition_access(composition_id: str, user_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Composition not found or access denied")
     return comp.data
 
-@router.post("/create", response_model=CompositionResponse, status_code=201)
+@router.post("/new_composition", response_model=CompositionResponse, status_code=201)
 async def create_composition(
     composition: CompositionCreate,
     authorization: str = Header(...)
@@ -128,7 +113,7 @@ async def get_composition(
         "contents": composition["contents"]
     }
 
-@router.put("/{composition_id}", response_model=CompositionResponse)
+@router.put("/update/{composition_id}", response_model=CompositionResponse)
 async def update_composition(
     composition_id: str,
     updates: CompositionUpdate,

@@ -131,7 +131,7 @@ const ComposePanel: React.FC = () => {
             }
 
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/compositions/create`,
+                `${import.meta.env.VITE_API_BASE_URL}/compose/new_composition`,
                 {
                     method: "POST",
                     headers: {

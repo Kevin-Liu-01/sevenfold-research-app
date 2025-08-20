@@ -49,7 +49,7 @@ const Editor: React.FC = () => {
             } = await supabase.auth.getSession();
             if (authErr || !session?.access_token) return;
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/compositions/${selectedComposition.id}`,
+                `${import.meta.env.VITE_API_BASE_URL}/compose/${selectedComposition.id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${session.access_token}`,
@@ -106,7 +106,7 @@ const Editor: React.FC = () => {
                 
                 try {
                     const res = await fetch(
-                        `${import.meta.env.VITE_API_BASE_URL}/compositions/${selectedComposition.id}`,
+                        `${import.meta.env.VITE_API_BASE_URL}/compose/update/${selectedComposition.id}`,
                         {
                             method: "PUT",
                             headers: {
