@@ -5,6 +5,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import supabase from "../auth/supabaseClient";
 
 import type { UserProfile } from "../../../schema/db-types";
+import { clearUserPersistentState } from "../hooks/clearUserPersistentState";
 
 interface AuthContextType {
     user: User | null;
@@ -169,6 +170,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
+
+        // Clear user-specific persistent state
+        // to avoid leaking user data across sessions
+        // ex. workbench state, selected papers
+        if (user?.id) {
+            clearUserPersistentState(user?.id);
+        }
     };
 
     const signInWithProvider = async (provider: "google" | "github") => {
