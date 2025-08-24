@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import supabase from "../auth/supabaseClient";
 
+import type { Paper, Composition } from "../../../schema/db-types";
 import type { Paper } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
 
@@ -29,8 +30,11 @@ interface WorkbenchContextType {
     selectedPaper: Paper | null;
     setSelectedPaper: (paper: Paper | null) => void;
 
-    // Compose
-    createNewDocument: () => Promise<void>;
+    // Compositions
+    compositions: Composition[];
+    refreshCompositions: () => Promise<void>;
+    selectedComposition: Composition | null;
+    setSelectedComposition: (composition: Composition | null) => void;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
@@ -53,6 +57,10 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
         null
     );
 
+    // Compositions
+    const [compositions, setCompositions] = useState<Composition[]>([]);
+    const [selectedComposition, setSelectedComposition] = useState<Composition | null>(null);
+
     const refreshPapers = useCallback(async () => {
         if (!projectId) return;
 
@@ -71,23 +79,41 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
         setPapers(papers);
     }, [projectId]);
 
+    const refreshCompositions = useCallback(async () => {
+        if (!projectId) return;
+
+        const { data: { session }, error: authErr } = await supabase.auth.getSession();
+        if (authErr || !session?.access_token) {
+            console.error("Authentication error:", authErr);
+            return;
+        }
+
+        try {
+            const res = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/compose/project/${projectId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                }
+            );
+
+            if (!res.ok) {
+                console.error("Error fetching compositions:", res.status);
+                return;
+            }
+
+            const compositions = await res.json();
+            setCompositions(compositions);
+        } catch (error) {
+            console.error("Error fetching compositions:", error);
+        }
+    }, [projectId]);
+
     useEffect(() => {
         refreshPapers();
-    }, [refreshPapers]);
-
-    // const createNewDocument = useCallback(async () => {
-    //     if (!projectId) return;
-    //     const { data, error } = await supabase
-    //         .from('documents')
-    //         .insert({ project_id: projectId, title: 'Untitled Document', content: '' })
-    //         .select('*')
-    //         .single();
-    //     if (error) {
-    //         console.error('Error creating document:', error.message);
-    //         return;
-    //     }
-    //     setActiveViewer('compose');
-    // }, [projectId]);
+        refreshCompositions();
+    }, [refreshPapers, refreshCompositions]);
 
     return (
         <WorkbenchContext.Provider
@@ -101,7 +127,10 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
                 refreshPapers,
                 selectedPaper,
                 setSelectedPaper,
-                // createNewDocument,
+                compositions,
+                refreshCompositions,
+                selectedComposition,
+                setSelectedComposition,
             }}
         >
             {children}
