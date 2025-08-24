@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import supabase from "../auth/supabaseClient";
 
 import type { Paper, Composition } from "../../../schema/db-types";
-import type { Paper } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
 
 export enum ViewType {
