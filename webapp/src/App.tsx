@@ -10,10 +10,6 @@ import UserSettingsPage from "./pages/UserSettingsPage";
 import { ForgotPasswordPage, SigninPage, SignupPage } from "./pages/AuthPages";
 import WelcomePage from "./pages/WelcomePage";
 
-// import { ChatProvider } from "./context/ChatContext";
-// import ChatPage from "./pages/ChatPage";
-// import MainLayout from "./pages/MainLayout";
-
 export default function App() {
     return (
         <AuthProvider>
@@ -36,29 +32,5 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </AuthProvider>
-
-        // <ChatProvider>
-        //     <AuthProvider>
-        //         <Routes>
-        //             {/* Public routes */}
-        //             <Route path="/signin" element={<SigninPage />} />
-        //             <Route path="/signup" element={<SignupPage />} />
-        //             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-
-        //             {/* Home page without sidebar */}
-        //             <Route path="/home" element={<HomePage />} />
-
-        //             {/* Main layout for pages that need sidebar */}
-        //             <Route element={<MainLayout sidebarProps={sidebarProps} />}>
-        //                 <Route path="/project/:projectId" element={<WorkbenchPage />} />
-        //                 <Route path="/newproject" element={<NewProjectPage />} />
-        //                 <Route path="/chat" element={<ChatPage />} />
-        //             </Route>
-
-        //             {/* Catch all route */}
-        //             <Route path="*" element={<Navigate to="/home" replace />} />
-        //         </Routes>
-        //     </AuthProvider>
-        // </ChatProvider>
     );
 }
