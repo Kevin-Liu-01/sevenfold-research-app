@@ -7,6 +7,7 @@ import Sidebar from "../sidebar/Sidebar";
 
 import ChatPanel from "../sidebar/ChatPanel";
 import SourcesPanel from "../sidebar/SourcesPanel";
+import ComposePanel from "../sidebar/ComposePanel";
 
 import SearchViewer from "../viewers/SearchViewer";
 import ChatViewer from "../viewers/ChatViewer";
@@ -17,7 +18,7 @@ import SettingsViewer from "../viewers/SettingsViewer";
 const SidepanelMap: Partial<Record<ViewType, React.FC<any>>> = {
     [ViewType.Chat]: () => <ChatPanel />,
     [ViewType.Sources]: () => <SourcesPanel />,
-    [ViewType.Compose]: () => <div />,
+    [ViewType.Compose]: () => <ComposePanel />,
 };
 
 const Sidepanel: React.FC = () => {

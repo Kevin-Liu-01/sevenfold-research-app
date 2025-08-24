@@ -6,6 +6,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import WorkbenchPage from "./pages/WorkbenchPage";
 import NewProjectPage from "./pages/NewProjectPage";
+import UserSettingsPage from "./pages/UserSettingsPage";
 import { ForgotPasswordPage, SigninPage, SignupPage } from "./pages/AuthPages";
 import WelcomePage from "./pages/WelcomePage";
 
@@ -24,6 +25,7 @@ export default function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/newproject" element={<NewProjectPage />} />
                     <Route path="/project/:projectId" element={<WorkbenchPage />} />
+                    <Route path="/settings" element={<UserSettingsPage />} />
                 </Route>
 
                 {/* Catch all route */}

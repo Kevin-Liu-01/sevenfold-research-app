@@ -66,29 +66,8 @@ const QueryResultBody: React.FC<{
                     </p>
                 )}
             </div>
-        );
+        )
     }
-
-    // Papers tab
-    return (
-        <div className="text-sm text-gray-700 space-y-2 mb-4">
-            {selectedPaperIds.length === 0 && (
-                <div className="text-sm text-gray-400 italic mb-4">
-                    (No papers selected.)
-                </div>
-            )}
-            {papers
-                .filter((p) => selectedPaperIds.includes(p.id))
-                .map((p) => (
-                    <div
-                        key={p.id}
-                        className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm"
-                    >
-                        {p.filename || p.title || "Untitled Paper"}
-                    </div>
-                ))}
-        </div>
-    );
 };
 
 const QueryResultCard: React.FC<{

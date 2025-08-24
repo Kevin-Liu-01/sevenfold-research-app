@@ -57,6 +57,7 @@ export interface PrivCorpusPaper {
     created_at: string;
 }
 
+
 export interface ChatConvo {
     id: UUID;
     project_id: UUID;
@@ -75,4 +76,12 @@ export interface ChatMessage {
     data: string;
     created_at: string;
     metadata: Record<string, unknown> | null;
+
+export interface Composition {
+    id: UUID;
+    project_id: UUID;               // FK → projects.id
+    type: "latex" | "markdown";
+    title: string | null;
+    contents: string | null;
+
 }
