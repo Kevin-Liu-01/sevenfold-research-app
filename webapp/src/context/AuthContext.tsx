@@ -22,6 +22,13 @@ interface AuthContextType {
         pfp_path?: string | null;
         settings?: Record<string, unknown> | null;
     }) => Promise<void>;
+    updateProfile: (data: {
+        first_name?: string;
+        last_name?: string;
+        institution?: string | null;
+        pfp_path?: string | null;
+        settings?: Record<string, unknown> | null;
+    }) => Promise<void>;
 
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string) => Promise<void>;
@@ -112,6 +119,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error && error.code !== "23505") throw error;
     };
 
+    const updateProfile = async (data: {
+        first_name?: string;
+        last_name?: string;
+        institution?: string | null;
+        pfp_path?: string | null;
+        settings?: Record<string, unknown> | null;
+    }) => {
+        if (!user) throw new Error("Not authenticated");
+
+
+
+        const updateData: any = {};
+        if (data.first_name !== undefined) updateData.first_name = data.first_name.trim();
+        if (data.last_name !== undefined) updateData.last_name = data.last_name.trim();
+        if (data.institution !== undefined) updateData.institution = data.institution;
+        if (data.pfp_path !== undefined) updateData.pfp_path = data.pfp_path;
+        if (data.settings !== undefined) updateData.settings = data.settings;
+
+
+
+        const { error } = await supabase
+            .from("user_profiles")
+            .update(updateData)
+            .eq("user_id", user.id);
+
+        if (error) {
+            console.error('AuthContext: Supabase update error:', error);
+            throw error;
+        }
+
+                    await refreshProfile();
+    };
+
     const signIn = async (email: string, password: string) => {
         const { error } = await supabase.auth.signInWithPassword({
             email,
@@ -152,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profileLoading,
         refreshProfile,
         createProfile,
+        updateProfile,
         signIn,
         signUp,
         signOut,

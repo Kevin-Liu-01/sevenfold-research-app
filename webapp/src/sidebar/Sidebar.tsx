@@ -31,6 +31,8 @@ const HomeButton: React.FC = () => {
 
 const AvatarButton: React.FC = () => {
     const { profile, signOut } = useAuth();
+    const navigate = useNavigate();
+    const { projectId } = useWorkbench();
     const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const avatarRef = useRef<HTMLDivElement>(null);
@@ -52,7 +54,6 @@ const AvatarButton: React.FC = () => {
         async function resolveAvatar() {
             const p = profile?.pfp_path;
             if (!p) {
-                console.log("nopfp");
                 if (!cancelled) setAvatarUrl(null);
                 return;
             }
@@ -111,7 +112,10 @@ const AvatarButton: React.FC = () => {
                 </button>
                 <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-                    onClick={() => setAvatarMenuOpen(false)}
+                    onClick={() => {
+                        setAvatarMenuOpen(false);
+                        navigate("/settings", { state: { from: "project", projectId } });
+                    }}
                 >
                     Settings
                 </button>
