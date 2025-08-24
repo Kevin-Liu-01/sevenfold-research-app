@@ -40,7 +40,9 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
         if (/^https?:\/\//i.test(paper.pdf_uri)) return paper.pdf_uri;
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
             if (!session?.access_token) return null;
 
             const filePath = paper.pdf_uri.replace(/^library\//, "");
@@ -108,16 +110,26 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                 {/* Labeled metadata */}
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
                     {!!paper.authors?.length && (
-                        <div><span className="font-medium text-gray-900">Authors:</span> {paper.authors.join(", ")}</div>
+                        <div>
+                            <span className="font-medium text-gray-900">Authors:</span>{" "}
+                            {paper.authors.join(", ")}
+                        </div>
                     )}
                     {paper.year != null && (
-                        <div><span className="font-medium text-gray-900">Year:</span> {paper.year}</div>
+                        <div>
+                            <span className="font-medium text-gray-900">Year:</span> {paper.year}
+                        </div>
                     )}
                     {dateStr && (
-                        <div><span className="font-medium text-gray-900">Date:</span> {dateStr}</div>
+                        <div>
+                            <span className="font-medium text-gray-900">Date:</span> {dateStr}
+                        </div>
                     )}
                     {paper.category && (
-                        <div><span className="font-medium text-gray-900">Category:</span> {paper.category}</div>
+                        <div>
+                            <span className="font-medium text-gray-900">Category:</span>{" "}
+                            {paper.category}
+                        </div>
                     )}
                     {paper.doi && (
                         <div>

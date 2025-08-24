@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import supabase from "../auth/supabaseClient";
 
 import type { Paper, Composition } from "../../../schema/db-types";
+import type { Paper } from "../../../schema/db-types";
+import { usePersistentState } from "../hooks/usePersistentState";
 
 export enum ViewType {
     Search = "search",
@@ -41,12 +43,19 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
     projectId,
     children,
 }) => {
-    const [currentView, setCurrentView] = useState<ViewType>(ViewType.Search);
+    const [currentView, setCurrentView] = usePersistentState<ViewType>(
+        `workbench:${projectId}:view`,
+        ViewType.Search
+    );
+
     const [hoveredView, setHoveredView] = useState<ViewType | null>(null);
 
     // Sources
     const [papers, setPapers] = useState<Paper[]>([]);
-    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+    const [selectedPaper, setSelectedPaper] = usePersistentState<Paper | null>(
+        `workbench:${projectId}:selectedPaper`,
+        null
+    );
 
     // Compositions
     const [compositions, setCompositions] = useState<Composition[]>([]);
