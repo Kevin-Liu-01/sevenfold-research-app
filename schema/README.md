@@ -163,3 +163,16 @@ It also stores metadata about each relationship.
 **Primary Key**
 - Composite key `(project_id, paper_id)` ensures uniqueness of links.
 
+## compositions
+
+**Purpose**  
+Table holding all user written compositions. Can be in markdown or LaTeX.
+
+**Fields**
+- `project_id` (UUID, FK → `projects.id`): The project this link belongs to.
+- `type` (composition_type, either 'latex' or 'markdown', not null): The rendering type of the composition.
+- `title` (TEXT): User defined title of a composition
+- `contents` (TEXT, nullable): User written contents of a composition
+
+**Types**
+- `composition_type`: ENUM with values of 'latex' or 'markdown'

@@ -6,6 +6,7 @@ import { useWorkbench, ViewType, WorkbenchProvider } from "../context/WorkbenchC
 import Sidebar from "../sidebar/Sidebar";
 
 import SourcesPanel from "../sidebar/SourcesPanel";
+import ComposePanel from "../sidebar/ComposePanel";
 
 import SearchViewer from "../viewers/SearchViewer";
 import ChatViewer from "../viewers/ChatViewer";
@@ -16,7 +17,7 @@ import SettingsViewer from "../viewers/SettingsViewer";
 const SidepanelMap: Partial<Record<ViewType, React.FC<any>>> = {
     [ViewType.Chat]: () => <div />,
     [ViewType.Sources]: () => <SourcesPanel />,
-    [ViewType.Compose]: () => <div />,
+    [ViewType.Compose]: () => <ComposePanel />,
 };
 
 const Sidepanel: React.FC = () => {

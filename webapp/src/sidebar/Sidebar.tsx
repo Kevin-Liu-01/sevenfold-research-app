@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import SidebarButton from "./SidebarButton";
 import FeedbackPopup from "./FeedbackPopup";
+import Modal from "../components/ui/Modal";
 
 const navItems = [
     { view: ViewType.Search, label: "Search", icon: "search" },
@@ -30,6 +31,8 @@ const HomeButton: React.FC = () => {
 
 const AvatarButton: React.FC = () => {
     const { profile, signOut } = useAuth();
+    const navigate = useNavigate();
+    const { projectId } = useWorkbench();
     const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const avatarRef = useRef<HTMLDivElement>(null);
@@ -51,7 +54,6 @@ const AvatarButton: React.FC = () => {
         async function resolveAvatar() {
             const p = profile?.pfp_path;
             if (!p) {
-                console.log("nopfp");
                 if (!cancelled) setAvatarUrl(null);
                 return;
             }
@@ -110,7 +112,10 @@ const AvatarButton: React.FC = () => {
                 </button>
                 <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-50"
-                    onClick={() => setAvatarMenuOpen(false)}
+                    onClick={() => {
+                        setAvatarMenuOpen(false);
+                        navigate("/settings", { state: { from: "project", projectId } });
+                    }}
                 >
                     Settings
                 </button>
@@ -147,7 +152,13 @@ const FeedbackButton: React.FC = () => {
                     Feedback
                 </span>
             </button>
-            {feedbackOpen && <FeedbackPopup onClose={() => setFeedbackOpen(false)} />}
+            {feedbackOpen && (
+                <Modal onClose={() => setFeedbackOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-xl p-6 w-[400px] max-w-full">
+                        <FeedbackPopup onClose={() => setFeedbackOpen(false)} />
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };

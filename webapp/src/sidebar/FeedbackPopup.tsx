@@ -18,17 +18,19 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed left-20 bottom-8 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-5 w-80 flex flex-col items-start animate-fade-in">
+        <div className="relative flex flex-col items-start">
             <button
-                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-lg"
+                className="absolute top-[-0.35rem] right-2 text-gray-400 hover:text-gray-600 text-lg"
                 onClick={onClose}
                 aria-label="Close"
             >
                 ×
             </button>
+
             <div className="mb-2 w-full">
                 <span className="font-semibold text-gray-800 text-base">Feedback</span>
             </div>
+
             <div className="mb-3 w-full text-xs text-gray-600">
                 Join our Discord community:{" "}
                 <a
@@ -40,6 +42,7 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                     discord.gg/kMK6kmYQCu
                 </a>
             </div>
+
             {sent ? (
                 <div className="text-green-600 text-sm font-medium">
                     Thank you for your feedback!

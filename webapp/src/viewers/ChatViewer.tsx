@@ -35,7 +35,7 @@ const ChatViewer: React.FC = () => {
     const handleFile = async (file: File) => {
         try {
             // TODO: replace with real upload logic
-            console.log("Uploading file:", file.name);
+    
             addToast(`Uploaded: ${file.name}`, "success");
         } catch (err) {
             console.error("Upload error:", err);

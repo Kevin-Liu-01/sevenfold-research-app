@@ -1,44 +1,47 @@
-import React, { useState, useEffect, useRef, ChangeEvent } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import type { ChangeEvent } from "react";
 import { marked } from "marked";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import supabase from "../auth/supabaseClient";
+import { useWorkbench } from "../context/WorkbenchContext";
 
-interface EditorProps {
-    projectId: string;
-}
+const Editor: React.FC = () => {
+    const { selectedComposition, refreshCompositions } = useWorkbench();
+    // If no composition is selected, show placeholder
+    if (!selectedComposition) {
+        return (
+            <div className="flex flex-col h-full bg-gray-50 items-center justify-center">
+                <div className="text-center">
+                    <span className="material-icons text-6xl text-gray-300 mb-4">description</span>
+                    <h3 className="text-xl font-medium text-gray-500 mb-2">No Composition Selected</h3>
+                    <p className="text-gray-400">Select a composition from the sidebar to start editing</p>
+                </div>
+            </div>
+        );
+    }
 
-const COOKIE_NAME = "editorMode";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-
-function getCookie(name: string): string | null {
-    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
-    return match ? decodeURIComponent(match[1]) : null;
-}
-function setCookie(name: string, value: string, maxAgeSeconds: number) {
-    document.cookie =
-        `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ` +
-        `max-age=${maxAgeSeconds}; path=/;`;
-}
-
-const Editor: React.FC<EditorProps> = ({ projectId }) => {
     // state & refs
-    const [mode, setMode] = useState<"markdown" | "latex">(() =>
-        getCookie(COOKIE_NAME) === "latex" ? "latex" : "markdown"
-    );
-    const [content, setContent] = useState("");
+    const [mode, setMode] = useState<"markdown" | "latex">(selectedComposition.type as "markdown" | "latex");
+    const [content, setContent] = useState(selectedComposition.contents || "");
+    const [title, setTitle] = useState(selectedComposition.title || "Untitled");
     const [renderedHtml, setRenderedHtml] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isInitialLoad = useRef(true);
 
-    // persist mode
+    // Update state when selectedComposition changes
     useEffect(() => {
-        setCookie(COOKIE_NAME, mode, COOKIE_MAX_AGE);
-    }, [mode]);
+        if (selectedComposition) {
+            setMode(selectedComposition.type as "markdown" | "latex");
+            setContent(selectedComposition.contents || "");
+            setTitle(selectedComposition.title || "Untitled");
+            isInitialLoad.current = true;
+        }
+    }, [selectedComposition.id]);
 
-    // load content
+    // Load full composition content
     useEffect(() => {
-        if (!projectId) return;
+        if (!selectedComposition?.id) return;
         (async () => {
             const {
                 data: { session },
@@ -46,7 +49,7 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
             } = await supabase.auth.getSession();
             if (authErr || !session?.access_token) return;
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/get-editor-content`,
+                `${import.meta.env.VITE_API_BASE_URL}/compose/${selectedComposition.id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${session.access_token}`,
@@ -55,23 +58,22 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
             );
             if (res.ok) {
                 const data = await res.json();
-                setContent(data.editor_content || "");
+                setContent(data.contents || "");
+                setTitle(data.title || "Untitled");
+                setMode(data.type as "markdown" | "latex");
             }
         })();
-    }, [projectId]);
+    }, [selectedComposition?.id]);
 
     // render preview (debounce)
     useEffect(() => {
-        const t = setTimeout(() => {
+        const t = setTimeout(async () => {
             if (mode === "markdown") {
-                setRenderedHtml(
-                    marked.parse(content, {
-                        gfm: true,
-                        breaks: true,
-                        headerIds: true,
-                        mangle: false,
-                    })
-                );
+                const html = await marked.parse(content, {
+                    gfm: true,
+                    breaks: true,
+                });
+                setRenderedHtml(html);
             } else {
                 try {
                     setRenderedHtml(
@@ -100,22 +102,36 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
                     data: { session },
                     error: authErr,
                 } = await supabase.auth.getSession();
-                if (authErr || !session?.access_token) return;
-                await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/projects/${projectId}/editor-content`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${session.access_token}`,
-                        },
-                        body: JSON.stringify({ editor_content: content }),
+                if (authErr || !session?.access_token || !selectedComposition?.id) return;
+                
+                try {
+                    const res = await fetch(
+                        `${import.meta.env.VITE_API_BASE_URL}/compose/update/${selectedComposition.id}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({ 
+                                contents: content,
+                                title: title,
+                                type: mode
+                            }),
+                        }
+                    );
+                    
+                    if (res.ok) {
+                        // Refresh compositions list to show updated title/type
+                        refreshCompositions();
                     }
-                );
+                } catch (error) {
+                    console.error('Failed to save composition:', error);
+                }
             })();
         }, 1000);
         return () => clearTimeout(t);
-    }, [content, projectId]);
+    }, [content, title, mode, selectedComposition?.id, refreshCompositions]);
 
     // formatting helpers
     const applyInline = (pre: string, post: string = pre) => {
@@ -157,7 +173,15 @@ const Editor: React.FC<EditorProps> = ({ projectId }) => {
         <div className="flex flex-col h-full bg-gray-50">
             {/* header */}
             <div className="flex items-center justify-between bg-white px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-800">Editor</h2>
+                <div className="flex items-center space-x-4 flex-1">
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Composition title..."
+                        className="text-xl font-semibold text-gray-800 bg-transparent border-none outline-none focus:bg-gray-50 rounded px-2 py-1 flex-1"
+                    />
+                </div>
                 <div>
                     <label htmlFor="mode-select" className="sr-only">
                         Editor mode

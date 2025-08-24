@@ -1,25 +1,32 @@
-// src/pages/WelcomePage.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import supabase from "../auth/supabaseClient";
+import Modal from "../components/ui/Modal";
+import AvatarCropper, { type AvatarCropState } from "../components/ui/AvatarCropper";
 
 type FormState = { first_name: string; last_name: string; institution: string };
 
 const WelcomePage: React.FC = () => {
+    // User & profile states :
     const { user, hasProfile, createProfile } = useAuth();
     const [params] = useSearchParams();
     const navigate = useNavigate();
 
+    // Avatar states:
+    const [showCropper, setShowCropper] = useState(false);
+    const [rawAvatarFile, setRawAvatarFile] = useState<File | null>(null); // original image
+    const [avatarFile, setAvatarFile] = useState<File | null>(null); // cropped image
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [cropState, setCropState] = useState<AvatarCropState | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Form states:
     const [form, setForm] = useState<FormState>({
         first_name: "",
         last_name: "",
         institution: "",
     });
-
-    const [avatarFile, setAvatarFile] = useState<File | null>(null);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,12 +49,16 @@ const WelcomePage: React.FC = () => {
         }));
     }, [user, hasProfile, navigate, params]);
 
+    // Build preview of the avatar whenever the cropped file changes
     useEffect(() => {
         if (!avatarFile) {
             if (avatarPreview) URL.revokeObjectURL(avatarPreview);
             setAvatarPreview(null);
             return;
         }
+        // Create a blob URL for the cropped avatar file
+        // This allows us to preview the image without uploading it yet
+        // Note: this URL should be revoked when no longer needed (I THINK)
         const url = URL.createObjectURL(avatarFile);
         setAvatarPreview(url);
         return () => URL.revokeObjectURL(url);
@@ -65,16 +76,49 @@ const WelcomePage: React.FC = () => {
 
     const onPickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) {
-            setAvatarFile(null);
-            return;
-        }
+        // Always reset input so uploading the same file twice works
+        e.currentTarget.value = "";
+        if (!file) return;
+
         const okType = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
         const okSize = file.size <= 5 * 1024 * 1024; // 5MB
         if (!okType) return setError("Please choose a PNG, JPG, or WEBP image.");
         if (!okSize) return setError("Avatar must be 5MB or smaller.");
+
         setError(null);
-        setAvatarFile(file);
+        setRawAvatarFile(file);
+        // New upload: clear old crop so user starts fresh (or keep if you prefer)
+        setCropState(null);
+        setShowCropper(true); // open cropper modal immediately
+    };
+
+    // Save from cropper
+    const handleCropped = (blob: Blob, state: AvatarCropState) => {
+        // Persist the crop state so "Edit" restores the same area
+        setCropState(state);
+
+        // Wrap blob as a File for uploading
+        const baseName = (rawAvatarFile?.name || "avatar").replace(/\.[^.]+$/, "");
+        const croppedFile = new File([blob], `${baseName}.png`, { type: "image/png" });
+
+        setAvatarFile(croppedFile);
+        setShowCropper(false);
+    };
+
+    // I ran intothe case when the user wants to edit the avatar; we can't just
+    // save the edited avatar directly because we need the original file for cropping.
+    // So we store the original file separately and use it when the user clicks "Edit".
+    const onEditAvatar = () => {
+        if (!rawAvatarFile) return; // must have an original to re-crop
+        setShowCropper(true);
+    };
+
+    // Remove no longer needs references that break uploading
+    const onRemoveAvatar = () => {
+        setAvatarFile(null);
+        setRawAvatarFile(null);
+        setCropState(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const uploadAvatarIfAny = async (): Promise<string | null> => {
@@ -160,6 +204,7 @@ const WelcomePage: React.FC = () => {
                                 <div className="flex-1">
                                     <label className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
                                         <input
+                                            ref={fileInputRef}
                                             type="file"
                                             accept="image/png,image/jpeg,image/webp"
                                             onChange={onPickAvatar}
@@ -167,14 +212,24 @@ const WelcomePage: React.FC = () => {
                                         />
                                         Upload image
                                     </label>
+
                                     {avatarPreview && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setAvatarFile(null)}
-                                            className="ml-3 inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                                        >
-                                            Remove
-                                        </button>
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={onEditAvatar}
+                                                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={onRemoveAvatar}
+                                                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        </>
                                     )}
                                     <p className="text-xs text-gray-400 mt-1">
                                         PNG/JPG/WEBP, up to 5MB.
@@ -243,6 +298,20 @@ const WelcomePage: React.FC = () => {
                     </form>
                 </div>
             </div>
+
+            {showCropper && rawAvatarFile && (
+                <Modal onClose={() => setShowCropper(false)}>
+                    <div className="bg-white rounded-2xl shadow-xl w-[90vw] max-w-lg">
+                        <AvatarCropper
+                            file={rawAvatarFile}
+                            initialCrop={cropState?.crop}
+                            initialZoom={cropState?.zoom}
+                            onCancel={() => setShowCropper(false)}
+                            onSave={handleCropped}
+                        />
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
