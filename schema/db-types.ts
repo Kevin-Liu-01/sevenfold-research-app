@@ -76,7 +76,7 @@ export interface ChatMessage {
     data: string;
     created_at: string;
     metadata: Record<string, unknown> | null;
-
+}
 export interface Composition {
     id: UUID;
     project_id: UUID;               // FK → projects.id
@@ -84,4 +84,15 @@ export interface Composition {
     title: string | null;
     contents: string | null;
 
+}
+
+export interface UploadedPaperPayload {
+    file: File;
+    addToIndex: boolean;
+    title?: string;
+    authors?: string[];
+    publicationDate?: string | null;
+    doi?: string;
+    tags?: string[];
+    notes?: string | null;
 }

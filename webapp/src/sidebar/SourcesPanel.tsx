@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 
 import { useWorkbench } from "../context/WorkbenchContext";
-import type { Paper } from "../../database.types";
+import type { Paper } from "../../../schema/db-types";
+import supabase from "../auth/supabaseClient";
 
 import UploadPaperModal from "./UploadPaperModal";
 
@@ -88,9 +89,9 @@ const PapersList: React.FC<{
             <div className="flex flex-col space-y-2">
                 {papers.map((paper) => (
                     <PaperBox
-                        key={paper.paper_id}
+                        key={paper.id}
                         paper={paper}
-                        isSelected={selectedPaper?.paper_id === paper.paper_id}
+                        isSelected={selectedPaper?.id === paper.id}
                         onClick={() => setSelectedPaper(paper)}
                     />
                 ))}
@@ -100,7 +101,7 @@ const PapersList: React.FC<{
 };
 
 const SourcesPanel: React.FC = () => {
-    const { papers, selectedPaper, setSelectedPaper, refreshPapers } = useWorkbench();
+    const { projectId, papers, selectedPaper, setSelectedPaper, refreshPapers } = useWorkbench();
 
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -113,17 +114,103 @@ const SourcesPanel: React.FC = () => {
         const q = searchQuery.toLowerCase();
         return papers.filter(
             (p) =>
-                p.filename.toLowerCase().includes(q) ||
+                p.title?.toLowerCase().includes(q) ||
                 p.authors?.some((a) => a.toLowerCase().includes(q))
         );
     }, [papers, searchQuery]);
 
-    // Upload stub
+    // Upload function that calls the API endpoints
     const uploadPaper = async (payload: UploadedPaperPayload) => {
         setIsUploading(true);
         try {
-            /* ... same as before ... */
-            refreshPapers();
+            // Step 1: Get authentication token
+            const { data: { session }, error: authErr } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            // Step 2: Process PDF to extract metadata (optional)
+            let extractedMetadata: any = {};
+            try {
+                const processFormData = new FormData();
+                processFormData.append("file", payload.file);
+                processFormData.append("project_id", projectId);
+                processFormData.append("pages_spec", "1,2"); // First two pages for metadata extraction
+
+                const processResponse = await fetch(
+                    `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                        },
+                        body: processFormData,
+                    }
+                );
+
+                if (processResponse.ok) {
+                    const processResult = await processResponse.json();
+                    extractedMetadata = processResult.metadata || {};
+                }
+            } catch (error) {
+                console.warn("Failed to extract metadata, proceeding with manual data:", error);
+            }
+
+            // Step 3: Prepare final metadata (prefer user input over extracted data)
+            const finalMetadata = {
+                title: extractedMetadata.title || payload.title?.trim() || payload.file.name.replace('.pdf', ''),
+                authors: payload.authors?.length ? payload.authors : (extractedMetadata.authors || []),
+                abstract: extractedMetadata.abstract || null,
+                year: null as number | null,
+                month: null as number | null,
+                day: null as number | null,
+                doi: payload.doi?.trim() || extractedMetadata.doi || null,
+                category: extractedMetadata.category || null,
+            };
+
+            // Handle publication date
+            if (payload.publicationDate) {
+                const dateParts = payload.publicationDate.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]);
+                const day = parseInt(dateParts[2]);
+                finalMetadata.year = !isNaN(year) ? year : null;
+                finalMetadata.month = !isNaN(month) ? month : null;
+                finalMetadata.day = !isNaN(day) ? day : null;
+            } else if (extractedMetadata.year) {
+                finalMetadata.year = extractedMetadata.year;
+                finalMetadata.month = extractedMetadata.month || null;
+                finalMetadata.day = extractedMetadata.day || null;
+            }
+
+            // Step 4: Upload the PDF with metadata
+            const uploadFormData = new FormData();
+            uploadFormData.append("file", payload.file);
+            uploadFormData.append("project_id", projectId);
+            uploadFormData.append("paper_type", "source"); // Default to source type
+            uploadFormData.append("metadata_json", JSON.stringify(finalMetadata));
+
+            const uploadResponse = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: uploadFormData,
+                }
+            );
+
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                throw new Error(`Failed to upload PDF: ${uploadResponse.status} – ${errorText}`);
+            }
+
+            // Step 5: Refresh the papers list
+            await refreshPapers();
+        } catch (error: any) {
+            console.error("Error uploading paper:", error);
+            alert(error.message || "Failed to upload paper");
         } finally {
             setIsUploading(false);
         }
