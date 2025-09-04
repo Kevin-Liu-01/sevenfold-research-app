@@ -266,6 +266,25 @@ const SourcesPanel: React.FC = () => {
         );
     };
 
+    // Update modal when upload state changes to show loading state
+    React.useEffect(() => {
+        // Only update if we have an active modal and are currently uploading
+        if (isUploading) {
+            const handleNoOp = () => {};
+            const handleNoOpSubmit = async (_data: UploadedPaperPayload) => {};
+            
+            openModal(
+                <Modal onClose={handleNoOp}>
+                    <UploadPaperModal
+                        onClose={handleNoOp}
+                        onSubmit={handleNoOpSubmit}
+                        isUploading={isUploading}
+                    />
+                </Modal>
+            );
+        }
+    }, [isUploading, openModal]);
+
     return (
         <div className="flex flex-col h-full space-y-3">
             <h1 className="text-lg font-semibold">Sources</h1>

@@ -79,7 +79,51 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     return (
         <div className="bg-white p-6 rounded-2xl w-lg text-sm shadow-xl h-[500px] flex flex-col space-y-4">
-            <h2 className="text-sm font-semibold text-gray-800 text-center">Upload Paper</h2>
+            {isUploading ? (
+                // Loading state - replaces entire modal content
+                <div className="flex flex-col items-center justify-center h-full space-y-6">
+                    <div className="relative">
+                        {/* Spinning wheel */}
+                        <div className="w-20 h-20 border-4 border-gray-200 border-t-kets-orange rounded-full animate-spin"></div>
+                        {/* Inner icon */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="material-icons text-kets-orange text-2xl">
+                                description
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div className="text-center space-y-3">
+                        <h3 className="text-xl font-semibold text-gray-800">
+                            Processing Your Paper
+                        </h3>
+                        <p className="text-sm text-gray-600 max-w-sm">
+                            We're extracting metadata, analyzing content, and uploading your PDF. This may take a few moments.
+                        </p>
+                    </div>
+                    
+                    {/* Animated progress dots */}
+                    <div className="flex space-x-2">
+                        {[0, 1, 2].map((i) => (
+                            <div
+                                key={i}
+                                className="w-3 h-3 bg-kets-orange rounded-full animate-bounce"
+                                style={{
+                                    animationDelay: `${i * 0.15}s`,
+                                    animationDuration: '0.6s'
+                                }}
+                            />
+                        ))}
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-4">
+                        Please don't close this window
+                    </p>
+                </div>
+            ) : (
+                // Normal modal content
+                <>
+                    <h2 className="text-sm font-semibold text-gray-800 text-center">Upload Paper</h2>
 
             {/* header with steps */}
             <div className="mx-auto">
@@ -334,6 +378,8 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                     )}
                 </div>
             </div>
+                </>
+            )}
         </div>
     );
 };
