@@ -1,13 +1,12 @@
-"use client";
-
+// src/components/viewers/PaperDetailsModal.tsx
 import React, { useMemo, useState, useEffect } from "react";
 import type { Paper } from "../../../schema/db-types";
 import { useWorkbench } from "../context/WorkbenchContext";
 import Modal from "../components/ui/Modal";
 
 type Props = {
-    paper: Paper | null;
-    onClose: () => void; // parent should set selectedPaper(null)
+    paper: Paper;
+    onClose: () => void;
     onAddToProject: (paper: Paper) => Promise<void> | void;
 };
 
@@ -28,11 +27,10 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
 
     // keep added state synced
     useEffect(() => {
-        if (isAlreadyInProject) setAdded(true);
-        else setAdded(false);
-    }, [isAlreadyInProject, paper?.id]);
+        setAdded(isAlreadyInProject);
+    }, [isAlreadyInProject]);
 
-        useEffect(() => {
+    useEffect(() => {
         const onEsc = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
         };
@@ -41,14 +39,11 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
     }, [onClose]);
 
     const dateStr = useMemo(() => {
-        const y = paper?.year != null ? String(paper.year) : "";
-        const m = paper?.month ? String(paper.month).padStart(2, "0") : "";
-        const d = paper?.day ? String(paper.day).padStart(2, "0") : "";
-        const joined = [y, m, d].filter(Boolean).join("-");
-        return joined || null;
-    }, [paper?.year, paper?.month, paper?.day]);
-
-    if (!paper) return null;
+        const y = paper.year != null ? String(paper.year) : "";
+        const m = paper.month ? String(paper.month).padStart(2, "0") : "";
+        const d = paper.day ? String(paper.day).padStart(2, "0") : "";
+        return [y, m, d].filter(Boolean).join("-") || null;
+    }, [paper.year, paper.month, paper.day]);
 
     const handleAdd = async () => {
         if (isAdding) return;
@@ -107,11 +102,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                     <h3 className="text-2xl font-bold text-black leading-snug pr-6">
                         {paper.title}
                     </h3>
-                    <button
-                        onClick={onClose}
-                        className="text-black/60 hover:text-black transition"
-                        aria-label="Close"
-                    >
+                    <button onClick={onClose} className="text-black/60 hover:text-black">
                         <span className="material-icons">close</span>
                     </button>
                 </div>
@@ -124,7 +115,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                             {paper.authors.join(", ")}
                         </div>
                     )}
-                    {paper.year != null && (
+                    {paper.year && (
                         <div>
                             <span className="font-semibold">Year:</span> {paper.year}
                         </div>
@@ -169,10 +160,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                 {/* Footer */}
                 <div className="mt-8 pt-4 border-t flex flex-col items-end gap-3">
                     {added && (
-                        <div
-                            className="flex items-center gap-2 text-kets-orange font-semibold"
-                            aria-live="polite"
-                        >
+                        <div className="flex items-center gap-2 text-kets-orange font-semibold">
                             <span className="material-icons">check_circle</span>
                             Added to project!
                         </div>
@@ -181,17 +169,16 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-4 py-1 text-sm flex items-center gap-1 rounded-lg border border-black/20 text-black bg-white hover:bg-black/5 transition"
+                            className="px-4 py-1 text-sm flex items-center gap-1 rounded-lg border border-black/20 text-black bg-white hover:bg-black/5"
                         >
                             <span className="material-icons text-sm">close</span>
                             Close
                         </button>
-
                         {!added && (
                             <button
                                 onClick={handleAdd}
                                 disabled={isAdding}
-                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-kets-green text-white font-semibold shadow hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-kets-green text-white font-semibold shadow hover:opacity-90 disabled:opacity-50"
                             >
                                 {isAdding ? (
                                     <>

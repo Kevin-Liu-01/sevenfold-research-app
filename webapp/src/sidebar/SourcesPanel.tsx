@@ -5,6 +5,7 @@ import type { Paper } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 
 import UploadPaperModal from "./UploadPaperModal";
+import Modal from "../components/ui/Modal"; // wrap all modals with this
 
 const SearchBar: React.FC<{
     searchQuery: string;
@@ -43,7 +44,7 @@ const UploadPaperButton: React.FC<{
     return (
         <button
             onClick={onClick}
-            className="inline-flex items-center space-x-1 bg-kets-orange text-white text-sm font-medium px-2 py-1 rounded-md transition"
+            className="flex items-center justify-center space-x-1 bg-kets-orange hover:bg-kets-orange-500 hover:cursor-pointer text-white text-sm font-medium px-2 py-1 rounded-md transition"
         >
             <span className="material-icons text-base">upload_file</span>
             <span>Upload Paper</span>
@@ -101,11 +102,10 @@ const PapersList: React.FC<{
 };
 
 const SourcesPanel: React.FC = () => {
-    const { projectId, papers, selectedPaper, setSelectedPaper, refreshPapers } = useWorkbench();
+    const { projectId, papers, selectedPaper, setSelectedPaper, refreshPapers, openModal, closeModal } =
+        useWorkbench();
 
     const [searchQuery, setSearchQuery] = useState("");
-
-    const [showUploadPaperModal, setShowUploadPaperModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
     // Search for papers
@@ -114,7 +114,7 @@ const SourcesPanel: React.FC = () => {
         const q = searchQuery.toLowerCase();
         return papers.filter(
             (p) =>
-                p.title?.toLowerCase().includes(q) ||
+                p.title.toLowerCase().includes(q) ||
                 p.authors?.some((a) => a.toLowerCase().includes(q))
         );
     }, [papers, searchQuery]);
@@ -216,11 +216,26 @@ const SourcesPanel: React.FC = () => {
         }
     };
 
+    const handleOpenUploadModal = () => {
+        openModal(
+            <Modal onClose={closeModal}>
+                <UploadPaperModal
+                    onClose={closeModal}
+                    onSubmit={async (data) => {
+                        await uploadPaper(data);
+                        closeModal();
+                    }}
+                    isUploading={isUploading}
+                />
+            </Modal>
+        );
+    };
+
     return (
         <div className="flex flex-col space-y-3">
             <h1 className="text-lg font-semibold">Sources</h1>
 
-            <UploadPaperButton onClick={() => setShowUploadPaperModal(true)} />
+            <UploadPaperButton onClick={handleOpenUploadModal} />
 
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
@@ -229,17 +244,6 @@ const SourcesPanel: React.FC = () => {
                 selectedPaper={selectedPaper}
                 setSelectedPaper={setSelectedPaper}
             />
-
-            {showUploadPaperModal && (
-                <UploadPaperModal
-                    onClose={() => setShowUploadPaperModal(false)}
-                    onSubmit={async (data) => {
-                        await uploadPaper(data);
-                        setShowUploadPaperModal(false);
-                    }}
-                    isUploading={isUploading}
-                />
-            )}
         </div>
     );
 };
