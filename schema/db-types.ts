@@ -65,7 +65,7 @@ export interface ChatConvo {
     paper_ids: string[];
     created_at: string;
     updated_at: string;
-    metadata: Record<string. unknown> | null;
+    metadata: Record<string, unknown> | null;
 }
 
 export type ChatMessageRole = 'user' | 'assistant' | 'system';
@@ -95,4 +95,6 @@ export interface UploadedPaperPayload {
     doi?: string;
     tags?: string[];
     notes?: string | null;
+    abstractPages?: number[];
+    titlePage?: number | null;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 
 import { useWorkbench } from "../context/WorkbenchContext";
-import type { Paper } from "../../../schema/db-types";
+import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 
 import UploadPaperModal from "./UploadPaperModal";
@@ -107,6 +107,7 @@ const SourcesPanel: React.FC = () => {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Search for papers
     const filtered = useMemo(() => {
@@ -122,6 +123,7 @@ const SourcesPanel: React.FC = () => {
     // Upload function that calls the API endpoints
     const uploadPaper = async (payload: UploadedPaperPayload) => {
         setIsUploading(true);
+        setError(null); // Clear any previous errors
         try {
             // Step 1: Get authentication token
             const { data: { session }, error: authErr } = await supabase.auth.getSession();
@@ -135,7 +137,22 @@ const SourcesPanel: React.FC = () => {
                 const processFormData = new FormData();
                 processFormData.append("file", payload.file);
                 processFormData.append("project_id", projectId);
-                processFormData.append("pages_spec", "1,2"); // First two pages for metadata extraction
+                
+                // Build pages_spec from user input (titlePage and abstractPages)
+                const pagesToProcess: number[] = [];
+                if (payload.titlePage) {
+                    pagesToProcess.push(payload.titlePage);
+                }
+                if (payload.abstractPages && payload.abstractPages.length > 0) {
+                    pagesToProcess.push(...payload.abstractPages);
+                }
+                
+                // If no specific pages provided, default to first two pages
+                const pages_spec = pagesToProcess.length > 0 
+                    ? [...new Set(pagesToProcess)].sort((a, b) => a - b).join(",")
+                    : "1,2";
+                
+                processFormData.append("pages_spec", pages_spec);
 
                 const processResponse = await fetch(
                     `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
@@ -202,28 +219,46 @@ const SourcesPanel: React.FC = () => {
             );
 
             if (!uploadResponse.ok) {
+                // Parse API error response for user-friendly messages
                 const errorText = await uploadResponse.text();
-                throw new Error(`Failed to upload PDF: ${uploadResponse.status} – ${errorText}`);
+                let errorMessage = "Upload failed";
+                
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                } catch {
+                    // API didn't return JSON, use status-based message
+                    if (uploadResponse.status === 401) errorMessage = "Authentication failed. Please log in again.";
+                    else if (uploadResponse.status === 403) errorMessage = "Permission denied for this project.";
+                    else if (uploadResponse.status === 413) errorMessage = "File too large. Please use a smaller PDF.";
+                    else if (uploadResponse.status === 415) errorMessage = "Invalid file type. Please upload a PDF.";
+                    else if (uploadResponse.status >= 500) errorMessage = "Server error. Please try again.";
+                }
+                
+                throw new Error(errorMessage);
             }
 
             // Step 5: Refresh the papers list
             await refreshPapers();
         } catch (error: any) {
             console.error("Error uploading paper:", error);
-            alert(error.message || "Failed to upload paper");
+            setError(error instanceof Error ? error.message : 'Failed to upload paper');
         } finally {
             setIsUploading(false);
         }
     };
 
     const handleOpenUploadModal = () => {
+        setError(null); // Clear any previous errors when opening modal
         openModal(
             <Modal onClose={closeModal}>
                 <UploadPaperModal
                     onClose={closeModal}
                     onSubmit={async (data) => {
                         await uploadPaper(data);
-                        closeModal();
+                        if (!error) { // Only close modal if upload was successful
+                            closeModal();
+                        }
                     }}
                     isUploading={isUploading}
                 />
@@ -236,6 +271,28 @@ const SourcesPanel: React.FC = () => {
             <h1 className="text-lg font-semibold">Sources</h1>
 
             <UploadPaperButton onClick={handleOpenUploadModal} />
+
+            {/* Error message display similar to UserSettingsPage */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <span className="material-icons text-red-400 text-sm">error</span>
+                        </div>
+                        <div className="ml-2">
+                            <p className="text-sm text-red-800">{error}</p>
+                        </div>
+                        <div className="ml-auto pl-3">
+                            <button
+                                onClick={() => setError(null)}
+                                className="text-red-400 hover:text-red-600"
+                            >
+                                <span className="material-icons text-sm">close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 

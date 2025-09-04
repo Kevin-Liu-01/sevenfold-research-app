@@ -1,18 +1,6 @@
 import React, { useState, useRef, type DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface UploadedPaperPayload {
-    file: File;
-    addToIndex: boolean;
-    title?: string;
-    authors?: string[];
-    publicationDate?: string | null;
-    doi?: string;
-    tags?: string[];
-    notes?: string | null;
-    abstractPages?: number[];
-    titlePage?: number | null;
-}
+import type { UploadedPaperPayload } from "../../../schema/db-types";
 
 interface UploadPaperModalProps {
     onClose: () => void;
