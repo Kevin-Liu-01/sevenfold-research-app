@@ -87,7 +87,7 @@ const PapersList: React.FC<{
         return <div className="text-gray-500 text-sm text-center py-4">No papers found</div>;
     } else {
         return (
-            <div className="flex flex-col space-y-2">
+            <div className="flex flex-col space-y-2 h-full overflow-y-auto">
                 {papers.map((paper) => (
                     <PaperBox
                         key={paper.id}
@@ -267,7 +267,7 @@ const SourcesPanel: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col space-y-3">
+        <div className="flex flex-col h-full space-y-3">
             <h1 className="text-lg font-semibold">Sources</h1>
 
             <UploadPaperButton onClick={handleOpenUploadModal} />
@@ -296,11 +296,13 @@ const SourcesPanel: React.FC = () => {
 
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-            <PapersList
-                papers={filtered}
-                selectedPaper={selectedPaper}
-                setSelectedPaper={setSelectedPaper}
-            />
+            <div className="flex-1 min-h-0">
+                <PapersList
+                    papers={filtered}
+                    selectedPaper={selectedPaper}
+                    setSelectedPaper={setSelectedPaper}
+                />
+            </div>
         </div>
     );
 };
