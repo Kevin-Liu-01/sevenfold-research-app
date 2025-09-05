@@ -105,7 +105,7 @@ const WelcomePage: React.FC = () => {
         setShowCropper(false);
     };
 
-    // I ran intothe case when the user wants to edit the avatar; we can't just
+    // I ran into the case when the user wants to edit the avatar; we can't just
     // save the edited avatar directly because we need the original file for cropping.
     // So we store the original file separately and use it when the user clicks "Edit".
     const onEditAvatar = () => {

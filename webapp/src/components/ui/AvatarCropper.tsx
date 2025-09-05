@@ -64,7 +64,18 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({
     const getCroppedBlob = async (src: string, pixels: Area): Promise<Blob> => {
         const img = new Image();
         img.src = src;
-        await new Promise((r) => (img.onload = r));
+        await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+                img.onload = null;
+                img.onerror = null;
+                resolve();
+            };
+            img.onerror = (e) => {
+                img.onload = null;
+                img.onerror = null;
+                reject(new Error("Failed to load image for cropping"));
+            };
+        });
 
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(pixels.width));
