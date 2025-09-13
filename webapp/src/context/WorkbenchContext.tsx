@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import supabase from "../auth/supabaseClient";
-
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
 
@@ -38,21 +37,28 @@ interface WorkbenchContextType {
     refreshCompositions: () => Promise<void>;
     selectedComposition: Composition | null;
     setSelectedComposition: (composition: Composition | null) => void;
+
+    // Modals
+    modal: React.ReactNode | null;
+    openModal: (content: React.ReactNode) => void;
+    closeModal: () => void;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
 
-export const WorkbenchProvider: React.FC<{ projectId: string; children: React.ReactNode }> = ({
-    projectId,
-    children,
-}) => {
+export const WorkbenchProvider: React.FC<{
+    projectId: string;
+    children: React.ReactNode;
+}> = ({ projectId, children }) => {
     const [currentView, setCurrentView] = usePersistentState<ViewType>(
         `workbench:${projectId}:view`,
         ViewType.Search
     );
 
-    const [hoveredView, setHoveredView] = useState<ViewType | null>(null);
+    const [hoveredView, _setHoveredView] = useState<ViewType | null>(null);
 
+    // lock hovered view if modal open
+    const [lockedView, setLockedView] = useState<ViewType | null>(null);
     // Sources
     const [papers, setPapers] = useState<Paper[]>([]);
     const [selectedPaper, setSelectedPaper] = usePersistentState<Paper | null>(
@@ -64,9 +70,36 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
     const [compositions, setCompositions] = useState<Composition[]>([]);
     const [selectedComposition, setSelectedComposition] = useState<Composition | null>(null);
 
+    // Modals
+    const [modal, setModal] = useState<React.ReactNode | null>(null);
+
+    const setHoveredView = useCallback(
+        (view: ViewType | null) => {
+            if (modal) {
+                // lock current engagement until modal closes
+                if (view) setLockedView(view);
+                return;
+            }
+            _setHoveredView(view);
+        },
+        [modal]
+    );
+
+    const openModal = useCallback(
+        (content: React.ReactNode) => {
+            setLockedView(currentView); // persist sidebar engagement
+            setModal(content);
+        },
+        [currentView]
+    );
+
+    const closeModal = useCallback(() => {
+        setModal(null);
+        setLockedView(null); // release lock
+    }, []);
+
     const refreshPapers = useCallback(async () => {
         if (!projectId) return;
-
         const { data, error } = await supabase
             .from("project_paper_links")
             .select("paper:paper_attrs(*)")
@@ -77,7 +110,6 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
             console.error("Error fetching project papers:", error.message);
             return;
         }
-
         const papers = (data ?? []).map((p: any) => p.paper).filter((p): p is Paper => !!p);
         setPapers(papers);
     }, [projectId]);
@@ -88,7 +120,6 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
 
     const refreshConvos = useCallback(async () => {
         if (!projectId) return;
-
         const { data, error } = await supabase
             .from("chat_convos")
             .select("*")
@@ -99,7 +130,6 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
             console.error("Error fetching chat conversations:", error.message);
             return;
         }
-
         const convos = (data ?? []).filter((c): c is ChatConvo => !!c);
         setConvos(convos);
     }, [projectId]);
@@ -107,7 +137,10 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
     const refreshCompositions = useCallback(async () => {
         if (!projectId) return;
 
-        const { data: { session }, error: authErr } = await supabase.auth.getSession();
+        const {
+            data: { session },
+            error: authErr,
+        } = await supabase.auth.getSession();
         if (authErr || !session?.access_token) {
             console.error("Authentication error:", authErr);
             return;
@@ -141,27 +174,13 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
         refreshCompositions();
     }, [refreshPapers, refreshCompositions]);
 
-    // const createNewDocument = useCallback(async () => {
-    //     if (!projectId) return;
-    //     const { data, error } = await supabase
-    //         .from('documents'
-    //         .insert({ project_id: projectId, title: 'Untitled Document', content: '' })
-    //         .select('*')
-    //         .single();
-    //     if (error) {
-    //         console.error('Error creating document:', error.message);
-    //         return;
-    //     }
-    //     setActiveViewer('compose');
-    // }, [projectId]);
-
     return (
         <WorkbenchContext.Provider
             value={{
                 projectId,
                 currentView,
                 setCurrentView,
-                hoveredView,
+                hoveredView: lockedView ?? hoveredView,
                 setHoveredView,
                 papers,
                 refreshPapers,
@@ -171,14 +190,19 @@ export const WorkbenchProvider: React.FC<{ projectId: string; children: React.Re
                 selectedConvo,
                 setSelectedConvo,
                 refreshConvos,
-                // createNewDocument,
                 compositions,
                 refreshCompositions,
                 selectedComposition,
                 setSelectedComposition,
+                modal,
+                openModal,
+                closeModal,
             }}
         >
             {children}
+
+            {/* Modals are rendered here to overlay entire workbench*/}
+            {modal}
         </WorkbenchContext.Provider>
     );
 };

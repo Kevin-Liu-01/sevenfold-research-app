@@ -12,3 +12,5 @@ adapters
 transformers
 numpy
 anthropic
+pypdf2
+requests

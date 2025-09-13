@@ -5,6 +5,17 @@ import uuid
 from db.supabase import supabase
 from utils.auth import get_user_id_from_token
 
+import os
+import re
+import json
+import uuid
+from io import BytesIO
+from typing import Literal
+
+import requests
+from fastapi import APIRouter, UploadFile, Form, Header, HTTPException
+from PyPDF2 import PdfReader, PdfWriter
+
 router = APIRouter(prefix="/papers", tags=["papers"])
 
 def _get_user_id(authorization: str) -> str:
@@ -21,83 +32,268 @@ def _verify_project(project_id: str, user_id: str) -> None:
         supabase.table("projects")
         .select("id")
         .eq("id", project_id)
-        .eq("user_id", user_id)
+        .eq("owner_id", user_id)
         .single()
         .execute()
     )
     if not project_check.data:
         raise HTTPException(status_code=404, detail="Project not found or access denied")
 
-@router.post("/upload-paper", status_code=201)
-async def upload_paper(
+SYSTEM_INSTRUCTIONS = (
+    "You are an expert PDF paper metadata extractor. "
+    "Return STRICT JSON ONLY. No prose. No markdown. No backticks. "
+    "If a field is unknown, return null (or [] for arrays). "
+    "For 'authors', return an array of author names as strings in normal order. "
+    "For 'category', return ONE broad, human-readable research category (e.g., "
+    "Computer Science, Mathematics, Physics, Biology, Medicine, Engineering, Statistics, "
+    "Economics & Finance, Psychology, Chemistry, Earth & Environmental Science, "
+    "Materials Science, Linguistics, Education, Social Sciences, Philosophy, Law). "
+    "Do not invent DOIs. If multiple candidate dates are present, prefer the publication date."
+)
+
+PROMPT_TEXT = (
+    "From the attached PDF pages, extract a single JSON object with the following schema:\n"
+    "{\n"
+    '  "title": "TEXT NOT NULL",\n'
+    '  "abstract": "TEXT or null",\n'
+    '  "authors": ["TEXT", ...],\n'
+    '  "year": INT or null,\n'
+    '  "month": INT or null,\n'
+    '  "day": INT or null,\n'
+    '  "doi": "TEXT or null",\n'
+    '  "category": "TEXT or null"\n'
+    "}\n"
+    "Rules:\n"
+    "- Output MUST be valid JSON only (no comments/markdown).\n"
+    "- 'authors' must be an array of strings (names).\n"
+    "- If you cannot find a field, use null (or [] for authors).\n"
+    "- 'category' should be a broad, human-readable discipline (e.g., Computer Science).\n"
+    "- If a date is present, split into year, month, day integers (use null if missing)."
+)
+
+@router.post("/process-pdf")
+async def process_pdf(
     file: UploadFile,
     project_id: str = Form(...),
-    paper_type: Literal["source", "candidate"] = Form(...),
+    pages_spec: str = Form("1,2"),
     authorization: str = Header(...),
 ):
-    """
-    Upload a PDF and register metadata in the `papers` table.
-
-    Args:
-        file: The PDF file to upload.
-        project_id: The ID of the project to upload the paper to.
-        paper_type: The type of paper to upload.
-        authorization: The authorization header containing the JWT token.
-
-    Returns:
-        A dictionary containing the status, paper_id, and preview_url.
-    """
-
-    # 1. Validate file type
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
-    # 2. Authenticate & authorise
+    # Pull API key from env at runtime
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Server missing ANTHROPIC_API_KEY")
+
     user_id = _get_user_id(authorization)
     _verify_project(project_id, user_id)
 
-    # 3. Build a unique storage path -> <user>/<project>/<uuid>.pdf
-    file_name = f"{uuid.uuid4()}.pdf"
-    storage_path = f"{user_id}/{project_id}/{file_name}"
+    # Read and sanity-check PDF
+    pdf_bytes = await file.read()
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
 
+    # Build subset in-memory (1-based spec like '1,3-5')
+    reader = PdfReader(BytesIO(pdf_bytes))
+    total = len(reader.pages)
+    indices = set()
+
+    for part in pages_spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            a, b = [x.strip() for x in part.split("-", 1)]
+            if not a.isdigit() or not b.isdigit():
+                raise HTTPException(status_code=400, detail=f"Invalid page range: {part}")
+            a, b = int(a), int(b)
+            if a <= 0 or b <= 0 or b < a:
+                raise HTTPException(status_code=400, detail=f"Invalid page range: {part}")
+            for p in range(a, b + 1):
+                if p - 1 >= total:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Page {p} out of range (document has {total} pages)",
+                    )
+                indices.add(p - 1)
+        else:
+            if not part.isdigit():
+                raise HTTPException(status_code=400, detail=f"Invalid page: {part}")
+            p = int(part)
+            if p <= 0 or p - 1 >= total:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Page {p} out of range (document has {total} pages)",
+                )
+            indices.add(p - 1)
+
+    indices = sorted(indices)
+    if not indices:
+        raise HTTPException(status_code=400, detail="pages_spec resolved to zero pages")
+
+    writer = PdfWriter()
+    for idx in indices:
+        writer.add_page(reader.pages[idx])
+
+    buf = BytesIO()
+    writer.write(buf)
+    subset_bytes = buf.getvalue()
+
+    # -------- Anthropic Files upload (inline static config) --------
+    up = requests.post(
+        "https://api.anthropic.com/v1/files",
+        headers={
+            "x-api-key": api_key,
+            # Required API version header
+            "anthropic-version": "2023-06-01",
+            # Required (as of now) for Files API access
+            "anthropic-beta": "files-api-2025-04-14",
+        },
+        files={"file": ("subset.pdf", subset_bytes, "application/pdf")},
+        timeout=60,
+    )
+    if up.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Anthropic upload failed: {up.status_code} {up.text}",
+        )
+
+    file_id = up.json().get("id")
+    if not file_id:
+        raise HTTPException(status_code=502, detail="Anthropic upload returned no id")
+
+    # -------- Anthropic message call (inline model/tokens/headers) --------
+    msg = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "files-api-2025-04-14",
+            "content-type": "application/json",
+        },
+        json={
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 1500,
+            "system": SYSTEM_INSTRUCTIONS,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "document", "source": {"type": "file", "file_id": file_id}},
+                        {"type": "text", "text": PROMPT_TEXT},
+                    ],
+                }
+            ],
+        },
+        timeout=120,
+    )
+    if msg.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Anthropic message failed: {msg.status_code} {msg.text}",
+        )
+
+    # Parse JSON from reply
+    blocks = msg.json().get("content", [])
+    text = "".join((b.get("text", "") + "\n") for b in blocks if b.get("type") == "text").strip()
+
+    metadata = None
     try:
-        file_bytes = await file.read()
+        metadata = json.loads(text)
+    except json.JSONDecodeError:
+        # Try to salvage by extracting the first {...} block
+        m = re.search(r"\{[\s\S]*\}", text)
+        metadata = json.loads(m.group(0)) if m else None
 
-        # 4. Upload to Supabase Storage (private bucket)
-        upload_resp = supabase.storage.from_("papers").upload(
-            path=storage_path,
-            file=file_bytes,
-            file_options={"content-type": "application/pdf"},
-        )
+    if not isinstance(metadata, dict):
+        raise HTTPException(status_code=502, detail="Claude did not return valid JSON")
+
+    # Enforce authors is an array
+    if "authors" in metadata and not isinstance(metadata["authors"], list):
+        metadata["authors"] = []
+
+    # NOTE: no storage + no signed URL here
+    return {
+        "status": "ok",
+        "metadata": metadata,
+    }
 
 
-        # 5. Immediate preview link (1 day)
-        preview_resp = supabase.storage.from_("papers").create_signed_url(
-            storage_path,
-            expires_in=60 * 60 * 24,  # 1 day
-        )
+# ===============
+# 2) /upload-pdf
+# ===============
+@router.post("/upload-pdf", status_code=201)
+async def upload_pdf(
+    file: UploadFile,
+    project_id: str = Form(...),
+    paper_type: Literal["source", "candidate"] = Form(...),  # accepted for UX; schema doesn't store it
+    metadata_json: str = Form(...),
+    authorization: str = Header(...),
+):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
-        # 6. Persist metadata
-        insert_resp = supabase.table("papers").insert(
+    user_id = _get_user_id(authorization)
+    _verify_project(project_id, user_id)
+
+    pdf_bytes = await file.read()
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
+
+    md = json.loads(metadata_json)
+    title = (md.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="metadata.title is required")
+
+    # store final file -> <user>/<project>/<uuid>.pdf
+    final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
+    supabase.storage.from_("papers").upload(
+        path=final_path,
+        file=pdf_bytes,
+        file_options={"content-type": "application/pdf"},
+    )
+
+    # write paper_attrs
+    ins = (
+        supabase.table("paper_attrs")
+        .insert(
             {
-                "project_id": project_id,
-                "user_id": user_id,
-                "storage_path": storage_path,
-                "filename": file.filename,
-                "type": paper_type,
+                "title": title,
+                "abstract": md.get("abstract"),
+                "authors": md.get("authors") or [],
+                "year": md.get("year"),
+                "month": md.get("month"),
+                "day": md.get("day"),
+                "doi": md.get("doi"),
+                "category": md.get("category"),
+                "pdf_uri": final_path,
             }
-        ).execute()
+        )
+        .execute()
+    )
+    paper_id = ins.data[0]["id"]
 
-        paper_id = insert_resp.data[0]["id"]
+    # link uploader-scoped priv_corpus row (embedding left NULL)
+    supabase.table("priv_corpus").insert({"paper_id": paper_id, "user_id": user_id}).execute()
 
-        return {
-            "status": "success",
-            "paper_id": paper_id,
-            "preview_url": preview_resp["signedURL"],
-        }
+    # link paper to project
+    supabase.table("project_paper_links").insert({
+        "project_id": project_id, 
+        "paper_id": paper_id,
+        "has_paper": True
+    }).execute()
 
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {exc}")
+    # generate preview signed URL **here** (1 day)
+    preview_url = supabase.storage.from_("papers").create_signed_url(
+        final_path, expires_in=60 * 60 * 24
+    )["signedURL"]
+
+    return {
+        "status": "success",
+        "paper_id": paper_id,
+        "preview_url": preview_url,
+    }
 
 @router.get("/{paper_id}/signed-url")
 def get_signed_url(
@@ -107,6 +303,8 @@ def get_signed_url(
 ):
     """
     Return a fresh 1‑hour signed URL for a given paper so the client can view it.
+    Automatically detects whether the paper is in the 'papers' or 'library' bucket
+    based on the pdf_uri field.
     
     Args:
         paper_id: The ID of the paper to get the signed URL for.
@@ -118,21 +316,60 @@ def get_signed_url(
     """
 
     user_id = _get_user_id(authorization)
-
-    # Fetch the paper + check ownership
+    
+    # Fetch the paper's PDF URI
     paper_resp = (
-        supabase.table("papers").select("storage_path, user_id").eq("id", paper_id).single().execute()
+        supabase.table("paper_attrs")
+        .select("pdf_uri")
+        .eq("id", paper_id)
+        .single()
+        .execute()
     )
+    
+    if not paper_resp.data or not paper_resp.data.get("pdf_uri"):
+        raise HTTPException(status_code=404, detail="Paper PDF not found")
+
     paper = paper_resp.data
-    if not paper or paper["user_id"] != user_id:
-        raise HTTPException(status_code=404, detail="Paper not found or access denied")
+    pdf_uri = paper["pdf_uri"]
+    
+    # Check if this is a library paper or user paper based on pdf_uri
+    if pdf_uri.startswith("library/"):
+        # Library paper - accessible to all authenticated users
+        file_path = pdf_uri.replace("library/", "", 1)  # Remove "library/" prefix
+        bucket_name = "library"
+        storage_path = file_path
+    else:
+        # User paper - check access through priv_corpus
+        try:
+            access_check = (
+                supabase.table("priv_corpus")
+                .select("paper_id")
+                .eq("paper_id", paper_id)
+                .eq("user_id", user_id)
+                .single()
+                .execute()
+            )
+            
+            if not access_check.data:
+                raise HTTPException(status_code=404, detail="Paper not found or access denied")
+        except Exception as e:
+            # Handle both "no rows returned" and other database errors
+            if "0 rows" in str(e) or "no rows returned" in str(e).lower():
+                raise HTTPException(status_code=404, detail="Paper not found or access denied")
+            else:
+                raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        
+        bucket_name = "papers"
+        storage_path = pdf_uri
 
-    # Generate a signed URL
-    signed_resp = supabase.storage.from_("papers").create_signed_url(
-        paper["storage_path"], expires_in=expires_in
-    )
-
-    return {"signed_url": signed_resp["signedURL"]}
+    # Generate a signed URL from the appropriate bucket
+    try:
+        signed_resp = supabase.storage.from_(bucket_name).create_signed_url(
+            storage_path, expires_in=expires_in
+        )
+        return {"signed_url": signed_resp["signedURL"]}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate signed URL: {exc}")
 
 @router.put("/{paper_id}/annotations", status_code=200)
 async def upload_annotations(
@@ -327,35 +564,3 @@ async def copy_paper_from_library(
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Copy failed: {exc}")
-
-@router.get("/library/{file_path:path}/signed-url")
-def get_library_signed_url(
-    file_path: str,
-    expires_in: int = 60 * 60,
-    authorization: str = Header(...),
-):
-    """
-    Return a signed URL for a file in the library bucket.
-    
-    Args:
-        file_path: The path to the file in the library bucket.
-        expires_in: The number of seconds for the signed URL to be valid.
-        authorization: The authorization header containing the JWT token.
-
-    Returns:
-        A dictionary containing the signed URL.
-    """
-
-    # Authenticate user (library is accessible to all authenticated users)
-    user_id = _get_user_id(authorization)
-
-    try:
-        # Generate a signed URL for the library file
-        signed_resp = supabase.storage.from_("library").create_signed_url(
-            file_path, expires_in=expires_in
-        )
-
-        return {"signed_url": signed_resp["signedURL"]}
-
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to generate signed URL: {exc}")

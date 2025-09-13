@@ -7,7 +7,6 @@ import supabase from "../auth/supabaseClient";
 import PaperDetailsModal from "./PaperDetailsModal";
 import type { Paper } from "../../../schema/db-types";
 
-
 const SearchBox: React.FC<{
     query: string;
     onQueryChange: (q: string) => void;
@@ -151,7 +150,7 @@ const ResultsList: React.FC<{
                 className="p-4 rounded-md shadow-sm space-y-1"
             >
                 <a
-                    href={paper.pdf_uri}
+                    href={paper.pdf_uri || ""}
                     className="block text-lg font-semibold text-blue-800 hover:underline"
                 >
                     {paper.title}
@@ -175,11 +174,8 @@ const SearchViewer: React.FC = () => {
     const [results, setResults] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Modal state
-    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
-
     // Get workbench context for project management
-    const { projectId, refreshPapers } = useWorkbench();
+    const { projectId, refreshPapers, openModal, closeModal } = useWorkbench();
 
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
@@ -226,37 +222,33 @@ const SearchViewer: React.FC = () => {
     };
 
     const handlePaperClick = (paper: Paper) => {
-
-        setSelectedPaper(paper);
-    };
-
-    const handleCloseModal = () => {
-        setSelectedPaper(null);
+        openModal(
+            <PaperDetailsModal
+                paper={paper}
+                onClose={closeModal}
+                onAddToProject={handleAddToProject}
+            />
+        );
     };
 
     const handleAddToProject = async (paper: Paper) => {
         try {
             const { error: insertErr } = await supabase.from("project_paper_links").insert({
                 project_id: projectId,
-                paper_id: paper.id, // Ensure 'paper.id' matches paper_attrs.id
+                paper_id: paper.id,
                 has_paper: true,
                 annotations: null,
             });
 
-            if (insertErr) {
-                throw new Error(`Failed to link paper: ${insertErr.message}`);
-            }
+            if (insertErr) throw new Error(`Failed to link paper: ${insertErr.message}`);
 
             await refreshPapers();
-
-            setSelectedPaper(null);
-
+            closeModal();
         } catch (error) {
             console.error("Failed to link paper to project:", error);
             throw error;
         }
     };
-
     useEffect(() => {
         if (query) doSearch();
     }, []);
@@ -289,12 +281,6 @@ const SearchViewer: React.FC = () => {
             </div>
 
             <ResultsList results={results} onPaperClick={handlePaperClick} />
-
-            <PaperDetailsModal
-                paper={selectedPaper}
-                onClose={handleCloseModal}
-                onAddToProject={handleAddToProject}
-            />
         </div>
     );
 };
