@@ -18,16 +18,23 @@ interface UploadPaperModalProps {
     onClose: () => void;
     onSubmit: (data: UploadedPaperPayload) => void;
     isUploading?: boolean;
+    duplicateError?: any;
+    onForceUpload?: (data: UploadedPaperPayload) => Promise<void>;
+    initialFile?: File | null;
 }
 
 const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
     onClose,
     onSubmit,
     isUploading = false,
+    duplicateError,
+    onForceUpload,
+    initialFile,
 }) => {
     const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [showingDuplicateComparison, setShowingDuplicateComparison] = useState(!!duplicateError);
 
-    const [file, setFile] = useState<File | null>(null);
+    const [file, setFile] = useState<File | null>(initialFile || null);
     const [dragOver, setDragOver] = useState(false);
     const [addToIndex, setAddToIndex] = useState(true);
 
@@ -49,7 +56,14 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     const handlePageSelection = (pageNumber: number) => {
         if (selectionMode === "title") {
-            setTitlePage((current) => (current === pageNumber ? null : pageNumber));
+            setTitlePage((current) => {
+                const newValue = current === pageNumber ? null : pageNumber;
+                // If we just selected a title page (not deselected), switch to abstract mode
+                if (newValue !== null) {
+                    setSelectionMode("abstract");
+                }
+                return newValue;
+            });
         } else {
             setAbstractPages((current) => {
                 const pages = new Set(current);
@@ -134,19 +148,93 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             This may take a few moments.
                         </p>
                     </div>
-                    <div className="flex space-x-2">
-                        {[0, 1, 2].map((i) => (
-                            <div
-                                key={i}
-                                className="w-3 h-3 bg-kets-orange rounded-full animate-bounce"
-                                style={{
-                                    animationDelay: `${i * 0.15}s`,
-                                    animationDuration: "0.6s",
-                                }}
-                            />
+                    <p className="text-sm text-slate-500 mt-4">Please don't close this window</p>
+                </div>
+            ) : showingDuplicateComparison && duplicateError ? (
+                <div className="flex flex-col h-full">
+                    <h2 className="text-xl font-semibold text-slate-800 text-center mb-4">
+                        Similar Paper Found
+                    </h2>
+                    <p className="text-sm text-slate-600 text-center mb-6">
+                        A paper with a similar title already exists in this project. Would you still like to upload?
+                    </p>
+                    
+                    <div className="flex-1 overflow-auto space-y-4">
+                        {/* New Paper */}
+                        <div className="bg-white p-4 rounded-lg border-2 border-kets-orange">
+                            <h3 className="font-semibold text-kets-orange mb-2">New Paper (uploading)</h3>
+                            <h4 className="font-medium text-slate-800 mb-1">{duplicateError.new_paper?.title}</h4>
+                            {duplicateError.new_paper?.authors?.length > 0 && (
+                                <p className="text-sm text-slate-600 mb-2">
+                                    <span className="font-medium">Authors:</span> {duplicateError.new_paper.authors.join(", ")}
+                                </p>
+                            )}
+                            {duplicateError.new_paper?.abstract && (
+                                <p className="text-sm text-slate-600">
+                                    <span className="font-medium">Abstract:</span> {duplicateError.new_paper.abstract.substring(0, 200)}...
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Existing Papers */}
+                        {duplicateError.existing_matches?.map((match: any, index: number) => (
+                            <div key={match.paper_id} className="bg-white p-4 rounded-lg border border-slate-200">
+                                <h3 className="font-semibold text-slate-700 mb-2">
+                                    Existing Paper #{index + 1} (similarity: {(match.score * 100).toFixed(1)}%)
+                                </h3>
+                                <h4 className="font-medium text-slate-800 mb-1">{match.title}</h4>
+                                {match.authors?.length > 0 && (
+                                    <p className="text-sm text-slate-600 mb-2">
+                                        <span className="font-medium">Authors:</span> {match.authors.join(", ")}
+                                    </p>
+                                )}
+                                {match.abstract && (
+                                    <p className="text-sm text-slate-600">
+                                        <span className="font-medium">Abstract:</span> {match.abstract.substring(0, 200)}...
+                                    </p>
+                                )}
+                            </div>
                         ))}
                     </div>
-                    <p className="text-sm text-slate-500 mt-4">Please don't close this window</p>
+
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-200 mt-4">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-semibold cursor-pointer text-slate-600 hover:text-slate-900"
+                        >
+                            Cancel
+                        </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => setShowingDuplicateComparison(false)}
+                                className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md text-sm font-semibold hover:bg-slate-300 transition-colors"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (onForceUpload && file) {
+                                        const payload = {
+                                            file: file,
+                                            title: duplicateError.new_paper?.title || '',
+                                            authors: duplicateError.new_paper?.authors || [],
+                                            doi: '',
+                                            publicationDate: null,
+                                            tags: [],
+                                            notes: null,
+                                            abstractPages: [],
+                                            titlePage: null,
+                                            addToIndex: true
+                                        };
+                                        onForceUpload(payload);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-kets-orange text-white rounded-md text-sm font-semibold hover:bg-kets-orange-600 transition-colors"
+                            >
+                                Upload Anyway
+                            </button>
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <>
@@ -325,7 +413,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                             }
                                             className="flex flex-col items-center space-y-6"
                                         >
-                                            {Array.from(new Array(numPages || 0), (el, index) => (
+                                            {Array.from(new Array(numPages || 0), (_, index) => (
                                                 <div
                                                     key={`page_${index + 1}`}
                                                     onClick={() => handlePageSelection(index + 1)}

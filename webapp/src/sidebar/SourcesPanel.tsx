@@ -108,6 +108,8 @@ const SourcesPanel: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [duplicateError, setDuplicateError] = useState<any>(null);
+    const [currentUploadFile, setCurrentUploadFile] = useState<File | null>(null);
 
     // Search for papers
     const filtered = useMemo(() => {
@@ -123,6 +125,7 @@ const SourcesPanel: React.FC = () => {
     // Upload function that calls the API endpoints
     const uploadPaper = async (payload: UploadedPaperPayload) => {
         setIsUploading(true);
+        setCurrentUploadFile(payload.file); // Store the file being uploaded
         setError(null); // Clear any previous errors
         try {
             // Step 1: Get authentication token
@@ -225,11 +228,19 @@ const SourcesPanel: React.FC = () => {
                 
                 try {
                     const errorData = JSON.parse(errorText);
-                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                    
+                    // Check if this is a duplicate error
+                    if (uploadResponse.status === 409 && errorData.detail?.error === 'duplicate_detected') {
+                        setDuplicateError(errorData.detail);
+                        return; // Don't throw error, let the modal handle it
+                    }
+                    
+                    errorMessage = errorData.detail?.message || errorData.detail || errorData.message || errorMessage;
                 } catch {
                     // API didn't return JSON, use status-based message
                     if (uploadResponse.status === 401) errorMessage = "Authentication failed. Please log in again.";
                     else if (uploadResponse.status === 403) errorMessage = "Permission denied for this project.";
+                    else if (uploadResponse.status === 409) errorMessage = "Duplicate paper detected.";
                     else if (uploadResponse.status === 413) errorMessage = "File too large. Please use a smaller PDF.";
                     else if (uploadResponse.status === 415) errorMessage = "Invalid file type. Please upload a PDF.";
                     else if (uploadResponse.status >= 500) errorMessage = "Server error. Please try again.";
@@ -242,7 +253,8 @@ const SourcesPanel: React.FC = () => {
             await refreshPapers();
         } catch (error: any) {
             console.error("Error uploading paper:", error);
-            setError(error instanceof Error ? error.message : 'Failed to upload paper');
+            // TODO: Replace this alert with proper error UI later
+            alert(error instanceof Error ? error.message : 'Failed to upload paper');
         } finally {
             setIsUploading(false);
         }
@@ -250,68 +262,151 @@ const SourcesPanel: React.FC = () => {
 
     const handleOpenUploadModal = () => {
         setError(null); // Clear any previous errors when opening modal
+        setDuplicateError(null); // Clear any previous duplicate errors
         openModal(
             <Modal onClose={closeModal}>
                 <UploadPaperModal
                     onClose={closeModal}
                     onSubmit={async (data) => {
                         await uploadPaper(data);
-                        if (!error) { // Only close modal if upload was successful
+                        if (!error && !duplicateError) { // Only close modal if upload was successful
                             closeModal();
                         }
                     }}
                     isUploading={isUploading}
+                    duplicateError={duplicateError}
+                    onForceUpload={async (data: UploadedPaperPayload) => {
+                        // Re-upload with force=true
+                        const formData = new FormData();
+                        formData.append("file", data.file);
+                        formData.append("project_id", projectId);
+                        formData.append("paper_type", "source");
+                        formData.append("force", "true");
+                        
+                        const finalMetadata = {
+                            title: data.title?.trim() || data.file.name.replace('.pdf', ''),
+                            authors: data.authors || [],
+                            abstract: null,
+                            year: null,
+                            month: null,
+                            day: null,
+                            doi: data.doi?.trim() || null,
+                            category: null,
+                        };
+                        
+                        formData.append("metadata_json", JSON.stringify(finalMetadata));
+                        
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session?.access_token) {
+                            throw new Error("Not authenticated");
+                        }
+                        
+                        const response = await fetch(
+                            `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    Authorization: `Bearer ${session.access_token}`,
+                                },
+                                body: formData,
+                            }
+                        );
+                        
+                        if (response.ok) {
+                            await refreshPapers();
+                            setDuplicateError(null);
+                            closeModal();
+                        } else {
+                            throw new Error("Force upload failed");
+                        }
+                    }}
                 />
             </Modal>
         );
     };
 
-    // Update modal when upload state changes to show loading state
+    // Update modal when upload state changes to show loading state or duplicate error
     React.useEffect(() => {
-        // Only update if we have an active modal and are currently uploading
-        if (isUploading) {
-            const handleNoOp = () => {};
+        // Only update if we have an active modal and are currently uploading or have duplicate error
+        if (isUploading || duplicateError) {
+            // For duplicate error, allow closing. For uploading, prevent closing.
+            const handleClose = duplicateError && !isUploading ? () => {
+                setDuplicateError(null);
+                setCurrentUploadFile(null);
+                closeModal();
+            } : () => {};
             const handleNoOpSubmit = async (_data: UploadedPaperPayload) => {};
             
             openModal(
-                <Modal onClose={handleNoOp}>
+                <Modal onClose={handleClose}>
                     <UploadPaperModal
-                        onClose={handleNoOp}
+                        onClose={handleClose}
                         onSubmit={handleNoOpSubmit}
                         isUploading={isUploading}
+                        duplicateError={duplicateError}
+                        initialFile={currentUploadFile}
+                        onForceUpload={async (data: UploadedPaperPayload) => {
+                            // Force upload functionality here
+                            const formData = new FormData();
+                            formData.append("file", data.file);
+                            formData.append("project_id", projectId);
+                            formData.append("paper_type", "source");
+                            formData.append("force", "true");
+                            
+                            const finalMetadata = {
+                                title: duplicateError?.new_paper?.title || data.title?.trim() || data.file.name.replace('.pdf', ''),
+                                authors: duplicateError?.new_paper?.authors || data.authors || [],
+                                abstract: duplicateError?.new_paper?.abstract || null,
+                                year: null,
+                                month: null,
+                                day: null,
+                                doi: data.doi?.trim() || null,
+                                category: null,
+                            };
+                            
+                            formData.append("metadata_json", JSON.stringify(finalMetadata));
+                            
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session?.access_token) {
+                                throw new Error("Not authenticated");
+                            }
+                            
+                            const response = await fetch(
+                                `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        Authorization: `Bearer ${session.access_token}`,
+                                    },
+                                    body: formData,
+                                }
+                            );
+                            
+                            if (response.ok) {
+                                await refreshPapers();
+                                setDuplicateError(null);
+                                closeModal();
+                            } else {
+                                const errorText = await response.text();
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    throw new Error(errorData.detail?.message || errorData.detail || "Force upload failed");
+                                } catch {
+                                    throw new Error("Force upload failed");
+                                }
+                            }
+                        }}
                     />
                 </Modal>
             );
         }
-    }, [isUploading, openModal]);
+    }, [isUploading, duplicateError, openModal, projectId, refreshPapers, closeModal]);
 
     return (
         <div className="flex flex-col h-full space-y-3">
             <h1 className="text-lg font-semibold">Sources</h1>
 
             <UploadPaperButton onClick={handleOpenUploadModal} />
-
-            {/* Error message display similar to UserSettingsPage */}
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                    <div className="flex">
-                        <div className="flex-shrink-0">
-                            <span className="material-icons text-red-400 text-sm">error</span>
-                        </div>
-                        <div className="ml-2">
-                            <p className="text-sm text-red-800">{error}</p>
-                        </div>
-                        <div className="ml-auto pl-3">
-                            <button
-                                onClick={() => setError(null)}
-                                className="text-red-400 hover:text-red-600"
-                            >
-                                <span className="material-icons text-sm">close</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 

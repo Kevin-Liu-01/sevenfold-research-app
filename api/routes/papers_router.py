@@ -219,6 +219,26 @@ async def process_pdf(
         "metadata": metadata,
     }
 
+# dedup helpers
+import re
+from rapidfuzz import fuzz
+_spaces = re.compile(r"\s+")
+_punct  = re.compile(r"[^\w\s]", re.UNICODE)
+
+def normalize_title(s: str) -> str:
+    if not s: return ""
+    s = s.lower()
+    s = _punct.sub(" ", s)
+    s = _spaces.sub(" ", s).strip()
+    return s
+
+def score_titles(a: str, b: str) -> float:
+    if not a or not b: return 0.0
+    ts  = fuzz.token_set_ratio(a, b)
+    pr  = fuzz.partial_ratio(a, b)
+    wr  = fuzz.WRatio(a, b)
+    # adjustable
+    return (0.55*ts + 0.25*wr + 0.20*pr) / 100.0
 
 # ===============
 # 2) /upload-pdf
@@ -230,6 +250,7 @@ async def upload_pdf(
     paper_type: Literal["source", "candidate"] = Form(...),  # accepted for UX; schema doesn't store it
     metadata_json: str = Form(...),
     authorization: str = Header(...),
+    force: bool = Form(False),                      # allow user override
 ):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
@@ -245,6 +266,72 @@ async def upload_pdf(
     title = (md.get("title") or "").strip()
     if not title:
         raise HTTPException(status_code=400, detail="metadata.title is required")
+
+    # ---- Fuzzy duplicate check ----
+    title_norm = normalize_title(title)
+
+    # 1) get paper_ids already in the project
+    link_resp = (
+        supabase.table("project_paper_links")
+        .select("paper_id")
+        .eq("project_id", project_id)
+        .eq("has_paper", True)
+        .execute()
+    )
+    existing_ids = [r["paper_id"] for r in (link_resp.data or [])]
+    matches = []
+
+    if existing_ids:
+        # 2) fetch details for those paper_ids
+        attrs_resp = (
+            supabase.table("paper_attrs")
+            .select("id,title,authors,abstract")
+            .in_("id", existing_ids)
+            .execute()
+        )
+        rows = attrs_resp.data or []
+
+        # 3) score all titles (n ≤ 50 → cheap)
+        best = []
+        for r in rows:
+            pid = r["id"]
+            etitle = (r.get("title") or "").strip()
+            s = score_titles(title_norm, normalize_title(etitle))
+            if s > 0.50:  # quick noise floor
+                best.append((pid, r, s))  # store full record instead of just title
+
+        best.sort(key=lambda x: x[2], reverse=True)
+        best = best[:5]
+
+        PROMPT_THRESHOLD = 0.80
+        # Optional: slightly stricter for very short titles
+        if len(title.split()) < 5:
+            PROMPT_THRESHOLD += 0.03
+
+        if not force and best and best[0][2] >= PROMPT_THRESHOLD:
+            matches = [
+                {
+                    "paper_id": pid,
+                    "title": record.get("title", ""),
+                    "authors": record.get("authors", []),
+                    "abstract": record.get("abstract", ""),
+                    "score": round(s, 4)
+                }
+                for (pid, record, s) in best[:3]  # Limit to top 3 matches for UI
+            ]
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "duplicate_detected",
+                    "message": "A similar title already exists in this project.",
+                    "new_paper": {
+                        "title": title,
+                        "authors": md.get("authors", []),
+                        "abstract": md.get("abstract", "")
+                    },
+                    "existing_matches": matches,
+                },
+            )
 
     # store final file -> <user>/<project>/<uuid>.pdf
     final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
