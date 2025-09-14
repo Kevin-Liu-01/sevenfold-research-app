@@ -18,10 +18,15 @@ WITH
 lexical AS (
     SELECT paper_id,
            ROW_NUMBER() OVER (
-               ORDER BY ts_rank_cd(fts, websearch_to_tsquery(query_text)) DESC
+               ORDER BY ts_rank(
+                   ARRAY[0.1, 0.2, 0.4, 1.0]::real[],  -- [D,C,B,A] → A (title+authors) dominates C (abstract)
+                   fts,
+                   websearch_to_tsquery('english', query_text)
+               ) DESC
            ) AS rank_ix
     FROM publ_corpus
-    WHERE fts @@ websearch_to_tsquery(query_text) AND "year" >= min_year
+    WHERE "year" >= min_year
+      AND fts @@ websearch_to_tsquery('english', query_text)
     LIMIT LEAST(match_count, 30) * 2
 ),
 

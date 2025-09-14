@@ -1,14 +1,17 @@
 -- Public corpus: links to paper_attr; public-only search fields
 
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
 CREATE TABLE IF NOT EXISTS publ_corpus (
     paper_id        UUID PRIMARY KEY REFERENCES paper_attrs(id) ON DELETE CASCADE,
-    search_text     TEXT,
+    search_text     TEXT, -- Title + authors
+    abstract_text   TEXT,
     year            INT,
     embedding       VECTOR(768),
     fts             TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('english', COALESCE(search_text, ''))
+        setweight(to_tsvector('english', unaccent(coalesce(search_text,   ''))), 'A') ||
+        setweight(to_tsvector('english', unaccent(coalesce(abstract_text, ''))), 'C')
     ) STORED,
     source          TEXT,
     source_id       TEXT,
