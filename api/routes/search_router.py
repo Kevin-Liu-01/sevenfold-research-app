@@ -122,8 +122,7 @@ async def hybrid_search(request: SearchRequest):
 
         fuzzy_rows = getattr(fuzzy_resp, "data", None) or []
         fuzzy_ids = [str(r.get("id")) for r in fuzzy_rows if r.get("id")]
-    for fuzzy_row in fuzzy_rows:
-        print(f"Fuzzy match: {fuzzy_row.get('title')} (id={fuzzy_row.get('id')})")
+        
     # 2) Hybrid search (returns SETOF paper_attrs)
     query_embedding = embed_query(request.query)
     context_embedding = get_project_context(request.project_id)
