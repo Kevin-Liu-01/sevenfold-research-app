@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from db.supabase import supabase
 from transformers import AutoTokenizer
@@ -95,16 +95,39 @@ class SearchRequest(BaseModel):
     context_weight: float = 1.0
     rrf_k: int = 50
     min_year: int = 2005
-
+    fuzzy_title_first: bool = True
+    fuzzy_min_sim: float = 0.7
+    fuzzy_limit: int = 5
+    
 @router.post("/", response_model=List[dict])
 async def hybrid_search(request: SearchRequest):
     """
-    Perform hybrid search using query embeddings and lexical ranking.
+    1) Run fuzzy title match using pg_trgm (pre-ranked, thresholded).
+    2) Run the existing hybrid search.
+    3) Return fuzzy matches first, followed by hybrid results (de-duplicated).
     """
+    # 1) Fuzzy title search (returns SETOF paper_attrs)
+    fuzzy_rows: List[Dict[str, Any]] = []
+    fuzzy_ids: List[str] = []
+
+    if request.fuzzy_title_first:
+        fuzzy_resp = supabase.rpc(
+            "fuzzy_title_search",
+            {
+                "input_title": request.query,
+                "min_sim": request.fuzzy_min_sim,
+                "limit_count": request.fuzzy_limit,
+            },
+        ).execute()
+
+        fuzzy_rows = getattr(fuzzy_resp, "data", None) or []
+        fuzzy_ids = [str(r.get("id")) for r in fuzzy_rows if r.get("id")]
+        
+    # 2) Hybrid search (returns SETOF paper_attrs)
     query_embedding = embed_query(request.query)
     context_embedding = get_project_context(request.project_id)
 
-    resp = supabase.rpc(
+    hybrid_resp = supabase.rpc(
         "hybrid_search",
         {
             "query_text": request.query,
@@ -115,10 +138,15 @@ async def hybrid_search(request: SearchRequest):
             "semantic_weight": request.semantic_weight,
             "context_weight": request.context_weight,
             "rrf_k": request.rrf_k,
-            "min_year": request.min_year
+            "min_year": request.min_year,
         },
     ).execute()
 
-    print(resp)
+    hybrid_rows = getattr(hybrid_resp, "data", None) or []
 
-    return resp.data or []
+    # 3) Merge with de-dup (fuzzy on top). De-dupe by `id`.
+    seen = set(fuzzy_ids)
+    tail = [r for r in hybrid_rows if str(r.get("id")) not in seen]
+    results = fuzzy_rows + tail
+
+    return results
