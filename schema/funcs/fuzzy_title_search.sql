@@ -14,7 +14,7 @@ on public.paper_attrs using gin (
 
 create or replace function public.fuzzy_title_search(
   input_title  text,
-  min_sim      real default 0.70,
+  min_sim      real default 0.50,
   limit_count  int  default 5
 )
 returns setof paper_attrs
@@ -29,8 +29,11 @@ as $$
   )
   select pa.*
   from params p
+  join publ_corpus pc
+    on true  -- Join to ensure we only get papers in public corpus
   join paper_attrs pa
-    on lower(immutable_unaccent(pa.title)) % p.q_title
+    on pa.id = pc.paper_id
+    and lower(immutable_unaccent(pa.title)) % p.q_title
   where similarity(lower(immutable_unaccent(pa.title)), p.q_title) >= min_sim
   order by similarity(lower(immutable_unaccent(pa.title)), p.q_title) desc, pa.id
   limit limit_count;

@@ -96,7 +96,7 @@ class SearchRequest(BaseModel):
     rrf_k: int = 50
     min_year: int = 2005
     fuzzy_title_first: bool = True
-    fuzzy_min_sim: float = 0.7
+    fuzzy_min_sim: float = 0.5
     fuzzy_limit: int = 5
     
 @router.post("/", response_model=List[dict])
@@ -122,7 +122,6 @@ async def hybrid_search(request: SearchRequest):
 
         fuzzy_rows = getattr(fuzzy_resp, "data", None) or []
         fuzzy_ids = [str(r.get("id")) for r in fuzzy_rows if r.get("id")]
-        
     # 2) Hybrid search (returns SETOF paper_attrs)
     query_embedding = embed_query(request.query)
     context_embedding = get_project_context(request.project_id)
