@@ -267,7 +267,6 @@ async def upload_pdf(
                 "day": md.get("day"),
                 "doi": md.get("doi"),
                 "category": md.get("category"),
-                "pdf_uri": final_path,
             }
         )
         .execute()
@@ -281,7 +280,8 @@ async def upload_pdf(
     supabase.table("project_paper_links").insert({
         "project_id": project_id, 
         "paper_id": paper_id,
-        "has_paper": True
+        "has_paper": True,
+        "pdf_uri": final_path
     }).execute()
 
     # generate preview signed URL **here** (1 day)
