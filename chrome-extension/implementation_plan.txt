@@ -1,0 +1,39 @@
+Implementation Plan
+
+Bootstrap & Tooling
+- Scaffold extension/ with manifest.json, background.js, content.js, popup assets, plus tests/.
+- Initialize package.json scripts (build, lint, test, zip) and configure Rollup or Vite for plain JavaScript bundles.
+- Add ESLint + Prettier configs to enforce 2-space indentation and register Chrome API globals.
+
+Auth Agent (background)
+- Implement Supabase PKCE login via chrome.identity.launchWebAuthFlow, storing tokens in chrome.storage.session.
+- Expose auth:login and auth:getSession handlers, handling refresh tokens and error propagation.
+- Provide popup controls to initiate login and surface current auth status.
+
+PDF Detection & UI (content script)
+- Detect direct PDF pages by checking the tab URL for .pdf or confirmed Content-Type via chrome.webRequest when available.
+- Inject a Shadow DOM-based floating CTA prompting “Add this paper to your library?” when detection succeeds.
+- On confirmation, collect metadata (filename, document title, URL) and dispatch an upload:request message.
+
+PDF Fetcher (content script)
+- Fetch PDF bytes directly from window.location.href using fetch and response.arrayBuffer().
+- Send ArrayBuffer plus metadata to the background via chrome.runtime.sendMessage, handling error retries.
+
+Upload Orchestrator (background)
+- Assemble FormData (file, project_id, paper_type, metadata_json), attach Authorization: Bearer <token>, and POST to /upload-pdf.
+- Emit upload:progress, upload:result, or upload:error messages back to the content script for user feedback.
+- Update Library Sync cache when uploads succeed.
+
+Settings & Library Sync
+- Store defaults (project_id, paper_type, auto-suggest toggle) and recent uploads in chrome.storage.local.
+- Build vanilla JS popup/options pages to edit settings, trigger authentication, and render cached uploads.
+
+Testing & QA
+- Use Jest with mocked Chrome APIs to cover auth flows, direct PDF detection, messaging, and upload formatting.
+- Add Playwright or similar tests loading a sample PDF page, validating CTA display, and asserting /upload-pdf payloads against a mock server.
+- Maintain a manual QA checklist covering Supabase login, direct PDF detection, upload success, and cache updates.
+
+Release Prep
+- Run npm run build to produce the production bundle and zip dist/chrome-extension.zip for distribution.
+- Verify manifest permissions cover direct PDF hosts, document environment requirements, and capture UI screenshots.
+- Perform final security review (token scope, error sanitization) before shipping.

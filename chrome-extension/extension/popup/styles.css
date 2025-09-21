@@ -1,0 +1,105 @@
+body {
+  min-width: 280px;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+main {
+  padding: 16px;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.email-auth {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  display: grid;
+  gap: 10px;
+}
+
+.email-auth h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.field input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5f5;
+  font-size: 14px;
+}
+
+.field input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.secondary:hover {
+  background: #cbd5f5;
+}
+
+.status {
+  font-size: 14px;
+  margin: 0;
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+#status {
+  margin-top: 12px;
+  font-size: 14px;
+}
