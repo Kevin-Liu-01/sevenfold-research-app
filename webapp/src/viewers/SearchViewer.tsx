@@ -1,4 +1,3 @@
-// src/components/viewers/SearchViewer.tsx
 import React, { useState, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWorkbench } from "../context/WorkbenchContext";
@@ -6,6 +5,7 @@ import supabase from "../auth/supabaseClient";
 
 import PaperDetailsModal from "./PaperDetailsModal";
 import type { Paper } from "../../../schema/db-types";
+import { usePersistentState } from "../hooks/usePersistentState";
 
 const SearchBox: React.FC<{
     query: string;
@@ -171,7 +171,11 @@ const ResultsList: React.FC<{
 const SearchViewer: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [query, setQuery] = useState(searchParams.get("q") ?? "");
-    const [results, setResults] = useState<Paper[]>([]);
+    const [results, setResults] = usePersistentState<Paper[]>(`workbench:search:results`, []);
+    const [lastSearchedQuery, setLastSearchedQuery] = usePersistentState<string>(
+        `workbench:search:lastQuery`,
+        ""
+    );
     const [loading, setLoading] = useState(false);
 
     // Get workbench context for project management
@@ -208,6 +212,8 @@ const SearchViewer: React.FC = () => {
             if (!res.ok) throw new Error(await res.text());
             const data: Paper[] = await res.json();
             setResults(data);
+            // on a successful search, we will store the query that was used
+            setLastSearchedQuery(query.trim());
         } catch (err) {
             console.error(err);
             setResults([]);
@@ -249,8 +255,24 @@ const SearchViewer: React.FC = () => {
             throw error;
         }
     };
+
     useEffect(() => {
-        if (query) doSearch();
+        const trimmedQuery = query.trim();
+
+        // some necessary error handling for edge cases
+        // if the query from the URL is empty, clear any existing results to avoid showing stale data
+        if (!trimmedQuery) {
+            setResults([]);
+            setLastSearchedQuery("");
+            return;
+        }
+
+        // only run a search on mount if the current query is different from the last one that was successfully searched
+        // this prevents re-searching when switching back to the tab if the query hasn't changed
+        if (trimmedQuery !== lastSearchedQuery) {
+            doSearch();
+        }
+        // note: this effect should only run on component mount to check the initial URL state
     }, []);
 
     return (
