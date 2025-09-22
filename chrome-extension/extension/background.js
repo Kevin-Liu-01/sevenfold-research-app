@@ -1,20 +1,15 @@
-import { supabaseConfig } from './config.js';
-import {
-  saveSession,
-  getSession,
-  clearSession,
-  savePkceState,
-  getPkceState,
-  clearPkceState
-} from './background/sessionStore.js';
-import {
-  generateCodeVerifier,
-  generateCodeChallenge,
-  generateState
-} from './background/pkce.js';
+import { supabaseConfig, apiConfig } from './config.js';
+import { supabase } from './background/supabaseClient.js';
 
-const REFRESH_ALARM = 'supabase-auth-refresh';
 const REFRESH_MARGIN_MS = 2 * 60 * 1000;
+const OAUTH_SCOPES = 'openid email profile';
+const PDF_STATUS_MESSAGE = 'pdf:status';
+const PDF_STATUS_CHANGED_MESSAGE = 'pdf:status-changed';
+const UPLOAD_REQUEST_MESSAGE = 'upload:request';
+const UPLOAD_RESULT_MESSAGE = 'upload:result';
+const UPLOAD_ERROR_MESSAGE = 'upload:error';
+
+const pdfStatusByTab = new Map();
 
 console.log('[background] service worker loaded');
 
@@ -26,17 +21,17 @@ bootstrapSession().catch((error) => {
   console.error('[auth] bootstrap failed', error);
 });
 
-if (chrome.alarms && chrome.alarms.onAlarm) {
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === REFRESH_ALARM) {
-      refreshSession().catch((error) => {
-        console.error('[auth] refresh alarm failed', error);
-      });
-    }
+supabase.auth.onAuthStateChange((_event, session) => {
+  broadcastAuthChanged(normalizeSession(session));
+});
+
+if (chrome.tabs && chrome.tabs.onRemoved) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    pdfStatusByTab.delete(tabId);
   });
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || !message.type) {
     return undefined;
   }
@@ -44,7 +39,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'auth:login') {
     handleLogin(message.provider)
       .then((session) => {
-        sendResponse({ ok: true, session: sanitizeSession(session) });
+        sendResponse({ ok: true, session });
       })
       .catch((error) => {
         console.error('[auth] login failed', error);
@@ -56,7 +51,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'auth:loginPassword') {
     handlePasswordLogin(message.email, message.password)
       .then((session) => {
-        sendResponse({ ok: true, session: sanitizeSession(session) });
+        sendResponse({ ok: true, session });
       })
       .catch((error) => {
         console.error('[auth] password login failed', error);
@@ -85,22 +80,79 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === PDF_STATUS_MESSAGE) {
+    handlePdfStatus(message.payload, sender);
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (message.type === 'pdf:getStatus') {
+    handleGetPdfStatus(message.tabId)
+      .then((status) => sendResponse({ ok: true, ...status }))
+      .catch((error) => {
+        console.error('[pdf] getStatus failed', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === UPLOAD_REQUEST_MESSAGE) {
+    handleUploadRequest(message.payload, sender?.tab?.id ?? null)
+      .then((result) => {
+        sendResponse({ ok: true, result });
+      })
+      .catch((error) => {
+        console.error('[upload] request failed', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'projects:list') {
+    handleListProjects()
+      .then((projects) => {
+        sendResponse({ ok: true, projects });
+      })
+      .catch((error) => {
+        console.error('[projects] fetch failed', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'projects:setDefault') {
+    handleSetDefaultProject(message.projectId)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => {
+        console.error('[projects] set default failed', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
   return undefined;
 });
 
 async function bootstrapSession() {
-  const current = await getSession();
-  if (!current) {
-    return;
-  }
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      throw error;
+    }
 
-  if (shouldRefresh(current)) {
-    await refreshSession();
-    return;
-  }
+    let session = data.session;
+    if (shouldRefresh(session)) {
+      const refreshed = await supabase.auth.refreshSession();
+      if (refreshed.error) {
+        throw refreshed.error;
+      }
+      session = refreshed.data.session;
+    }
 
-  scheduleRefresh(current.expiresAt);
-  broadcastAuthChanged(current);
+    broadcastAuthChanged(normalizeSession(session));
+  } catch (error) {
+    console.error('[auth] bootstrap session failed', error);
+  }
 }
 
 async function handleLogin(requestedProvider) {
@@ -109,148 +161,392 @@ async function handleLogin(requestedProvider) {
     throw new Error('auth provider not configured');
   }
 
-  const redirectUri = chrome.identity.getRedirectURL('supabase');
-  const codeVerifier = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  const state = generateState();
+  const redirectTo = chrome.identity.getRedirectURL('supabase');
 
-  await savePkceState({
-    codeVerifier,
-    state,
-    redirectUri,
-    createdAt: Date.now(),
-    provider
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+      scopes: OAUTH_SCOPES
+    }
   });
 
-  const authUrl = buildAuthorizeUrl({ codeChallenge, state, redirectUri, provider });
-
-  let redirectResponse;
-  try {
-    redirectResponse = await chrome.identity.launchWebAuthFlow({
-      url: authUrl,
-      interactive: true
-    });
-  } catch (error) {
-    await clearPkceState();
+  if (error) {
     throw error;
   }
 
-  const pkceState = await getPkceState();
-  if (!pkceState || pkceState.state !== state) {
-    await clearPkceState();
-    throw new Error('PKCE state mismatch or expired');
+  if (!data?.url) {
+    throw new Error('unable to start OAuth flow');
   }
 
-  const { code, error, errorDescription, returnedState } = parseAuthRedirect(redirectResponse);
-
-  if (error) {
-    await clearPkceState();
-    throw new Error(errorDescription || error);
-  }
-
-  if (!code || returnedState !== state) {
-    await clearPkceState();
-    throw new Error('Auth code missing or state mismatch');
-  }
-
-  const session = await exchangeCodeForSession({
-    code,
-    codeVerifier: pkceState.codeVerifier,
-    redirectUri: pkceState.redirectUri
+  const redirectResponse = await chrome.identity.launchWebAuthFlow({
+    url: data.url,
+    interactive: true
   });
 
-  await clearPkceState();
-  await saveSession(session);
-  scheduleRefresh(session.expiresAt);
+  const { code, error: redirectError, errorDescription } = parseAuthRedirect(redirectResponse);
+  if (redirectError) {
+    throw new Error(errorDescription || redirectError);
+  }
+  if (!code) {
+    throw new Error('authorization code missing');
+  }
+
+  const exchange = await supabase.auth.exchangeCodeForSession(code);
+  if (exchange.error) {
+    throw exchange.error;
+  }
+
+  const session = normalizeSession(exchange.data.session);
   broadcastAuthChanged(session);
   return session;
 }
 
-/**
- * Perform email/password authentication using Supabase's password grant. The session shape matches
- * the PKCE flow, enabling shared storage and refresh handling.
- */
 async function handlePasswordLogin(email, password) {
   if (!email || !password) {
     throw new Error('Email and password are required');
   }
 
-  const url = `${supabaseConfig.url}/auth/v1/token?grant_type=password`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Required by Supabase for all auth/REST calls:
-      'apikey': supabaseConfig.anonKey
-      // no Authorization header for this request
-    },
-    body: JSON.stringify({ email, password })
-  });
-
-  const payload = await parseJsonResponse(response);
-  if (!response.ok) {
-    // GoTrue uses error_description / error fields
-    throw new Error(payload?.error_description || payload?.error || 'Invalid credentials');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    throw error;
   }
 
-  // Expected fields: access_token, token_type, expires_in, refresh_token, user
-  const now = Date.now();
-  const expiresAt = now + (payload.expires_in ?? 3600) * 1000;
-
-  const session = {
-    accessToken: payload.access_token,
-    refreshToken: payload.refresh_token,
-    tokenType: payload.token_type || 'bearer',
-    user: payload.user || null,
-    expiresAt
-  };
-
-  await saveSession(session);
-  // Refresh a bit early (e.g., 60s before expiry)
-  scheduleRefresh(expiresAt - 60_000);
-
+  const session = normalizeSession(data.session);
   broadcastAuthChanged(session);
   return session;
 }
 
 async function handleGetSession() {
-  let session = await getSession();
-  if (session && shouldRefresh(session)) {
-    session = await refreshSession();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw error;
   }
-  return sanitizeSession(session);
+
+  let session = data.session;
+  if (shouldRefresh(session)) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error) {
+      throw refreshed.error;
+    }
+    session = refreshed.data.session;
+  }
+
+  return normalizeSession(session);
 }
 
 async function handleLogout() {
-  const session = await getSession();
-  if (session) {
-    try {
-      await sendLogoutRequest(session.accessToken);
-    } catch (error) {
-      console.warn('[auth] remote logout failed', error);
-    }
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw error;
   }
 
-  await clearSession();
-  cancelRefresh();
   broadcastAuthChanged(null);
 }
 
-function buildAuthorizeUrl({ codeChallenge, state, redirectUri, provider }) {
-  const authorizeUrl = new URL(`${supabaseConfig.url}/auth/v1/authorize`);
-  const params = authorizeUrl.searchParams;
-  params.set('provider', provider);
-  params.set('response_type', 'code');
-  params.set('redirect_to', redirectUri);
-  params.set('code_challenge', codeChallenge);
-  params.set('code_challenge_method', 'S256');
-  params.set('state', state);
-  params.set('scope', 'openid email profile');
-  if (supabaseConfig.clientId || supabaseConfig.anonKey) {
-    params.set('client_id', supabaseConfig.clientId || supabaseConfig.anonKey);
+async function handleListProjects() {
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
   }
-  return authorizeUrl.toString();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('owner_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+function handlePdfStatus(payload, sender) {
+  const tabId = sender?.tab?.id;
+  if (typeof tabId !== 'number') {
+    return;
+  }
+
+  const status = {
+    isPdf: Boolean(payload?.isPdf),
+    url: typeof payload?.url === 'string' ? payload.url : null,
+    title: typeof payload?.title === 'string' ? payload.title : '',
+    detectedAt: payload?.detectedAt ?? Date.now()
+  };
+
+  pdfStatusByTab.set(tabId, status);
+
+  chrome.runtime.sendMessage(
+    { type: PDF_STATUS_CHANGED_MESSAGE, tabId, status },
+    () => void chrome.runtime.lastError
+  );
+}
+
+async function handleGetPdfStatus(requestedTabId) {
+  let tabId = typeof requestedTabId === 'number' ? requestedTabId : null;
+
+  if (tabId == null && chrome.tabs?.query) {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (activeTab && typeof activeTab.id === 'number') {
+      tabId = activeTab.id;
+    }
+  }
+
+  const status = tabId != null ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '' } : null;
+  return { tabId, status };
+}
+
+async function handleUploadRequest(payload, senderTabId) {
+  try {
+    if (!payload || typeof payload.url !== 'string' || !payload.url) {
+      throw new Error('Missing PDF URL to upload');
+    }
+
+    const session = await handleGetSession();
+    if (!session || !session.accessToken) {
+      throw new Error('Sign in to upload PDFs');
+    }
+
+    const projectId = await getDefaultProjectId();
+    if (!projectId) {
+      throw new Error('No project available. Create a project in Harbor first.');
+    }
+
+    const blob = await fetchPdfBlob(payload.url);
+
+    const uploadUrl = buildUploadUrl();
+    console.log('[upload] uploading to', uploadUrl);
+    const formData = new FormData();
+    formData.append('file', blob, deriveFileNameFromUrl(payload.url));
+    formData.append('project_id', projectId);
+    formData.append('paper_type', payload.paperType || 'source');
+
+    const metadata = normalizeMetadata(payload.metadata);
+    formData.append('metadata_json', JSON.stringify(metadata));
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`
+      },
+      body: formData
+    });
+
+    const responseBody = await parseJsonSafe(response);
+    if (!response.ok) {
+      const message = responseBody?.detail || responseBody?.error || response.statusText;
+      throw new Error(message || 'Upload failed');
+    }
+
+    notifyUploadResult(senderTabId, responseBody || {});
+    return responseBody;
+  } catch (error) {
+    notifyUploadError(senderTabId, error);
+    throw error;
+  }
+}
+
+async function handleSetDefaultProject(projectId) {
+  if (projectId) {
+    await chrome.storage.local.set({ defaultProjectId: projectId });
+  } else {
+    await chrome.storage.local.remove('defaultProjectId');
+  }
+}
+
+async function getDefaultProjectId() {
+  const stored = await chrome.storage.local.get('defaultProjectId');
+  if (stored?.defaultProjectId) {
+    return stored.defaultProjectId;
+  }
+
+  const projects = await handleListProjects();
+  const firstProjectId = projects?.[0]?.id ?? null;
+  if (firstProjectId) {
+    await chrome.storage.local.set({ defaultProjectId: firstProjectId });
+  }
+  return firstProjectId;
+}
+
+async function fetchPdfBlob(url) {
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch PDF (${response.status})`);
+  }
+  return await response.blob();
+}
+
+function buildUploadUrl() {
+  if (!apiConfig?.baseUrl) {
+    throw new Error('API base URL not configured');
+  }
+
+  const base = apiConfig.baseUrl.endsWith('/')
+    ? apiConfig.baseUrl.slice(0, -1)
+    : apiConfig.baseUrl;
+  const path = apiConfig.uploadPath || '/upload-pdf';
+  return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
+function deriveFileNameFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    if (!segments.length) {
+      return 'document.pdf';
+    }
+    const last = segments[segments.length - 1];
+    if (last.toLowerCase().endsWith('.pdf')) {
+      return decodeURIComponent(last);
+    }
+    return `${decodeURIComponent(last)}.pdf`;
+  } catch {
+    return 'document.pdf';
+  }
+}
+
+function normalizeMetadata(rawMetadata) {
+  if (!rawMetadata || typeof rawMetadata !== 'object') {
+    throw new Error('Metadata is required. Fill out the form in the extension popup.');
+  }
+
+  const title = (rawMetadata.title || '').trim();
+  if (!title) {
+    throw new Error('Title is required.');
+  }
+
+  const abstract = sanitizeNullableString(rawMetadata.abstract);
+  const authors = Array.isArray(rawMetadata.authors)
+    ? rawMetadata.authors
+        .map((author) => (typeof author === 'string' ? author.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  const year = sanitizeNullableInteger(rawMetadata.year, 0, 5000, 'Year must be a positive number.');
+  const month = sanitizeNullableInteger(rawMetadata.month, 1, 12, 'Month must be between 1 and 12.');
+  const day = sanitizeNullableInteger(rawMetadata.day, 1, 31, 'Day must be between 1 and 31.');
+
+  return {
+    title,
+    abstract,
+    authors,
+    year,
+    month,
+    day,
+    doi: sanitizeNullableString(rawMetadata.doi),
+    category: sanitizeNullableString(rawMetadata.category)
+  };
+}
+
+function sanitizeNullableString(value) {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed : null;
+}
+
+function sanitizeNullableInteger(value, min, max, errorMessage) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    throw new Error(errorMessage);
+  }
+  if (typeof min === 'number' && parsed < min) {
+    throw new Error(errorMessage);
+  }
+  if (typeof max === 'number' && parsed > max) {
+    throw new Error(errorMessage);
+  }
+  return parsed;
+}
+
+function notifyUploadResult(tabId, payload) {
+  if (typeof tabId !== 'number' || !chrome.tabs?.sendMessage) {
+    return;
+  }
+  chrome.tabs.sendMessage(
+    tabId,
+    { type: UPLOAD_RESULT_MESSAGE, payload },
+    () => void chrome.runtime.lastError
+  );
+}
+
+function notifyUploadError(tabId, error) {
+  if (typeof tabId !== 'number' || !chrome.tabs?.sendMessage) {
+    return;
+  }
+  chrome.tabs.sendMessage(
+    tabId,
+    { type: UPLOAD_ERROR_MESSAGE, error: error?.message || String(error) },
+    () => void chrome.runtime.lastError
+  );
+}
+
+async function parseJsonSafe(response) {
+  try {
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+function shouldRefresh(session) {
+  if (!session) {
+    return false;
+  }
+
+  const expiresAt = session.expires_at
+    ? session.expires_at * 1000
+    : session.expires_in
+      ? Date.now() + session.expires_in * 1000
+      : null;
+
+  if (!expiresAt) {
+    return false;
+  }
+
+  return expiresAt - REFRESH_MARGIN_MS <= Date.now();
+}
+
+function normalizeSession(session) {
+  if (!session) {
+    return null;
+  }
+
+  const expiresAt = session.expires_at
+    ? session.expires_at * 1000
+    : session.expires_in
+      ? Date.now() + session.expires_in * 1000
+      : null;
+
+  return {
+    accessToken: session.access_token,
+    tokenType: session.token_type,
+    expiresAt,
+    user: session.user ?? null
+  };
+}
+
+function broadcastAuthChanged(session) {
+  chrome.runtime.sendMessage(
+    { type: 'auth:changed', payload: session },
+    () => void chrome.runtime.lastError
+  );
 }
 
 function parseAuthRedirect(redirectUrl) {
@@ -259,149 +555,9 @@ function parseAuthRedirect(redirectUrl) {
   const hash = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
 
   const code = query.get('code') || hash.get('code');
-  const returnedState = query.get('state') || hash.get('state');
   const error = query.get('error') || hash.get('error');
   const errorDescription =
     query.get('error_description') || hash.get('error_description') || hash.get('errorDescription');
 
-  return { code, returnedState, error, errorDescription };
-}
-
-async function exchangeCodeForSession({ code, codeVerifier, redirectUri }) {
-  const form = new URLSearchParams();
-  form.set('grant_type', 'pkce');
-  form.set('code', code);
-  form.set('code_verifier', codeVerifier);
-  form.set('redirect_to', redirectUri);
-  if (supabaseConfig.clientId || supabaseConfig.anonKey) {
-    form.set('client_id', supabaseConfig.clientId || supabaseConfig.anonKey);
-  }
-
-  const response = await fetch(`${supabaseConfig.url}/auth/v1/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      apikey: supabaseConfig.anonKey || ''
-    },
-    body: form.toString()
-  });
-
-  const payload = await parseJsonResponse(response);
-  if (!response.ok) {
-    throw new Error(payload.error_description || payload.error || 'token exchange failed');
-  }
-
-  return buildSessionFromPayload(payload);
-}
-
-async function refreshSession() {
-  const current = await getSession();
-  if (!current || !current.refreshToken) {
-    await clearSession();
-    cancelRefresh();
-    broadcastAuthChanged(null);
-    return null;
-  }
-
-  const form = new URLSearchParams();
-  form.set('grant_type', 'refresh_token');
-  form.set('refresh_token', current.refreshToken);
-  if (supabaseConfig.clientId || supabaseConfig.anonKey) {
-    form.set('client_id', supabaseConfig.clientId || supabaseConfig.anonKey);
-  }
-
-  const response = await fetch(`${supabaseConfig.url}/auth/v1/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      apikey: supabaseConfig.anonKey || ''
-    },
-    body: form.toString()
-  });
-
-  const payload = await parseJsonResponse(response);
-  if (!response.ok) {
-    await clearSession();
-    cancelRefresh();
-    broadcastAuthChanged(null);
-    throw new Error(payload.error_description || payload.error || 'token refresh failed');
-  }
-
-  const updated = buildSessionFromPayload(payload);
-  await saveSession(updated);
-  scheduleRefresh(updated.expiresAt);
-  broadcastAuthChanged(updated);
-  return updated;
-}
-
-async function sendLogoutRequest(accessToken) {
-  await fetch(`${supabaseConfig.url}/auth/v1/logout`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      apikey: supabaseConfig.anonKey || '',
-      'Content-Type': 'application/json'
-    }
-  });
-}
-
-function buildSessionFromPayload(payload) {
-  return {
-    accessToken: payload.access_token,
-    refreshToken: payload.refresh_token,
-    expiresAt: Date.now() + payload.expires_in * 1000,
-    tokenType: payload.token_type,
-    user: payload.user ?? null
-  };
-}
-
-function sanitizeSession(session) {
-  if (!session) {
-    return null;
-  }
-  const sanitized = { ...session };
-  delete sanitized.refreshToken;
-  return sanitized;
-}
-
-function shouldRefresh(session) {
-  return session.expiresAt - REFRESH_MARGIN_MS <= Date.now();
-}
-
-function scheduleRefresh(expiresAt) {
-  if (!chrome.alarms || !chrome.alarms.create) {
-    console.warn('[auth] chrome.alarms unavailable; skipping auto-refresh');
-    return;
-  }
-  const triggerAt = expiresAt - REFRESH_MARGIN_MS;
-  if (triggerAt <= Date.now()) {
-    refreshSession().catch((error) => {
-      console.error('[auth] immediate refresh failed', error);
-    });
-    return;
-  }
-  chrome.alarms.create(REFRESH_ALARM, { when: triggerAt });
-}
-
-function cancelRefresh() {
-  if (chrome.alarms && chrome.alarms.clear) {
-    chrome.alarms.clear(REFRESH_ALARM);
-  }
-}
-
-function broadcastAuthChanged(session) {
-  chrome.runtime.sendMessage(
-    { type: 'auth:changed', payload: sanitizeSession(session) },
-    () => void chrome.runtime.lastError
-  );
-}
-
-async function parseJsonResponse(response) {
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    console.error('[auth] failed to parse response', error, text);
-    return {};
-  }
+  return { code, error, errorDescription };
 }

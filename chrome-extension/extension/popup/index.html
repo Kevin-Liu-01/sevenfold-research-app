@@ -8,25 +8,51 @@
   <body>
     <main>
       <h1>Research Library</h1>
-      <p class="hint">Connect your Supabase account to start saving PDFs.</p>
-      <div class="actions">
-        <button id="login-button">Sign in</button>
-        <button id="logout-button" class="secondary">Sign out</button>
-      </div>
-      <section class="email-auth">
-        <h2>Email login</h2>
-        <label class="field">
-          <span>Email</span>
-          <input id="email-input" type="email" placeholder="you@example.com" autocomplete="email" />
-        </label>
-        <label class="field">
-          <span>Password</span>
-          <input id="password-input" type="password" placeholder="••••••••" autocomplete="current-password" />
-        </label>
-        <button id="email-login-button" class="primary">Sign in with email</button>
+      <section id="signed-out-view">
+        <p class="hint">Connect your Supabase account to start saving PDFs.</p>
+        <div class="actions">
+          <button id="login-button">Sign in</button>
+        </div>
+        <section class="email-auth">
+          <h2>Email login</h2>
+          <label class="field">
+            <span>Email</span>
+            <input id="email-input" type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password-input" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </label>
+          <button id="email-login-button" class="primary">Sign in with email</button>
+        </section>
       </section>
+
+      <section id="signed-in-view" class="hidden">
+        <p class="hint">You're signed in. Harbor will watch your tabs for URLs ending in <code>.pdf</code>.</p>
+        <p class="hint">Open a PDF to enable in-page upload controls and send it to your library.</p>
+        <section id="pdf-status-section" class="panel hidden">
+          <div class="panel-header">
+            <h2>Current tab</h2>
+            <span id="pdf-status-pill" class="pill pill-idle">No PDF detected</span>
+          </div>
+          <p id="pdf-status-message" class="hint">Navigate to a PDF page to start the upload flow.</p>
+        </section>
+        <section id="projects-section" class="panel hidden">
+          <div class="panel-header">
+            <h2>Your projects</h2>
+            <span id="projects-loading" class="muted hidden">Loading…</span>
+          </div>
+          <p id="projects-error" class="error hidden"></p>
+          <p id="projects-empty" class="hint hidden">No projects yet. Create one in the Harbor web app.</p>
+          <ul id="projects-list" class="project-list hidden"></ul>
+        </section>
+        <div class="actions">
+          <button id="logout-button" class="secondary">Sign out</button>
+        </div>
+      </section>
+
       <p id="status" class="status">Checking session…</p>
     </main>
-    <script src="popup.js" defer></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

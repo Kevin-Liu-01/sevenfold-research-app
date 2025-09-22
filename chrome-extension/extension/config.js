@@ -5,6 +5,14 @@ export const supabaseConfig = {
   defaultProvider: 'google'
 };
 
+export const apiConfig = {
+  /**
+   * Base URL for the Harbor API. Replace this with the environment you deploy the backend to.
+   */
+  baseUrl: 'http://127.0.0.1:8000',
+  uploadPath: '/papers/upload-pdf'
+};
+
 /**
  * Update the values above with production Supabase credentials. The redirect URL is generated at
  * runtime via chrome.identity.getRedirectURL so no configuration is required for it here.
