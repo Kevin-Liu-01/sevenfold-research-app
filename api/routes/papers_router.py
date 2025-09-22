@@ -275,11 +275,6 @@ async def upload_pdf(
         file_options={"content-type": "application/pdf"},
     )
 
-    # Update the paper_attrs record with the final path
-    supabase.table("paper_attrs").update(
-        {"pdf_uri": final_path}
-    ).eq("id", paper_id).execute()
-
     # link uploader-scoped priv_corpus row (embedding left NULL)
     supabase.table("priv_corpus").insert({"paper_id": paper_id, "user_id": user_id}).execute()
 
@@ -326,9 +321,9 @@ def get_signed_url(
     
     # Fetch the paper's PDF URI
     paper_resp = (
-        supabase.table("paper_attrs")
+        supabase.table("project_paper_links")
         .select("pdf_uri")
-        .eq("id", paper_id)
+        .eq("paper_id", paper_id)
         .single()
         .execute()
     )
