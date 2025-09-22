@@ -4,12 +4,23 @@
  * corresponding assistant response is treated as a single "page" or "slide".
  * The user navigates between these pages using arrows, the keyboard, or the
  * mouse wheel.
+ *
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, forwardRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
 import type { Paper, ChatConvo, ChatMessage } from "../../../schema/db-types";
+import { marked } from "marked";
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
+
+marked.setOptions({
+    gfm: true,
+    breaks: true,
+    mangle: false,
+    headerIds: false,
+});
 
 function ConvoHeader({ convo }: { convo: ChatConvo }) {
     return (
@@ -53,6 +64,40 @@ const QueryResultTabs: React.FC<{
     );
 };
 
+/**
+ * Renders a string containing Markdown and LaTeX.
+ * It splits the content by math delimiters ($...$ and $$...$$),
+ * renders the math parts with react-katex, and renders the
+ * non-math parts with the 'marked' library.
+ */
+const MarkdownRenderer: React.FC<{ content?: string }> = ({ content }) => {
+    if (!content) return null;
+
+    // Split the content by LaTeX delimiters. The regex captures the delimiters
+    // so they are included in the resulting array.
+    const parts = content.split(/(\$\$[\s\S]*?\$\$|\$.*?\$)/g);
+
+    return (
+        // The `prose` class from Tailwind's typography plugin provides nice styling for rendered HTML.
+        <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed">
+            {parts.map((part, index) => {
+                if (part.startsWith("$$") && part.endsWith("$$")) {
+                    // Render block-level math
+                    return <BlockMath key={index}>{part.slice(2, -2)}</BlockMath>;
+                } else if (part.startsWith("$") && part.endsWith("$")) {
+                    // Render inline math
+                    return <InlineMath key={index}>{part.slice(1, -1)}</InlineMath>;
+                } else {
+                    // This is a regular text part; parse it as Markdown
+                    const html = marked.parse(part);
+                    // Render the HTML. It's safe because 'marked' sanitizes it.
+                    return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+                }
+            })}
+        </div>
+    );
+};
+
 const QueryResultBody: React.FC<{
     tab: "response" | "papers";
     response?: string;
@@ -73,9 +118,7 @@ const QueryResultBody: React.FC<{
                         </span>
                     </div>
                 ) : (
-                    <p className="text-gray-800 whitespace-pre-line text-base leading-relaxed">
-                        {response}
-                    </p>
+                    <MarkdownRenderer content={response} />
                 )}
             </div>
         );

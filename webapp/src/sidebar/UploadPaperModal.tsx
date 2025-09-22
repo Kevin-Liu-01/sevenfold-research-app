@@ -16,7 +16,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface UploadPaperModalProps {
     onClose: () => void;
-    onSubmit: (data: UploadedPaperPayload) => void;
+    onSubmit: (data: Omit<UploadedPaperPayload, "addToIndex">) => void;
     isUploading?: boolean;
 }
 
@@ -29,7 +29,6 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     const [file, setFile] = useState<File | null>(null);
     const [dragOver, setDragOver] = useState(false);
-    const [addToIndex, setAddToIndex] = useState(true);
 
     // Step 2 state
     const [titlePage, setTitlePage] = useState<number | null>(null);
@@ -89,7 +88,6 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         if (!file) return;
         onSubmit({
             file,
-            addToIndex,
             title: title.trim() || file.name,
             authors: authors
                 .split(",")
@@ -350,19 +348,8 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 30 }}
                                     transition={{ duration: 0.3 }}
-                                    className="space-y-3 text-base"
+                                    className="space-y-3 text-base h-full overflow-y-auto pr-2"
                                 >
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={addToIndex}
-                                            onChange={() => setAddToIndex(!addToIndex)}
-                                            className="h-4 w-4 rounded border border-slate-300 text-kets-orange-600 shadow-sm focus:ring-kets-orange-500"
-                                        />
-                                        <span className="text-slate-700">
-                                            Add to our index (improves your search results)
-                                        </span>
-                                    </label>
                                     <input
                                         type="text"
                                         placeholder="Title (optional)"
