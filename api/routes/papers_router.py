@@ -278,7 +278,9 @@ async def process_pdf(
                     
                     if link_result.data:
                         existing_paper_info["linked"] = True
+                        existing_paper_info["message"] = "Paper linked to project"
                 else:
+                    existing_paper_info["linked"] = True  # Already linked, still skip metadata
                     existing_paper_info["message"] = "Paper already linked to project"
                     
         except Exception as e:
