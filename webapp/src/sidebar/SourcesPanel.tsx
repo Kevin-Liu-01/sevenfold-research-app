@@ -163,7 +163,22 @@ const SourcesPanel: React.FC = () => {
 
             if (processResponse.ok) {
                 const processResult = await processResponse.json();
-                return processResult.metadata || {};
+                const extractedMetadata = processResult.metadata || {};
+                const existingPaperInfo = processResult.existing_paper_info || {};
+                
+                // If existing paper found and successfully linked, skip metadata step
+                if (existingPaperInfo.has_existing_paper && existingPaperInfo.linked) {
+                    // Refresh papers and return existing paper info to skip metadata step
+                    await refreshPapers();
+                    return {
+                        ...extractedMetadata,
+                        hasExistingPaper: true,
+                        existingPaper: existingPaperInfo.existing_paper,
+                        skipMetadata: true
+                    };
+                }
+                
+                return extractedMetadata;
             } else {
                 throw new Error("Failed to process PDF");
             }

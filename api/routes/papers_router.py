@@ -213,10 +213,83 @@ async def process_pdf(
     if "authors" in metadata and not isinstance(metadata["authors"], list):
         metadata["authors"] = []
 
+    # Check for existing papers in public corpus if we have a title
+    existing_paper_info = {"has_existing_paper": False, "linked": False, "existing_paper": None}
+    if metadata.get("title"):
+        try:
+            title = metadata["title"].strip()
+            
+            # Use the existing fuzzy_title_search function to find similar titles
+            # This uses trigram similarity with unaccent normalization
+            fuzzy_results = (
+                supabase.rpc("fuzzy_title_search", {
+                    "input_title": title,
+                    "min_sim": 0.8,  # 80% similarity threshold
+                    "limit_count": 5
+                })
+                .execute()
+            )
+            
+            best_match = None
+            
+            if fuzzy_results.data:
+                # Filter results to only include papers that are in the public corpus
+                for paper in fuzzy_results.data:
+                    # Check if this paper exists in publ_corpus
+                    in_public_corpus = (
+                        supabase.table("publ_corpus")
+                        .select("paper_id")
+                        .eq("paper_id", paper["id"])
+                        .limit(1)
+                        .execute()
+                    )
+                    
+                    if in_public_corpus.data:
+                        best_match = paper
+                        print(f"Found fuzzy title match in public corpus: {best_match['title']}")
+                        break
+            
+            if best_match:
+                paper_id = best_match["id"]
+                
+                # Check if this paper is already linked to the project
+                existing_link = (
+                    supabase.table("project_paper_links")
+                    .select("*")
+                    .eq("project_id", project_id)
+                    .eq("paper_id", paper_id)
+                    .execute()
+                )
+                
+                existing_paper_info["has_existing_paper"] = True
+                existing_paper_info["existing_paper"] = best_match
+                
+                if not existing_link.data:
+                    # Create the project-paper link
+                    link_result = (
+                        supabase.table("project_paper_links")
+                        .insert({
+                            "project_id": project_id,
+                            "paper_id": paper_id,
+                            "has_paper": True
+                        })
+                        .execute()
+                    )
+                    
+                    if link_result.data:
+                        existing_paper_info["linked"] = True
+                else:
+                    existing_paper_info["message"] = "Paper already linked to project"
+                    
+        except Exception as e:
+            # Log error but don't fail the entire request
+            print(f"Error checking for existing papers: {str(e)}")
+
     # NOTE: no storage + no signed URL here
     return {
         "status": "ok",
         "metadata": metadata,
+        "existing_paper_info": existing_paper_info,
     }
 
 
@@ -563,3 +636,4 @@ async def copy_paper_from_library(
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Copy failed: {exc}")
+

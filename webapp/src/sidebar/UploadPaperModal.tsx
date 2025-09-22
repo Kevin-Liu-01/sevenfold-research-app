@@ -141,6 +141,14 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                         titlePage,
                         abstractPages
                     });
+                    
+                    // Check if existing paper was found and linked
+                    if (processedData?.hasExistingPaper && processedData?.skipMetadata) {
+                        // Close modal immediately since paper was already linked
+                        onClose();
+                        return;
+                    }
+                    
                     setExtractedMetadata(processedData);
                 } catch (error) {
                     console.error("Error processing PDF:", error);
