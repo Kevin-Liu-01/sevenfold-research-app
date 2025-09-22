@@ -17,6 +17,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 interface UploadPaperModalProps {
     onClose: () => void;
     onSubmit: (data: UploadedPaperPayload) => void;
+    onProcessPdf?: (data: { file: File; titlePage: number | null; abstractPages: number[] }) => Promise<any>;
     isUploading?: boolean;
     duplicateError?: any;
     onForceUpload?: (data: UploadedPaperPayload) => Promise<void>;
@@ -26,6 +27,7 @@ interface UploadPaperModalProps {
 const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
     onClose,
     onSubmit,
+    onProcessPdf,
     isUploading = false,
     duplicateError,
     onForceUpload,
@@ -33,10 +35,11 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 }) => {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [showingDuplicateComparison, setShowingDuplicateComparison] = useState(!!duplicateError);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
 
     const [file, setFile] = useState<File | null>(initialFile || null);
     const [dragOver, setDragOver] = useState(false);
-    const [addToIndex, setAddToIndex] = useState(true);
 
     // Step 2 state
     const [titlePage, setTitlePage] = useState<number | null>(null);
@@ -53,6 +56,18 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
     const [notes, setNotes] = useState("");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Update metadata fields when extracted metadata is available
+    useEffect(() => {
+        if (extractedMetadata) {
+            setTitle(extractedMetadata.title || "");
+            setAuthors(extractedMetadata.authors ? extractedMetadata.authors.join(", ") : "");
+            setPubDate(extractedMetadata.publicationDate || "");
+            setDoi(extractedMetadata.doi || "");
+            setTags(extractedMetadata.tags ? extractedMetadata.tags.join(", ") : "");
+            setNotes(extractedMetadata.notes || "");
+        }
+    }, [extractedMetadata]);
 
     const handlePageSelection = (pageNumber: number) => {
         if (selectionMode === "title") {
@@ -103,7 +118,6 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         if (!file) return;
         onSubmit({
             file,
-            addToIndex,
             title: title.trim() || file.name,
             authors: authors
                 .split(",")
@@ -121,6 +135,31 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         });
     };
 
+    const handleNextStep = async () => {
+        if (step === 1 && file) {
+            setStep(2);
+        } else if (step === 2 && file) {
+            // Process the PDF before moving to metadata step if function is provided
+            if (onProcessPdf) {
+                setIsProcessing(true);
+                try {
+                    const processedData = await onProcessPdf({
+                        file,
+                        titlePage,
+                        abstractPages
+                    });
+                    setExtractedMetadata(processedData);
+                } catch (error) {
+                    console.error("Error processing PDF:", error);
+                    // Still proceed to step 3 even if processing fails
+                } finally {
+                    setIsProcessing(false);
+                }
+            }
+            setStep(3);
+        }
+    };
+
     const steps = [
         { label: "Upload", color: "bg-kets-orange" },
         { label: "Pages", color: "bg-kets-green" },
@@ -129,7 +168,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     return (
         <div className="bg-slate-50 p-8 rounded-2xl w-2xl shadow-2xl h-[700px] flex flex-col space-y-4 border border-slate-200">
-            {isUploading ? (
+            {isProcessing ? (
                 <div className="flex flex-col items-center justify-center h-full space-y-6">
                     <div className="relative">
                         <div className="w-20 h-20 border-4 border-slate-200 border-t-kets-orange rounded-full animate-spin"></div>
@@ -144,7 +183,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             Processing Your Paper
                         </h3>
                         <p className="text-base text-slate-600 max-w-sm">
-                            We're extracting metadata, analyzing content, and uploading your PDF.
+                            We're extracting metadata and analyzing content from your PDF.
                             This may take a few moments.
                         </p>
                     </div>
@@ -223,8 +262,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                             tags: [],
                                             notes: null,
                                             abstractPages: [],
-                                            titlePage: null,
-                                            addToIndex: true
+                                            titlePage: null
                                         };
                                         onForceUpload(payload);
                                     }
@@ -440,17 +478,6 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                     transition={{ duration: 0.3 }}
                                     className="space-y-3 text-base"
                                 >
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={addToIndex}
-                                            onChange={() => setAddToIndex(!addToIndex)}
-                                            className="h-4 w-4 rounded border border-slate-300 text-kets-orange-600 shadow-sm focus:ring-kets-orange-500"
-                                        />
-                                        <span className="text-slate-700">
-                                            Add to our index (improves your search results)
-                                        </span>
-                                    </label>
                                     <input
                                         type="text"
                                         placeholder="Title (optional)"
@@ -514,11 +541,11 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             )}
                             {step < 3 && (
                                 <button
-                                    onClick={() => setStep((s) => (s === 1 ? 2 : 3))}
-                                    disabled={step === 1 && !file}
+                                    onClick={handleNextStep}
+                                    disabled={(step === 1 && !file) || isProcessing}
                                     className="px-4 py-2 bg-kets-orange-500 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-kets-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    Next
+                                    {isProcessing ? "Processing..." : "Next"}
                                 </button>
                             )}
                             {step === 3 && (

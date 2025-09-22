@@ -122,6 +122,59 @@ const SourcesPanel: React.FC = () => {
         );
     }, [papers, searchQuery]);
 
+    // Process PDF function that extracts metadata
+    const processPdf = async (payload: { file: File; titlePage: number | null; abstractPages: number[] }) => {
+        try {
+            // Step 1: Get authentication token
+            const { data: { session }, error: authErr } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            // Step 2: Process PDF to extract metadata
+            const processFormData = new FormData();
+            processFormData.append("file", payload.file);
+            processFormData.append("project_id", projectId);
+            
+            // Build pages_spec from user input (titlePage and abstractPages)
+            const pagesToProcess: number[] = [];
+            if (payload.titlePage) {
+                pagesToProcess.push(payload.titlePage);
+            }
+            if (payload.abstractPages && payload.abstractPages.length > 0) {
+                pagesToProcess.push(...payload.abstractPages);
+            }
+            
+            // If no specific pages provided, default to first two pages
+            const pages_spec = pagesToProcess.length > 0 
+                ? [...new Set(pagesToProcess)].sort((a, b) => a - b).join(",")
+                : "1,2";
+            
+            processFormData.append("pages_spec", pages_spec);
+
+            const processResponse = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: processFormData,
+                }
+            );
+
+            if (processResponse.ok) {
+                const processResult = await processResponse.json();
+                return processResult.metadata || {};
+            } else {
+                throw new Error("Failed to process PDF");
+            }
+        } catch (error) {
+            console.error("Error processing PDF:", error);
+            throw error;
+        }
+    };
+
     // Upload function that calls the API endpoints
     const uploadPaper = async (payload: UploadedPaperPayload) => {
         setIsUploading(true);
@@ -134,58 +187,16 @@ const SourcesPanel: React.FC = () => {
                 throw new Error("Not authenticated");
             }
 
-            // Step 2: Process PDF to extract metadata (optional)
-            let extractedMetadata: any = {};
-            try {
-                const processFormData = new FormData();
-                processFormData.append("file", payload.file);
-                processFormData.append("project_id", projectId);
-                
-                // Build pages_spec from user input (titlePage and abstractPages)
-                const pagesToProcess: number[] = [];
-                if (payload.titlePage) {
-                    pagesToProcess.push(payload.titlePage);
-                }
-                if (payload.abstractPages && payload.abstractPages.length > 0) {
-                    pagesToProcess.push(...payload.abstractPages);
-                }
-                
-                // If no specific pages provided, default to first two pages
-                const pages_spec = pagesToProcess.length > 0 
-                    ? [...new Set(pagesToProcess)].sort((a, b) => a - b).join(",")
-                    : "1,2";
-                
-                processFormData.append("pages_spec", pages_spec);
-
-                const processResponse = await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${session.access_token}`,
-                        },
-                        body: processFormData,
-                    }
-                );
-
-                if (processResponse.ok) {
-                    const processResult = await processResponse.json();
-                    extractedMetadata = processResult.metadata || {};
-                }
-            } catch (error) {
-                console.warn("Failed to extract metadata, proceeding with manual data:", error);
-            }
-
-            // Step 3: Prepare final metadata (prefer user input over extracted data)
+            // Step 2: Prepare final metadata from user input
             const finalMetadata = {
-                title: extractedMetadata.title || payload.title?.trim() || payload.file.name.replace('.pdf', ''),
-                authors: payload.authors?.length ? payload.authors : (extractedMetadata.authors || []),
-                abstract: extractedMetadata.abstract || null,
+                title: payload.title?.trim() || payload.file.name.replace('.pdf', ''),
+                authors: payload.authors || [],
+                abstract: null,
                 year: null as number | null,
                 month: null as number | null,
                 day: null as number | null,
-                doi: payload.doi?.trim() || extractedMetadata.doi || null,
-                category: extractedMetadata.category || null,
+                doi: payload.doi?.trim() || null,
+                category: null,
             };
 
             // Handle publication date
@@ -197,13 +208,9 @@ const SourcesPanel: React.FC = () => {
                 finalMetadata.year = !isNaN(year) ? year : null;
                 finalMetadata.month = !isNaN(month) ? month : null;
                 finalMetadata.day = !isNaN(day) ? day : null;
-            } else if (extractedMetadata.year) {
-                finalMetadata.year = extractedMetadata.year;
-                finalMetadata.month = extractedMetadata.month || null;
-                finalMetadata.day = extractedMetadata.day || null;
             }
 
-            // Step 4: Upload the PDF with metadata
+            // Step 3: Upload the PDF with metadata
             const uploadFormData = new FormData();
             uploadFormData.append("file", payload.file);
             uploadFormData.append("project_id", projectId);
@@ -267,6 +274,7 @@ const SourcesPanel: React.FC = () => {
             <Modal onClose={closeModal}>
                 <UploadPaperModal
                     onClose={closeModal}
+                    onProcessPdf={processPdf}
                     onSubmit={async (data) => {
                         await uploadPaper(data);
                         if (!error && !duplicateError) { // Only close modal if upload was successful
@@ -341,6 +349,7 @@ const SourcesPanel: React.FC = () => {
                 <Modal onClose={handleClose}>
                     <UploadPaperModal
                         onClose={handleClose}
+                        onProcessPdf={processPdf}
                         onSubmit={handleNoOpSubmit}
                         isUploading={isUploading}
                         duplicateError={duplicateError}

@@ -354,7 +354,6 @@ async def upload_pdf(
                 "day": md.get("day"),
                 "doi": md.get("doi"),
                 "category": md.get("category"),
-                "pdf_uri": final_path,
             }
         )
         .execute()

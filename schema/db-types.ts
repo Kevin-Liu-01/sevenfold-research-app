@@ -88,7 +88,6 @@ export interface Composition {
 
 export interface UploadedPaperPayload {
     file: File;
-    addToIndex: boolean;
     title?: string;
     authors?: string[];
     publicationDate?: string | null;
