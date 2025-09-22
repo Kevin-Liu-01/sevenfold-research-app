@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+// src/components/context/WorkbenchContext.tsx
+
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import supabase from "../auth/supabaseClient";
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -56,8 +58,9 @@ export const WorkbenchProvider: React.FC<{
     );
 
     const [hoveredView, _setHoveredView] = useState<ViewType | null>(null);
+    const hoverTimeoutRef = useRef<number | null>(null);
 
-    // lock hovered view if modal open
+    // We lock the hovered view if modal is open
     const [lockedView, setLockedView] = useState<ViewType | null>(null);
     // Sources
     const [papers, setPapers] = useState<Paper[]>([]);
@@ -80,7 +83,21 @@ export const WorkbenchProvider: React.FC<{
                 if (view) setLockedView(view);
                 return;
             }
-            _setHoveredView(view);
+
+            // Always clear any pending timeout when the hover state changes.
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+
+            if (view === null) {
+                // If we're clearing the hover, delay it to allow moving to the panel.
+                hoverTimeoutRef.current = window.setTimeout(() => {
+                    _setHoveredView(null);
+                }, 150); // 150ms delay
+            } else {
+                // If we're setting a new hover view, do it immediately.
+                _setHoveredView(view);
+            }
         },
         [modal]
     );
