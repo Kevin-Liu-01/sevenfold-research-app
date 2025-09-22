@@ -4,7 +4,7 @@ Briefly describe the purpose of this PR.
 
 ## Related Issues
 
-Closes KETS-XXX (if applicable)
+Closes VIIX-XXX (if applicable)
 
 Closes Issue #XXX (if applicable)
 
