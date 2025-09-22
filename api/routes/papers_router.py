@@ -213,10 +213,72 @@ async def process_pdf(
     if "authors" in metadata and not isinstance(metadata["authors"], list):
         metadata["authors"] = []
 
+    # Check for existing papers in public corpus if we have a title
+    existing_paper_info = {"has_existing_paper": False, "existing_paper": None}
+    if metadata.get("title"):
+        try:
+            title = metadata["title"].strip()
+            
+            # Use the existing fuzzy_title_search function to find similar titles
+            # This uses trigram similarity with unaccent normalization
+            fuzzy_results = (
+                supabase.rpc("fuzzy_title_search", {
+                    "input_title": title,
+                    "min_sim": 0.8,  # 80% similarity threshold
+                    "limit_count": 5
+                })
+                .execute()
+            )
+            
+            best_match = None
+            
+            if fuzzy_results.data:
+                # Filter results to only include papers that are in the public corpus
+                for paper in fuzzy_results.data:
+                    # Check if this paper exists in publ_corpus
+                    in_public_corpus = (
+                        supabase.table("publ_corpus")
+                        .select("paper_id")
+                        .eq("paper_id", paper["id"])
+                        .limit(1)
+                        .execute()
+                    )
+                    
+                    if in_public_corpus.data:
+                        best_match = paper
+                        print(f"Found fuzzy title match in public corpus: {best_match['title']}")
+                        break
+            
+            if best_match:
+                paper_id = best_match["id"]
+                
+                # Check if this paper is already linked to the project
+                existing_link = (
+                    supabase.table("project_paper_links")
+                    .select("*")
+                    .eq("project_id", project_id)
+                    .eq("paper_id", paper_id)
+                    .execute()
+                )
+                
+                existing_paper_info["has_existing_paper"] = True
+                existing_paper_info["existing_paper"] = best_match
+                
+                # Check if already linked and set message
+                if existing_link.data:
+                    existing_paper_info["message"] = "Paper already linked to project"
+                else:
+                    existing_paper_info["message"] = "Found existing paper, use link-paper endpoint to add to project"
+                    
+        except Exception as e:
+            # Log error but don't fail the entire request
+            print(f"Error checking for existing papers: {str(e)}")
+
     # NOTE: no storage + no signed URL here
     return {
         "status": "ok",
         "metadata": metadata,
+        "existing_paper_info": existing_paper_info,
     }
 
 
@@ -419,6 +481,107 @@ async def upload_annotations(
         "annotations": annotations,
     }
 
+@router.post("/link-paper", status_code=201)
+async def link_paper_to_project(
+    file: UploadFile,
+    paper_id: str = Form(...),
+    project_id: str = Form(...),
+    authorization: str = Header(...),
+):
+    """
+    Link an existing paper from the public corpus to a project and upload the PDF.
+    
+    Args:
+        paper_id: The ID of the existing paper to link.
+        project_id: The ID of the project to link the paper to.
+        file: The PDF file to upload for this paper.
+        authorization: The authorization header containing the JWT token.
+        
+    Returns:
+        A dictionary with the status, link information, and preview URL.
+    """
+    
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    
+    # 1. Authenticate and verify project ownership
+    user_id = _get_user_id(authorization)
+    _verify_project(project_id, user_id)
+    
+    # 2. Verify the paper exists in the public corpus
+    paper_in_corpus = (
+        supabase.table("publ_corpus")
+        .select("paper_id")
+        .eq("paper_id", paper_id)
+        .limit(1)
+        .execute()
+    )
+    
+    if not paper_in_corpus.data:
+        raise HTTPException(status_code=404, detail="Paper not found in public corpus")
+    
+    # 3. Validate and read PDF
+    pdf_bytes = await file.read()
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
+    
+    # 4. Check if already linked
+    existing_link = (
+        supabase.table("project_paper_links")
+        .select("*")
+        .eq("project_id", project_id)
+        .eq("paper_id", paper_id)
+        .execute()
+    )
+    
+    if existing_link.data:
+        return {
+            "status": "already_linked",
+            "message": "Paper is already linked to this project",
+            "paper_id": paper_id,
+            "project_id": project_id,
+        }
+    
+    # 5. Upload PDF to storage
+    final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
+    supabase.storage.from_("papers").upload(
+        path=final_path,
+        file=pdf_bytes,
+        file_options={"content-type": "application/pdf"},
+    )
+    
+    # 6. Create the project-paper link with PDF URI
+    link_result = (
+        supabase.table("project_paper_links")
+        .insert({
+            "project_id": project_id,
+            "paper_id": paper_id,
+            "has_paper": True,
+            "pdf_uri": final_path
+        })
+        .execute()
+    )
+    
+    if not link_result.data:
+        raise HTTPException(status_code=500, detail="Failed to create project-paper link")
+    
+    # 8. Get paper details for response
+    paper_details = (
+        supabase.table("paper_attrs")
+        .select("title, authors")
+        .eq("id", paper_id)
+        .single()
+        .execute()
+    )
+    
+    return {
+        "status": "success",
+        "message": "Paper successfully linked to project with PDF uploaded",
+        "paper_id": paper_id,
+        "project_id": project_id,
+        "paper_title": paper_details.data.get("title") if paper_details.data else None
+    }
+
 @router.post("/copy-from-library", status_code=201)
 async def copy_paper_from_library(
     pdf_uri: str = Form(...),
@@ -564,3 +727,4 @@ async def copy_paper_from_library(
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Copy failed: {exc}")
+

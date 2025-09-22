@@ -151,6 +151,8 @@ const ResultsList: React.FC<{
             >
                 <a
                     href={paper.pdf_uri || ""}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="block text-lg font-semibold text-blue-800 hover:underline"
                 >
                     {paper.title}
