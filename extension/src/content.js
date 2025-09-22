@@ -367,7 +367,8 @@ async function startUpload() {
       type: UPLOAD_REQUEST_MESSAGE,
       payload: {
         url: window.location.href,
-        metadata: metadata.value
+        metadata: metadata.value,
+        projectId: metadata.projectId || null
       }
     });
 
@@ -431,7 +432,8 @@ function readMetadataFromForm() {
     month,
     day,
     doi: (doiInput?.value || '').trim() || null,
-    category: (categoryInput?.value || '').trim() || null
+    category: (categoryInput?.value || '').trim() || null,
+    projectId: null
   };
 
   return { ok: true, value: metadata };

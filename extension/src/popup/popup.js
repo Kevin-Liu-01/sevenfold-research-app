@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const projectsEmpty = document.getElementById('projects-empty');
   const projectsLoadingEl = document.getElementById('projects-loading');
   const projectsErrorEl = document.getElementById('projects-error');
+  const projectSelect = document.getElementById('project-select');
   const pdfStatusSection = document.getElementById('pdf-status-section');
   const pdfStatusPill = document.getElementById('pdf-status-pill');
   const pdfStatusMessage = document.getElementById('pdf-status-message');
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     !projectsEmpty ||
     !projectsLoadingEl ||
     !projectsErrorEl ||
+    !projectSelect ||
     !pdfStatusSection ||
     !pdfStatusPill ||
     !pdfStatusMessage
@@ -43,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let projects = [];
   let projectsLoaded = false;
   let projectsLoading = false;
+  let selectedProjectId = null;
+  let defaultProjectId = null;
   let currentPdfStatus = { isPdf: false, url: null, detectedAt: null };
   let currentPdfTabId = null;
   setStatus('Checking session…');
@@ -134,6 +138,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  projectSelect.addEventListener('change', async (event) => {
+    const projectId = event.target.value;
+    try {
+      await sendMessage({ type: 'projects:setDefault', projectId: projectId || null });
+      selectedProjectId = projectId || null;
+      defaultProjectId = projectId || null;
+      syncProjectSelect();
+    } catch (error) {
+      console.error('[popup] set default project error', error);
+    }
+  });
+
   logoutButton.addEventListener('click', async () => {
     logoutButton.disabled = true;
     setStatus('Signing out…');
@@ -220,6 +236,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setProjectsError(null);
     projectsEmpty.classList.add('hidden');
     projectsList.classList.add('hidden');
+    defaultProjectId = null;
+    selectedProjectId = null;
+    projectSelect.innerHTML = '';
+    projectSelect.classList.add('hidden');
+    projectSelect.disabled = true;
     renderProjectList();
   }
 
@@ -229,6 +250,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (response?.ok) {
         currentPdfStatus = response.status || { isPdf: false, url: null, detectedAt: null };
         currentPdfTabId = response.tabId ?? currentPdfTabId;
+        if (response.defaultProjectId) {
+          defaultProjectId = response.defaultProjectId;
+          if (!selectedProjectId) {
+            selectedProjectId = defaultProjectId;
+          }
+          syncProjectSelect();
+        }
       }
     } catch (error) {
       console.error('[popup] load pdf status error', error);
@@ -280,14 +308,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setProjectsLoading(true);
 
     try {
-      const response = await sendMessage({ type: 'projects:list' });
-      if (!response?.ok) {
-        throw new Error(response?.error || 'Unable to fetch projects');
-      }
-      projects = Array.isArray(response.projects) ? response.projects : [];
-      projectsLoaded = true;
-      renderProjectList();
-    } catch (error) {
+    const response = await sendMessage({ type: 'projects:list' });
+    if (!response?.ok) {
+      throw new Error(response?.error || 'Unable to fetch projects');
+    }
+    projects = Array.isArray(response.projects) ? response.projects : [];
+    selectedProjectId = response.defaultProjectId || null;
+    projectsLoaded = true;
+    renderProjectList();
+  } catch (error) {
       console.error('[popup] load projects error', error);
       setProjectsError(error.message || 'Unable to fetch projects');
       projectsLoaded = false;
@@ -299,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderProjectList() {
     projectsList.innerHTML = '';
+    projectSelect.innerHTML = '';
 
     if (!projects.length) {
       projectsList.classList.add('hidden');
@@ -311,11 +341,22 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (!projectsLoading) {
         projectsEmpty.classList.add('hidden');
       }
+      projectSelect.classList.add('hidden');
       return;
     }
 
     projectsEmpty.classList.add('hidden');
     projectsList.classList.remove('hidden');
+    projectSelect.classList.remove('hidden');
+
+    for (const project of projects) {
+      const option = document.createElement('option');
+      option.value = project.id;
+      option.textContent = project.name || project.title || 'Untitled project';
+      projectSelect.append(option);
+    }
+
+    syncProjectSelect();
 
     for (const project of projects) {
       const item = document.createElement('li');
@@ -342,14 +383,19 @@ document.addEventListener('DOMContentLoaded', () => {
     projectsLoadingEl.classList.toggle('hidden', !isLoading);
     if (isLoading) {
       projectsEmpty.classList.add('hidden');
+      projectSelect.disabled = true;
     } else if (
       !projects.length &&
       projectsErrorEl.classList.contains('hidden') &&
       !projectsSection.classList.contains('hidden')
     ) {
       projectsEmpty.classList.remove('hidden');
+      projectSelect.disabled = true;
     } else if (!projects.length) {
       projectsEmpty.classList.add('hidden');
+      projectSelect.disabled = true;
+    } else {
+      projectSelect.disabled = false;
     }
   }
 
@@ -359,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
       projectsErrorEl.classList.remove('hidden');
       projectsEmpty.classList.add('hidden');
       projectsList.classList.add('hidden');
+      projectSelect.disabled = true;
     } else {
       projectsErrorEl.textContent = '';
       projectsErrorEl.classList.add('hidden');
@@ -369,8 +416,12 @@ document.addEventListener('DOMContentLoaded', () => {
       ) {
         projectsList.classList.add('hidden');
         projectsEmpty.classList.remove('hidden');
+        projectSelect.disabled = true;
       } else if (!projects.length) {
         projectsEmpty.classList.add('hidden');
+        projectSelect.disabled = true;
+      } else {
+        projectSelect.disabled = false;
       }
     }
   }
@@ -380,6 +431,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return new URL(url).hostname;
     } catch {
       return 'current tab';
+    }
+  }
+
+  function syncProjectSelect() {
+    if (!projectSelect || !projectSelect.options.length) {
+      return;
+    }
+
+    const desired = selectedProjectId || defaultProjectId;
+    if (desired) {
+      const optionExists = Array.from(projectSelect.options).some((option) => option.value === desired);
+      if (optionExists) {
+        projectSelect.value = desired;
+        return;
+      }
+    }
+
+    if (!projectSelect.value && projectSelect.options.length) {
+      projectSelect.value = projectSelect.options[0].value;
+      selectedProjectId = projectSelect.value;
     }
   }
 });

@@ -166,6 +166,15 @@ button:disabled {
   color: #64748b;
 }
 
+#project-select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5f5;
+  background: #ffffff;
+  font-size: 14px;
+  color: #0f172a;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

@@ -109,9 +109,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'projects:list') {
-    handleListProjects()
-      .then((projects) => {
-        sendResponse({ ok: true, projects });
+    handleProjectsListWithDefault()
+      .then((result) => {
+        sendResponse({ ok: true, ...result });
       })
       .catch((error) => {
         console.error('[projects] fetch failed', error);
@@ -272,6 +272,12 @@ async function handleListProjects() {
   return data ?? [];
 }
 
+async function handleProjectsListWithDefault() {
+  const projects = await handleListProjects();
+  const defaultProjectId = await getDefaultProjectId();
+  return { projects, defaultProjectId };
+}
+
 function handlePdfStatus(payload, sender) {
   const tabId = sender?.tab?.id;
   if (typeof tabId !== 'number') {
@@ -303,8 +309,10 @@ async function handleGetPdfStatus(requestedTabId) {
     }
   }
 
-  const status = tabId != null ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '' } : null;
-  return { tabId, status };
+  const status =
+    tabId != null ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '' } : null;
+  const defaultProjectId = await getDefaultProjectId();
+  return { tabId, status, defaultProjectId };
 }
 
 async function handleUploadRequest(payload, senderTabId) {
@@ -318,7 +326,7 @@ async function handleUploadRequest(payload, senderTabId) {
       throw new Error('Sign in to upload PDFs');
     }
 
-    const projectId = await getDefaultProjectId();
+    const projectId = await resolveProjectId(payload.projectId);
     if (!projectId) {
       throw new Error('No project available. Create a project in Harbor first.');
     }
@@ -377,6 +385,14 @@ async function getDefaultProjectId() {
     await chrome.storage.local.set({ defaultProjectId: firstProjectId });
   }
   return firstProjectId;
+}
+
+async function resolveProjectId(requestedProjectId) {
+  if (requestedProjectId) {
+    await chrome.storage.local.set({ defaultProjectId: requestedProjectId });
+    return requestedProjectId;
+  }
+  return await getDefaultProjectId();
 }
 
 async function fetchPdfBlob(url) {
