@@ -29,7 +29,6 @@ export default function SidebarButton({ targetView, icon, label }: SidebarButton
             className={wrapper}
             onClick={() => setCurrentView(targetView)}
             onMouseEnter={() => setHoveredView(targetView)}
-            onMouseLeave={() => setHoveredView(currentView)}
         >
             <div className={`${boxBase} ${boxState}`}>
                 <span className={`${iconBase} ${iconState}`}>{icon}</span>
