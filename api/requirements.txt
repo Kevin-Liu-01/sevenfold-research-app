@@ -14,4 +14,3 @@ numpy
 anthropic
 pypdf2
 requests
-rapidfuzz
