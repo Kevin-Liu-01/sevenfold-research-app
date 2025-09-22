@@ -16,7 +16,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface UploadPaperModalProps {
     onClose: () => void;
-    onSubmit: (data: UploadedPaperPayload) => void;
+    onSubmit: (data: Omit<UploadedPaperPayload, "addToIndex">) => void;
     onProcessPdf?: (data: { file: File; titlePage: number | null; abstractPages: number[] }) => Promise<any>;
     isUploading?: boolean;
 }
@@ -403,7 +403,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 30 }}
                                     transition={{ duration: 0.3 }}
-                                    className="space-y-3 text-base"
+                                    className="space-y-3 text-base h-full overflow-y-auto pr-2"
                                 >
                                     <input
                                         type="text"

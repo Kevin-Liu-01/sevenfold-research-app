@@ -353,7 +353,8 @@ async def upload_pdf(
     supabase.table("project_paper_links").insert({
         "project_id": project_id, 
         "paper_id": paper_id,
-        "has_paper": True
+        "has_paper": True,
+        "pdf_uri": final_path
     }).execute()
 
     # generate preview signed URL **here** (1 day)

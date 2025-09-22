@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS project_paper_links (
     paper_id        UUID NOT NULL REFERENCES paper_attrs(id) ON DELETE CASCADE,
     has_paper       BOOLEAN NOT NULL DEFAULT TRUE,
     annotations     XML,
+    pdf_uri         TEXT,
     added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (project_id, paper_id)
 );

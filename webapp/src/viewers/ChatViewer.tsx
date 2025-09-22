@@ -1,21 +1,44 @@
+/**
+ * There are specific UI goals we are trying to accomplish. This is fundamentally
+ * a "pager-style" chat interface where each user query and its
+ * corresponding assistant response is treated as a single "page" or "slide".
+ * The user navigates between these pages using arrows, the keyboard, or the
+ * mouse wheel.
+ *
+ */
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
 import type { Paper, ChatConvo, ChatMessage } from "../../../schema/db-types";
+import { marked } from "marked";
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
+
+marked.setOptions({
+    gfm: true,
+    breaks: true,
+    mangle: false,
+    headerIds: false,
+});
 
 function ConvoHeader({ convo }: { convo: ChatConvo }) {
     return (
         <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur border-b border-gray-200 px-4 py-3">
             <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-800">{convo?.name || "Conversation"}</h2>
+                <h2 className="text-base font-semibold text-gray-800">
+                    {convo?.name || "Conversation"}
+                </h2>
                 <div className="text-xs text-gray-500">
-                    Papers: <span className="font-medium">{Array.isArray(convo?.paper_ids) ? convo.paper_ids.length : 0}</span>
+                    Papers:{" "}
+                    <span className="font-medium">
+                        {Array.isArray(convo?.paper_ids) ? convo.paper_ids.length : 0}
+                    </span>
                 </div>
             </div>
         </div>
     );
 }
-
 
 const QueryResultTabs: React.FC<{
     active: "response" | "papers";
@@ -41,16 +64,50 @@ const QueryResultTabs: React.FC<{
     );
 };
 
+/**
+ * Renders a string containing Markdown and LaTeX.
+ * It splits the content by math delimiters ($...$ and $$...$$),
+ * renders the math parts with react-katex, and renders the
+ * non-math parts with the 'marked' library.
+ */
+const MarkdownRenderer: React.FC<{ content?: string }> = ({ content }) => {
+    if (!content) return null;
+
+    // Split the content by LaTeX delimiters. The regex captures the delimiters
+    // so they are included in the resulting array.
+    const parts = content.split(/(\$\$[\s\S]*?\$\$|\$.*?\$)/g);
+
+    return (
+        // The `prose` class from Tailwind's typography plugin provides nice styling for rendered HTML.
+        <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed">
+            {parts.map((part, index) => {
+                if (part.startsWith("$$") && part.endsWith("$$")) {
+                    // Render block-level math
+                    return <BlockMath key={index}>{part.slice(2, -2)}</BlockMath>;
+                } else if (part.startsWith("$") && part.endsWith("$")) {
+                    // Render inline math
+                    return <InlineMath key={index}>{part.slice(1, -1)}</InlineMath>;
+                } else {
+                    // This is a regular text part; parse it as Markdown
+                    const html = marked.parse(part);
+                    // Render the HTML. It's safe because 'marked' sanitizes it.
+                    return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+                }
+            })}
+        </div>
+    );
+};
+
 const QueryResultBody: React.FC<{
     tab: "response" | "papers";
-    response?: string;           // undefined while pending
+    response?: string;
     isPending: boolean;
     papers: { id: string; title?: string; filename?: string }[];
     selectedPaperIds: string[];
-}> = ({ tab, response, isPending, papers, selectedPaperIds }) => {
+}> = ({ tab, response, isPending }) => {
     if (tab === "response") {
         return (
-            <div className="mb-4">
+            <div>
                 {isPending ? (
                     <div className="text-gray-400 text-base leading-relaxed">
                         <span className="mr-2">Thinking</span>
@@ -61,13 +118,12 @@ const QueryResultBody: React.FC<{
                         </span>
                     </div>
                 ) : (
-                    <p className="text-gray-800 whitespace-pre-line text-base leading-relaxed">
-                        {response}
-                    </p>
+                    <MarkdownRenderer content={response} />
                 )}
             </div>
-        )
+        );
     }
+    return null;
 };
 
 const QueryResultCard: React.FC<{
@@ -80,35 +136,46 @@ const QueryResultCard: React.FC<{
     onTabChange: (tab: "response" | "papers") => void;
 }> = ({ query, response, isPending, papers, selectedPaperIds, tab, onTabChange }) => {
     return (
-        <div className="p-6 w-full min-h-[calc(100vh-12rem)]">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2 whitespace-pre-wrap">
-                {query}
-            </h2>
+        <div className="p-6 w-full h-full flex flex-col">
+            {/* Card Header (Query + Tabs) */}
+            <div className="flex-shrink-0">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2 whitespace-pre-wrap">
+                    {query}
+                </h2>
+                <QueryResultTabs
+                    active={tab}
+                    onChange={onTabChange}
+                    papersCount={selectedPaperIds.length}
+                />
+            </div>
 
-            <QueryResultTabs
-                active={tab}
-                onChange={onTabChange}
-                papersCount={selectedPaperIds.length}
-            />
+            {/* Scrollable content area */}
+            <div className="flex-grow overflow-y-auto -mr-6 pr-6" data-scrollable-content>
+                {/* Wrapper adds padding to prevent last line of text from being hidden by the sticky footer */}
+                <div className="pb-20">
+                    <QueryResultBody
+                        tab={tab}
+                        response={response}
+                        isPending={isPending}
+                        papers={papers}
+                        selectedPaperIds={selectedPaperIds}
+                    />
+                </div>
 
-            <QueryResultBody
-                tab={tab}
-                response={response}
-                isPending={isPending}
-                papers={papers}
-                selectedPaperIds={selectedPaperIds}
-            />
-
-            <div className="flex gap-3 text-gray-400 text-sm">
-                <button className="hover:text-orange-600">
-                    <span className="material-icons text-base">thumb_up</span>
-                </button>
-                <button className="hover:text-orange-600">
-                    <span className="material-icons text-base">thumb_down</span>
-                </button>
-                <button className="hover:text-orange-600">
-                    <span className="material-icons text-base">content_copy</span>
-                </button>
+                {/* Sticky Footer for Action Buttons */}
+                <div className="sticky bottom-0 bg-app-inner py-3 -mx-6 px-6">
+                    <div className="flex gap-3 text-gray-400 text-sm">
+                        <button className="hover:text-orange-600">
+                            <span className="material-icons text-base">thumb_up</span>
+                        </button>
+                        <button className="hover:text-orange-600">
+                            <span className="material-icons text-base">thumb_down</span>
+                        </button>
+                        <button className="hover:text-orange-600">
+                            <span className="material-icons text-base">content_copy</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -128,46 +195,46 @@ const QueryResultsPager: React.FC<{
         });
     }, [items.length]);
 
-    // Always focus the newest item
     const [currentIndex, setCurrentIndex] = useState(Math.max(items.length - 1, 0));
     useEffect(() => {
         setCurrentIndex(Math.max(items.length - 1, 0));
     }, [items.length]);
 
-    // Measure current slide height for translate
-    const [pageHeight, setPageHeight] = useState(0);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const el = wrapperRef.current?.children[currentIndex] as HTMLElement | null;
-        if (el) setPageHeight(el.offsetHeight);
-    }, [currentIndex, items, tabs]);
+    const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
+    const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
 
-    // Mouse wheel navigation (throttled & jitter-filtered)
     const lastScrollRef = useRef(0);
     const handleWheel = useCallback(
         (e: React.WheelEvent<HTMLDivElement>) => {
-            e.stopPropagation();
-            const now = Date.now();
-            if (now - lastScrollRef.current < 160) return;
-            if (Math.abs(e.deltaY) < 12) return;
-            if (e.deltaY > 0) {
-                setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
-            } else {
-                setCurrentIndex((i) => Math.max(i - 1, 0));
+            const scrollableContent = (e.target as HTMLElement).closest(
+                "[data-scrollable-content]"
+            );
+
+            if (scrollableContent) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollableContent;
+                const isAtTop = scrollTop === 0;
+                const isAtBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight - 1;
+
+                if (e.deltaY < 0 && !isAtTop) return;
+                if (e.deltaY > 0 && !isAtBottom) return;
             }
+
+            const now = Date.now();
+            if (now - lastScrollRef.current < 600) return;
+            if (Math.abs(e.deltaY) < 15) return;
+
+            if (e.deltaY > 0) handleNext();
+            else handlePrev();
+
             lastScrollRef.current = now;
         },
         [items.length]
     );
 
-    // Keyboard arrows
     useEffect(() => {
         const onKey = (ev: KeyboardEvent) => {
-            if (ev.key === "ArrowDown") {
-                setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
-            } else if (ev.key === "ArrowUp") {
-                setCurrentIndex((i) => Math.max(i - 1, 0));
-            }
+            if (ev.key === "ArrowDown") handleNext();
+            else if (ev.key === "ArrowUp") handlePrev();
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
@@ -179,13 +246,12 @@ const QueryResultsPager: React.FC<{
             onWheel={handleWheel}
         >
             <div
-                className="transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateY(-${currentIndex * pageHeight}px)` }}
+                className="h-full transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateY(-${currentIndex * 100}%)` }}
             >
-                <div className="flex flex-col w-full" ref={wrapperRef}>
-                    {items.map((it, i) => (
+                {items.map((it, i) => (
+                    <div className="w-full h-full" key={i}>
                         <QueryResultCard
-                            key={i}
                             query={it.query}
                             response={it.response}
                             isPending={it.isPending}
@@ -194,23 +260,26 @@ const QueryResultsPager: React.FC<{
                             tab={tabs[i] ?? "response"}
                             onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
                         />
-                    ))}
-                </div>
+                    </div>
+                ))}
             </div>
 
-            {/* On-screen arrows */}
             <div className="absolute top-4 right-4 flex gap-2 z-10">
                 <button
-                    onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                 >
-                    ↑
+                    {" "}
+                    ↑{" "}
                 </button>
                 <button
-                    onClick={() => setCurrentIndex((i) => Math.min(i + 1, items.length - 1))}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={handleNext}
+                    disabled={currentIndex === items.length - 1}
+                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                 >
-                    ↓
+                    {" "}
+                    ↓{" "}
                 </button>
             </div>
         </div>
@@ -221,11 +290,6 @@ export const MessageList: React.FC<{
     messages: ChatMessage[];
 }> = ({ messages }) => {
     const { papers, selectedConvo } = useWorkbench();
-
-    // Build list for the pager with optimistic pending card:
-    // - Only start a card on a user message
-    // - If immediately followed by assistant, it's ready
-    // - If not, it's pending (shows thinking until assistant arrives)
     const items = useMemo(() => {
         const out: { query: string; response?: string; isPending: boolean }[] = [];
         let i = 0;
@@ -251,20 +315,15 @@ export const MessageList: React.FC<{
         ? (selectedConvo!.paper_ids as string[])
         : [];
 
-    return (
-        <QueryResultsPager
-            items={items}
-            papers={papers}
-            selectedPaperIds={selectedPaperIds}
-        />
-    );
+    return <QueryResultsPager items={items} papers={papers} selectedPaperIds={selectedPaperIds} />;
 };
+
 const ChatInput: React.FC<{
-     value: string;
-     setValue: (v: string) => void;
-     onSend: () => Promise<void>;
-     disabled: boolean;
-}> = ({value, setValue, onSend, disabled }) => {
+    value: string;
+    setValue: (v: string) => void;
+    onSend: () => Promise<void>;
+    disabled: boolean;
+}> = ({ value, setValue, onSend, disabled }) => {
     return (
         <div className="fixed bottom-0 left-0 w-full py-4 z-10">
             <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -284,10 +343,8 @@ const ChatInput: React.FC<{
                 <div className="flex justify-between items-center mt-3">
                     <div className="flex gap-2">
                         <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
-                            <span className="material-icons text-base">
-                                attach_file
-                            </span>
-                           Source 
+                            <span className="material-icons text-base">attach_file</span>
+                            Source
                         </button>
                         <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                             <span className="material-icons text-base">mic</span>
@@ -309,20 +366,24 @@ const ChatInput: React.FC<{
             </div>
         </div>
     );
-}
+};
 
 const NewChatPage: React.FC<{
-    value: string,
-    setValue: (v: string) => void,
-    onSend: () => Promise<void>,
+    value: string;
+    setValue: (v: string) => void;
+    onSend: () => Promise<void>;
     papers: Paper[];
-    selectedPaperIds: string[],
-    togglePaper: (id: string) => void,
-    disabled: boolean,
+    selectedPaperIds: string[];
+    togglePaper: (id: string) => void;
+    disabled: boolean;
 }> = ({ value, setValue, onSend, papers, selectedPaperIds, togglePaper, disabled }) => {
     return (
         <div className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center">
-            <img src="/branding/logo-long.png" className="text-4xl h-12 font-bold text-gray-900 mb-6" />
+            <img
+                src="/branding/logo-long.png"
+                alt="Logo"
+                className="text-4xl h-12 font-bold text-gray-900 mb-6"
+            />
             <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 rounded-xl p-4 shadow-sm">
                 <textarea
                     placeholder="What are you researching today?"
@@ -339,13 +400,22 @@ const NewChatPage: React.FC<{
                     disabled={disabled}
                 />
                 <div className="flex justify-end gap-3 mt-3">
-                    <button className="text-gray-500 hover:text-orange-600 disabled:opacity-40" disabled={disabled}>
+                    <button
+                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
+                        disabled={disabled}
+                    >
                         <span className="material-icons">attach_file</span>
                     </button>
-                    <button className="text-gray-500 hover:text-orange-600 disabled:opacity-40" disabled={disabled}>
+                    <button
+                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
+                        disabled={disabled}
+                    >
                         <span className="material-icons">mic</span>
                     </button>
-                    <button className="text-gray-500 hover:text-orange-600 disabled:opacity-40" disabled={disabled}>
+                    <button
+                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
+                        disabled={disabled}
+                    >
                         <span className="material-icons">smart_toy</span>
                     </button>
                 </div>
@@ -385,20 +455,19 @@ const NewChatPage: React.FC<{
             </div>
         </div>
     );
-}
-
+};
 
 const ChatViewer: React.FC = () => {
     const { projectId, papers, selectedConvo, setSelectedConvo, refreshConvos } = useWorkbench();
 
-    const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() => papers.map((p) => p.id));
+    const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() =>
+        papers.map((p) => p.id)
+    );
     useEffect(() => setSelectedPaperIds(papers.map((p) => p.id)), [papers]);
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
-    const [awaitingAssistant, setAwaitingAssistant] = useState(false);
-
 
     useEffect(() => {
         const load = async () => {
@@ -429,8 +498,7 @@ const ChatViewer: React.FC = () => {
                 );
                 const merged = [...remote, ...locals];
                 merged.sort(
-                    (a, b) =>
-                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 );
                 return merged;
             });
@@ -439,7 +507,9 @@ const ChatViewer: React.FC = () => {
     }, [selectedConvo?.id]);
 
     const togglePaper = (id: string) =>
-        setSelectedPaperIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+        setSelectedPaperIds((prev) =>
+            prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+        );
 
     const sendMessage = useCallback(async () => {
         const trimmed = input.trim();
@@ -447,11 +517,9 @@ const ChatViewer: React.FC = () => {
         if (!projectId) return;
 
         setSending(true);
-        setAwaitingAssistant(true);
         try {
             let convoId = selectedConvo?.id;
 
-            // Create convo if needed
             if (!convoId) {
                 const { data, error } = await supabase
                     .from("chat_convos")
@@ -465,13 +533,10 @@ const ChatViewer: React.FC = () => {
 
                 if (error || !data) {
                     console.error("Error creating conversation:", error?.message);
-                    setAwaitingAssistant(false);
                     return;
                 }
 
                 convoId = data.id as string;
-
-                // 1) Optimistically append the FIRST user message *before* switching view
                 const userMsg: ChatMessage = {
                     id: `local-user-${Date.now()}`,
                     convo_id: convoId,
@@ -480,14 +545,11 @@ const ChatViewer: React.FC = () => {
                     created_at: new Date().toISOString(),
                     metadata: {},
                 };
-                setMessages([userMsg]); // fresh thread: start with first message
+                setMessages([userMsg]);
                 setInput("");
-
-                // 2) Switch to the convo (header etc.)
                 setSelectedConvo(data);
                 await refreshConvos();
             } else {
-                // Existing convo: optimistic user message as usual
                 const userMsg: ChatMessage = {
                     id: `local-user-${Date.now()}`,
                     convo_id: convoId,
@@ -500,7 +562,6 @@ const ChatViewer: React.FC = () => {
                 setInput("");
             }
 
-            // Hit API – server writes both messages; we animate assistant on return
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -509,11 +570,7 @@ const ChatViewer: React.FC = () => {
 
             if (!res.ok) {
                 const txt = await res.text();
-                try {
-                    console.error("Chat API error", res.status, JSON.parse(txt));
-                } catch {
-                    console.error("Chat API error", res.status, txt);
-                }
+                console.error("Chat API error", res.status, txt);
                 setMessages((prev) => [
                     ...prev,
                     {
@@ -525,18 +582,15 @@ const ChatViewer: React.FC = () => {
                         metadata: {},
                     },
                 ]);
-                setAwaitingAssistant(false);
                 return;
             }
 
             const data = await res.json();
-            const assistantText: string = data?.message ?? "…";
-
             const assistantMsg: ChatMessage = {
                 id: `local-assistant-${Date.now()}`,
                 convo_id: convoId!,
                 role: "assistant",
-                data: assistantText,
+                data: data?.message ?? "…",
                 created_at: new Date().toISOString(),
                 metadata: {},
             };
@@ -544,10 +598,17 @@ const ChatViewer: React.FC = () => {
         } catch (e) {
             console.error("Send error:", e);
         } finally {
-            setAwaitingAssistant(false);
             setSending(false);
         }
-    }, [input, sending, projectId, selectedConvo?.id, selectedPaperIds, setSelectedConvo, refreshConvos]);
+    }, [
+        input,
+        sending,
+        projectId,
+        selectedConvo?.id,
+        selectedPaperIds,
+        setSelectedConvo,
+        refreshConvos,
+    ]);
 
     return (
         <div className="min-h-screen max-w-5xl mx-auto flex flex-col bg-app-inner">
@@ -566,8 +627,13 @@ const ChatViewer: React.FC = () => {
             ) : (
                 <>
                     <ConvoHeader convo={selectedConvo} />
-                    <MessageList messages={messages} awaitingAssistant={awaitingAssistant} />
-                    <ChatInput value={input} setValue={setInput} onSend={sendMessage} disabled={sending} />
+                    <MessageList messages={messages} />
+                    <ChatInput
+                        value={input}
+                        setValue={setInput}
+                        onSend={sendMessage}
+                        disabled={sending}
+                    />
                 </>
             )}
         </div>

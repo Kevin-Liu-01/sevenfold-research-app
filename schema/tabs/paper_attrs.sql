@@ -12,6 +12,5 @@ CREATE TABLE IF NOT EXISTS paper_attrs (
     day             INT,
     doi             TEXT,
     category        TEXT,
-    pdf_uri         TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
