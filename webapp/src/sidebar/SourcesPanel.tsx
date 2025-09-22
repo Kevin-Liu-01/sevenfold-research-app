@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from "react";
-
 import { useWorkbench } from "../context/WorkbenchContext";
 import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
-
 import UploadPaperModal from "./UploadPaperModal";
-import Modal from "../components/ui/Modal"; // wrap all modals with this
+import Modal from "../components/ui/Modal";
 
 const SearchBar: React.FC<{
     searchQuery: string;
@@ -100,16 +98,20 @@ const PapersList: React.FC<{
         );
     }
 };
-
 const SourcesPanel: React.FC = () => {
-    const { projectId, papers, selectedPaper, setSelectedPaper, refreshPapers, openModal, closeModal } =
-        useWorkbench();
-
+    const {
+        projectId,
+        papers,
+        selectedPaper,
+        setSelectedPaper,
+        refreshPapers,
+        openModal,
+        closeModal,
+    } = useWorkbench();
     const [searchQuery, setSearchQuery] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Search for papers
     const filtered = useMemo(() => {
         if (!searchQuery.trim()) return papers;
         const q = searchQuery.toLowerCase();
@@ -120,168 +122,152 @@ const SourcesPanel: React.FC = () => {
         );
     }, [papers, searchQuery]);
 
-    // Process PDF function that extracts metadata
-    const processPdf = async (payload: { file: File; titlePage: number | null; abstractPages: number[] }) => {
-        try {
-            // Step 1: Get authentication token
-            const { data: { session }, error: authErr } = await supabase.auth.getSession();
-            if (authErr || !session?.access_token) {
-                throw new Error("Not authenticated");
-            }
+    const processPdf = async (payload: {
+        file: File;
+        titlePage: number | null;
+        abstractPages: number[];
+    }) => {
+        const {
+            data: { session },
+            error: authErr,
+        } = await supabase.auth.getSession();
+        if (authErr || !session?.access_token) throw new Error("Not authenticated");
 
-            // Step 2: Process PDF to extract metadata
-            const processFormData = new FormData();
-            processFormData.append("file", payload.file);
-            processFormData.append("project_id", projectId);
-            
-            // Build pages_spec from user input (titlePage and abstractPages)
-            const pagesToProcess: number[] = [];
-            if (payload.titlePage) {
-                pagesToProcess.push(payload.titlePage);
-            }
-            if (payload.abstractPages && payload.abstractPages.length > 0) {
-                pagesToProcess.push(...payload.abstractPages);
-            }
-            
-            // If no specific pages provided, default to first two pages
-            const pages_spec = pagesToProcess.length > 0 
+        const processFormData = new FormData();
+        processFormData.append("file", payload.file);
+        processFormData.append("project_id", projectId);
+
+        const pagesToProcess = [
+            ...(payload.titlePage ? [payload.titlePage] : []),
+            ...(payload.abstractPages || []),
+        ];
+        const pages_spec =
+            pagesToProcess.length > 0
                 ? [...new Set(pagesToProcess)].sort((a, b) => a - b).join(",")
                 : "1,2";
-            
-            processFormData.append("pages_spec", pages_spec);
+        processFormData.append("pages_spec", pages_spec);
 
-            const processResponse = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
-                    body: processFormData,
-                }
-            );
-
-            if (processResponse.ok) {
-                const processResult = await processResponse.json();
-                const extractedMetadata = processResult.metadata || {};
-                const existingPaperInfo = processResult.existing_paper_info || {};
-                
-                // If existing paper found, skip metadata step
-                if (existingPaperInfo.has_existing_paper) {
-                    // Refresh papers and return existing paper info to skip metadata step
-                    await refreshPapers();
-                    return {
-                        ...extractedMetadata,
-                        hasExistingPaper: true,
-                        existingPaper: existingPaperInfo.existing_paper,
-                        skipMetadata: true
-                    };
-                }
-                
-                return extractedMetadata;
-            } else {
-                throw new Error("Failed to process PDF");
+        const processResponse = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
+            {
+                method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                body: processFormData,
             }
-        } catch (error) {
-            console.error("Error processing PDF:", error);
-            throw error;
+        );
+
+        if (processResponse.ok) {
+            return await processResponse.json();
+        } else {
+            const errData = await processResponse
+                .json()
+                .catch(() => ({ detail: "Failed to process PDF" }));
+            throw new Error(errData.detail);
         }
     };
 
-    // Upload function that calls the API endpoints
-    const uploadPaper = async (payload: UploadedPaperPayload) => {
+    const linkPaper = async ({ paperId, file }: { paperId: string; file: File }) => {
         setIsUploading(true);
-        setError(null); // Clear any previous errors
+        setError(null);
         try {
-            // Step 1: Get authentication token
-            const { data: { session }, error: authErr } = await supabase.auth.getSession();
-            if (authErr || !session?.access_token) {
-                throw new Error("Not authenticated");
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) throw new Error("Not authenticated");
+
+            const formData = new FormData();
+            formData.append("paper_id", paperId);
+            formData.append("project_id", projectId);
+            formData.append("file", file);
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/papers/link-paper`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || "Failed to link paper.");
             }
 
-            // Step 2: Prepare final metadata from user input
+            await refreshPapers();
+            closeModal();
+        } catch (error: any) {
+            setError(error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const uploadPaper = async (payload: UploadedPaperPayload): Promise<boolean> => {
+        setIsUploading(true);
+        setError(null);
+        try {
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) throw new Error("Not authenticated");
+
             const finalMetadata = {
-                title: payload.title?.trim() || payload.file.name.replace('.pdf', ''),
+                title: payload.title?.trim() || payload.file.name.replace(".pdf", ""),
                 authors: payload.authors || [],
-                abstract: null,
-                year: null as number | null,
-                month: null as number | null,
-                day: null as number | null,
                 doi: payload.doi?.trim() || null,
-                category: null,
+                year: null,
+                month: null,
+                day: null,
             };
 
-            // Handle publication date
             if (payload.publicationDate) {
-                const dateParts = payload.publicationDate.split('-');
-                const year = parseInt(dateParts[0]);
-                const month = parseInt(dateParts[1]);
-                const day = parseInt(dateParts[2]);
-                finalMetadata.year = !isNaN(year) ? year : null;
-                finalMetadata.month = !isNaN(month) ? month : null;
-                finalMetadata.day = !isNaN(day) ? day : null;
+                const date = new Date(payload.publicationDate);
+                finalMetadata.year = date.getUTCFullYear();
+                finalMetadata.month = date.getUTCMonth() + 1;
+                finalMetadata.day = date.getUTCDate();
             }
 
-            // Step 3: Upload the PDF with metadata
             const uploadFormData = new FormData();
             uploadFormData.append("file", payload.file);
             uploadFormData.append("project_id", projectId);
-            uploadFormData.append("paper_type", "source"); // Default to source type
+            uploadFormData.append("paper_type", "source");
             uploadFormData.append("metadata_json", JSON.stringify(finalMetadata));
 
             const uploadResponse = await fetch(
                 `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
                 {
                     method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
+                    headers: { Authorization: `Bearer ${session.access_token}` },
                     body: uploadFormData,
                 }
             );
 
             if (!uploadResponse.ok) {
-                // Parse API error response for user-friendly messages
                 const errorText = await uploadResponse.text();
-                let errorMessage = "Upload failed";
-                
-                try {
-                    const errorData = JSON.parse(errorText);
-                    errorMessage = errorData.detail || errorData.message || errorMessage;
-                } catch {
-                    // API didn't return JSON, use status-based message
-                    if (uploadResponse.status === 401) errorMessage = "Authentication failed. Please log in again.";
-                    else if (uploadResponse.status === 403) errorMessage = "Permission denied for this project.";
-                    else if (uploadResponse.status === 413) errorMessage = "File too large. Please use a smaller PDF.";
-                    else if (uploadResponse.status === 415) errorMessage = "Invalid file type. Please upload a PDF.";
-                    else if (uploadResponse.status >= 500) errorMessage = "Server error. Please try again.";
-                }
-                
-                throw new Error(errorMessage);
+                throw new Error(JSON.parse(errorText).detail || "Upload failed");
             }
 
-            // Step 5: Refresh the papers list
             await refreshPapers();
+            return true;
         } catch (error: any) {
-            console.error("Error uploading paper:", error);
-            setError(error instanceof Error ? error.message : 'Failed to upload paper');
+            setError(error.message || "Failed to upload paper");
+            return false;
         } finally {
             setIsUploading(false);
         }
     };
 
     const handleOpenUploadModal = () => {
-        setError(null); // Clear any previous errors when opening modal
+        setError(null);
         openModal(
             <Modal onClose={closeModal}>
                 <UploadPaperModal
                     onClose={closeModal}
                     onProcessPdf={processPdf}
+                    onLinkPaper={linkPaper}
                     onSubmit={async (data) => {
-                        await uploadPaper(data);
-                        if (!error) { // Only close modal if upload was successful
-                            closeModal();
-                        }
+                        const success = await uploadPaper(data);
+                        if (success) closeModal();
                     }}
                     isUploading={isUploading}
                 />
@@ -289,33 +275,11 @@ const SourcesPanel: React.FC = () => {
         );
     };
 
-    // Update modal when upload state changes to show loading state
-    React.useEffect(() => {
-        // Only update if we have an active modal and are currently uploading
-        if (isUploading) {
-            const handleNoOp = () => {};
-            const handleNoOpSubmit = async (_data: UploadedPaperPayload) => {};
-            
-            openModal(
-                <Modal onClose={handleNoOp}>
-                    <UploadPaperModal
-                        onClose={handleNoOp}
-                        onProcessPdf={processPdf}
-                        onSubmit={handleNoOpSubmit}
-                        isUploading={isUploading}
-                    />
-                </Modal>
-            );
-        }
-    }, [isUploading, openModal]);
-
     return (
         <div className="flex flex-col h-full space-y-3">
             <h1 className="text-lg font-semibold">Sources</h1>
-
             <UploadPaperButton onClick={handleOpenUploadModal} />
 
-            {/* Error message display similar to UserSettingsPage */}
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-3">
                     <div className="flex">
@@ -338,7 +302,6 @@ const SourcesPanel: React.FC = () => {
             )}
 
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-
             <div className="flex-1 min-h-0">
                 <PapersList
                     papers={filtered}

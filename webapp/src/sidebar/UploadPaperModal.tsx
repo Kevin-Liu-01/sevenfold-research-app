@@ -1,23 +1,21 @@
 import React, { useState, useRef, useEffect, type DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { UploadedPaperPayload } from "../../../schema/db-types";
-
-// Imports for react-pdf; Note that the worker file must be imported through react-pdf/dist
-// and not pdfjs-dist directly for Vite to handle it correctly. This means that they must be
-// the same version as react-pdf itself; otherwise, there will be a version mismatch.
-// If this error comes up, ensure the versions of react-pdf and pdfjs-dist match in package.json.
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-
-// Required setup for the pdf.js worker for Vite
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface UploadPaperModalProps {
     onClose: () => void;
-    onSubmit: (data: Omit<UploadedPaperPayload, "addToIndex">) => void;
-    onProcessPdf?: (data: { file: File; titlePage: number | null; abstractPages: number[] }) => Promise<any>;
+    onSubmit: (data: UploadedPaperPayload) => void;
+    onProcessPdf?: (data: {
+        file: File;
+        titlePage: number | null;
+        abstractPages: number[];
+    }) => Promise<any>;
+    onLinkPaper?: (data: { paperId: string; file: File }) => Promise<void>;
     isUploading?: boolean;
 }
 
@@ -25,22 +23,22 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
     onClose,
     onSubmit,
     onProcessPdf,
+    onLinkPaper,
     isUploading = false,
 }) => {
-    const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [isProcessing, setIsProcessing] = useState(false);
     const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
+    const [existingPaperInfo, setExistingPaperInfo] = useState<any>(null);
 
     const [file, setFile] = useState<File | null>(null);
     const [dragOver, setDragOver] = useState(false);
 
-    // Step 2 state
     const [titlePage, setTitlePage] = useState<number | null>(null);
     const [abstractPages, setAbstractPages] = useState<number[]>([]);
     const [selectionMode, setSelectionMode] = useState<"title" | "abstract">("title");
     const [numPages, setNumPages] = useState<number | null>(null);
 
-    // Step 3 state
     const [title, setTitle] = useState("");
     const [authors, setAuthors] = useState("");
     const [pubDate, setPubDate] = useState<string>("");
@@ -50,15 +48,21 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Update metadata fields when extracted metadata is available
     useEffect(() => {
         if (extractedMetadata) {
             setTitle(extractedMetadata.title || "");
-            setAuthors(extractedMetadata.authors ? extractedMetadata.authors.join(", ") : "");
-            setPubDate(extractedMetadata.publicationDate || "");
+            const authorList = extractedMetadata.authors || [];
+            if (Array.isArray(authorList)) {
+                setAuthors(authorList.join(", "));
+            }
+            const { year, month, day } = extractedMetadata;
+            if (year && month && day) {
+                const date = new Date(year, month - 1, day);
+                setPubDate(date.toISOString().split("T")[0]);
+            } else {
+                setPubDate("");
+            }
             setDoi(extractedMetadata.doi || "");
-            setTags(extractedMetadata.tags ? extractedMetadata.tags.join(", ") : "");
-            setNotes(extractedMetadata.notes || "");
         }
     }, [extractedMetadata]);
 
@@ -66,20 +70,13 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         if (selectionMode === "title") {
             setTitlePage((current) => {
                 const newTitlePage = current === pageNumber ? null : pageNumber;
-                // Auto-switch to abstract mode after selecting a title page
-                if (newTitlePage !== null) {
-                    setSelectionMode("abstract");
-                }
+                if (newTitlePage !== null) setSelectionMode("abstract");
                 return newTitlePage;
             });
         } else {
             setAbstractPages((current) => {
                 const pages = new Set(current);
-                if (pages.has(pageNumber)) {
-                    pages.delete(pageNumber);
-                } else {
-                    pages.add(pageNumber);
-                }
+                pages.has(pageNumber) ? pages.delete(pageNumber) : pages.add(pageNumber);
                 return Array.from(pages).sort((a, b) => a - b);
             });
         }
@@ -128,48 +125,60 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         });
     };
 
+    const handleLinkPaper = async () => {
+        if (!onLinkPaper || !existingPaperInfo?.existing_paper?.id || !file) return;
+        setIsProcessing(true);
+        try {
+            await onLinkPaper({
+                paperId: existingPaperInfo.existing_paper.id,
+                file,
+            });
+        } catch (error) {
+            console.error("Failed to link paper:", error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleNextStep = async () => {
         if (step === 1 && file) {
             setStep(2);
         } else if (step === 2 && file) {
-            // Process the PDF before moving to metadata step if function is provided
             if (onProcessPdf) {
                 setIsProcessing(true);
                 try {
-                    const processedData = await onProcessPdf({
-                        file,
-                        titlePage,
-                        abstractPages
-                    });
-                    
-                    // Check if existing paper was found and linked
-                    if (processedData?.hasExistingPaper && processedData?.skipMetadata) {
-                        // Close modal immediately since paper was already linked
-                        onClose();
-                        return;
+                    const processedData = await onProcessPdf({ file, titlePage, abstractPages });
+                    if (processedData?.existing_paper_info?.has_existing_paper) {
+                        setExistingPaperInfo(processedData.existing_paper_info);
+                        setExtractedMetadata(processedData.metadata);
+                        setStep(3);
+                    } else {
+                        setExtractedMetadata(processedData.metadata || {});
+                        setStep(4);
                     }
-                    
-                    setExtractedMetadata(processedData);
                 } catch (error) {
                     console.error("Error processing PDF:", error);
-                    // Still proceed to step 3 even if processing fails
+                    setExtractedMetadata(null);
+                    setStep(4);
                 } finally {
                     setIsProcessing(false);
                 }
+            } else {
+                setStep(4);
             }
-            setStep(3);
         }
     };
 
     const steps = [
         { label: "Upload", color: "bg-kets-orange" },
         { label: "Pages", color: "bg-kets-green" },
+        { label: "Confirm", color: "bg-blue-500" },
         { label: "Metadata", color: "bg-kets-yellow" },
     ];
 
     return (
         <div className="bg-slate-50 p-8 rounded-2xl w-2xl shadow-2xl h-[700px] flex flex-col space-y-4 border border-slate-200">
-            {isProcessing ? (
+            {isProcessing || isUploading ? (
                 <div className="flex flex-col items-center justify-center h-full space-y-6">
                     <div className="relative">
                         <div className="w-20 h-20 border-4 border-slate-200 border-t-kets-orange rounded-full animate-spin"></div>
@@ -181,24 +190,9 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                     </div>
                     <div className="text-center space-y-3">
                         <h3 className="text-xl font-semibold text-slate-800">
-                            Processing Your Paper
+                            {isUploading ? "Uploading..." : "Processing Your Paper"}
                         </h3>
-                        <p className="text-base text-slate-600 max-w-sm">
-                            We're extracting metadata and analyzing content from your PDF.
-                            This may take a few moments.
-                        </p>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-4 border-t border-slate-200 mt-4">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-semibold cursor-pointer text-slate-600 hover:text-slate-900"
-                        >
-                            Cancel
-                        </button>
-                        <div className="flex space-x-3">
-
-                        </div>
+                        <p className="text-base text-slate-600 max-w-sm">Please wait a moment.</p>
                     </div>
                 </div>
             ) : (
@@ -209,19 +203,35 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                     <div className="mx-auto">
                         <div className="flex items-center justify-between w-full relative">
                             {steps.map((s, idx) => {
-                                const stepNum = (idx + 1) as 1 | 2 | 3;
+                                const stepNum = (idx + 1) as 1 | 2 | 3 | 4;
                                 const active = stepNum === step;
                                 const completed = stepNum < step;
                                 return (
                                     <div key={s.label} className="flex flex-1 items-center">
                                         <div className="flex flex-col items-center mx-[-0.7rem] relative z-10">
                                             <div
-                                                className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-sm font-medium ${active ? `${s.color} text-white border-transparent` : ""} ${completed ? `${s.color} text-white border-transparent` : ""} ${!active && !completed ? "bg-slate-100 border-slate-300 text-slate-500" : ""}`}
+                                                className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-sm font-medium ${
+                                                    active
+                                                        ? `${s.color} text-white border-transparent`
+                                                        : ""
+                                                } ${
+                                                    completed
+                                                        ? `${s.color} text-white border-transparent`
+                                                        : ""
+                                                } ${
+                                                    !active && !completed
+                                                        ? "bg-slate-100 border-slate-300 text-slate-500"
+                                                        : ""
+                                                }`}
                                             >
                                                 {completed ? "✓" : stepNum}
                                             </div>
                                             <span
-                                                className={`mt-2 text-xs ${active ? "font-medium text-slate-900" : "text-slate-500"}`}
+                                                className={`mt-2 text-xs ${
+                                                    active
+                                                        ? "font-medium text-slate-900"
+                                                        : "text-slate-500"
+                                                }`}
                                             >
                                                 {s.label}
                                             </span>
@@ -243,6 +253,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             })}
                         </div>
                     </div>
+
                     <div className="flex-1 overflow-hidden">
                         <AnimatePresence mode="wait">
                             {step === 1 && (
@@ -300,6 +311,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                     </div>
                                 </motion.div>
                             )}
+
                             {step === 2 && (
                                 <motion.div
                                     key="step2"
@@ -396,18 +408,67 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                     </div>
                                 </motion.div>
                             )}
-                            {step === 3 && (
+
+                            {step === 3 && existingPaperInfo?.existing_paper && (
                                 <motion.div
                                     key="step3"
                                     initial={{ opacity: 0, x: -30 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 30 }}
                                     transition={{ duration: 0.3 }}
-                                    className="space-y-3 text-base h-full overflow-y-auto pr-2"
+                                    className="flex flex-col h-full space-y-3 p-1"
+                                >
+                                    <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <h3 className="text-lg font-semibold text-blue-800">
+                                            We found a matching paper!
+                                        </h3>
+                                        <p className="text-sm text-blue-700">
+                                            Is this the paper you're uploading? If so, you can link
+                                            it directly.
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 p-4 border border-slate-300 rounded-lg bg-white overflow-y-auto space-y-2">
+                                        <h4 className="text-lg font-bold text-slate-800">
+                                            {existingPaperInfo.existing_paper.title}
+                                        </h4>
+                                        <p className="text-xs font-medium text-slate-500">
+                                            {existingPaperInfo.existing_paper.authors?.join(", ")} (
+                                            {existingPaperInfo.existing_paper.year})
+                                        </p>
+                                        <p className="text-sm text-slate-600 leading-relaxed pt-2 border-t border-slate-200 mt-2">
+                                            {existingPaperInfo.existing_paper.abstract}
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end space-x-3 pt-2">
+                                        <button
+                                            onClick={() => setStep(4)}
+                                            className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md text-sm font-semibold hover:bg-slate-300 transition-colors"
+                                        >
+                                            No, create a new paper
+                                        </button>
+                                        <button
+                                            onClick={handleLinkPaper}
+                                            disabled={isProcessing}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isProcessing ? "Linking..." : "Yes, link this paper"}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 4 && (
+                                <motion.div
+                                    key="step4"
+                                    initial={{ opacity: 0, x: -30 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 30 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="space-y-3 text-base"
                                 >
                                     <input
                                         type="text"
-                                        placeholder="Title (optional)"
+                                        placeholder="Title"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
@@ -450,6 +511,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             )}
                         </AnimatePresence>
                     </div>
+
                     <div className="flex justify-between items-center pt-4 border-t border-slate-200">
                         <button
                             onClick={onClose}
@@ -458,15 +520,15 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                             Cancel
                         </button>
                         <div className="flex space-x-3">
-                            {step > 1 && (
+                            {step === 2 || step === 4 ? (
                                 <button
                                     onClick={() => setStep((s) => (s === 2 ? 1 : 2))}
                                     className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md text-sm font-semibold hover:bg-slate-300 transition-colors"
                                 >
                                     Back
                                 </button>
-                            )}
-                            {step < 3 && (
+                            ) : null}
+                            {step === 1 || step === 2 ? (
                                 <button
                                     onClick={handleNextStep}
                                     disabled={(step === 1 && !file) || isProcessing}
@@ -474,8 +536,8 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                 >
                                     {isProcessing ? "Processing..." : "Next"}
                                 </button>
-                            )}
-                            {step === 3 && (
+                            ) : null}
+                            {step === 4 && (
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!file || isUploading}
