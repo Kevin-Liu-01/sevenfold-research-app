@@ -511,6 +511,25 @@ const ChatViewer: React.FC = () => {
             prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
         );
 
+    const getPaperUris = useCallback(async (paperIds: string[]) => {
+        if (!paperIds.length || !projectId) return [];
+        
+        const { data, error } = await supabase
+            .from("project_paper_links")
+            .select("paper_id, pdf_uri")
+            .eq("project_id", projectId)
+            .in("paper_id", paperIds)
+            .not("pdf_uri", "is", null);
+        
+        if (error) {
+            console.error("Error fetching paper URIs:", error);
+            return [];
+        }
+        
+        // adding type annotation here
+        return (data || []).map((item: { paper_id: string; pdf_uri: string | null }) => item.pdf_uri).filter(Boolean);
+    }, [projectId]);
+    
     const sendMessage = useCallback(async () => {
         const trimmed = input.trim();
         if (!trimmed || sending) return;
@@ -562,10 +581,11 @@ const ChatViewer: React.FC = () => {
                 setInput("");
             }
 
+            const paperUris = await getPaperUris(selectedPaperIds);
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
-                body: JSON.stringify({ convo_id: convoId, message: trimmed, paper_ids: null }),
+                body: JSON.stringify({ convo_id: convoId, message: trimmed, paper_uris: paperUris }),
             });
 
             if (!res.ok) {

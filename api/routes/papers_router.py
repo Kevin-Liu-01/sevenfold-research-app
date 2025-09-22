@@ -308,15 +308,7 @@ async def upload_pdf(
     if not title:
         raise HTTPException(status_code=400, detail="metadata.title is required")
 
-    # store final file -> <user>/<project>/<uuid>.pdf
-    final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
-    supabase.storage.from_("papers").upload(
-        path=final_path,
-        file=pdf_bytes,
-        file_options={"content-type": "application/pdf"},
-    )
-
-    # write paper_attrs
+    # First create the paper_attrs record to get the paper ID
     ins = (
         supabase.table("paper_attrs")
         .insert(
@@ -334,6 +326,16 @@ async def upload_pdf(
         .execute()
     )
     paper_id = ins.data[0]["id"]
+
+    # Use paper ID for file path instead of random UUID
+    final_path = f"{user_id}/{project_id}/{paper_id}.pdf"
+    
+    # Upload the PDF with the paper ID as filename
+    supabase.storage.from_("papers").upload(
+        path=final_path,
+        file=pdf_bytes,
+        file_options={"content-type": "application/pdf"},
+    )
 
     # link uploader-scoped priv_corpus row (embedding left NULL)
     supabase.table("priv_corpus").insert({"paper_id": paper_id, "user_id": user_id}).execute()
@@ -381,9 +383,9 @@ def get_signed_url(
     
     # Fetch the paper's PDF URI
     paper_resp = (
-        supabase.table("paper_attrs")
+        supabase.table("project_paper_links")
         .select("pdf_uri")
-        .eq("id", paper_id)
+        .eq("paper_id", paper_id)
         .single()
         .execute()
     )
