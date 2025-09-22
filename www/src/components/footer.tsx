@@ -21,7 +21,7 @@ export const Footer: React.FC = () => {
                         <Link
                             href="/signup"
                             className="inline-block bg-black text-white font-bold px-6 py-2 rounded-lg text-base hover:bg-blue-700 transition"
-                            aria-label="Sign up for Ketspen research platform"
+                            aria-label="Sign up for Sevenfold research platform"
                         >
                             Sign up now{" "}
                             <ArrowRightIcon
@@ -226,22 +226,22 @@ export const Footer: React.FC = () => {
                             <ul className="" role="list">
                                 <li>
                                     <a
-                                        href="https://linkedin.com/company/ketspen"
+                                        href="https://linkedin.com/company/sevenfold"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-gray-600 hover:text-gray-900 text-sm transition"
-                                        aria-label="Follow Ketspen on LinkedIn"
+                                        aria-label="Follow Sevenfold on LinkedIn"
                                     >
                                         LinkedIn
                                     </a>
                                 </li>
                                 <li>
                                     <a
-                                        href="https://twitter.com/ketspen"
+                                        href="https://twitter.com/sevenfold"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-gray-600 hover:text-gray-900 text-sm transition"
-                                        aria-label="Follow Ketspen on X (Twitter)"
+                                        aria-label="Follow Sevenfold on X (Twitter)"
                                     >
                                         X (Twitter)
                                     </a>
@@ -255,14 +255,14 @@ export const Footer: React.FC = () => {
                         <div className="mb-4">
                             <Image
                                 src="/branding/logo-long.png"
-                                alt="Ketspen company logo"
+                                alt="Sevenfold company logo"
                                 width={128}
                                 height={32}
                                 className="h-8 md:ml-auto"
                             />
                         </div>
                         <div className="text-gray-600 text-sm">
-                            © 2025 Ketspen Inc.
+                            © 2025 Sevenfold Inc.
                         </div>
                     </div>
                 </div>

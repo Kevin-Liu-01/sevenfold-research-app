@@ -29,7 +29,7 @@ const AuthDivider: React.FC = () => (
 
 const AuthFooter: React.FC = () => (
     <div className="text-center text-xs text-gray-500 dark:text-gray-400">
-        By continuing, you agree to Ketspen's{" "}
+        By continuing, you agree to Sevenfold's{" "}
         <a
             href={import.meta.env.VITE_HOMEPAGE_URL + "/terms"}
             className="underline hover:text-gray-700 dark:hover:text-gray-300"

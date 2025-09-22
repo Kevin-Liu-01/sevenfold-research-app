@@ -54,8 +54,8 @@
     --color-kets-orange-700: #b14313;
     --color-kets-orange-800: #8f3410;
     --color-kets-orange-900: #74280d;
-    --color-app-outer: #eeebe3;
-    --color-app-inner: #f6f4f0;
+    --color-app-outer: #F3F3F3;
+    --color-app-inner: #F7FCFE;
 }
 
 /* Custom Utility: no-scrollbar */

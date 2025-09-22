@@ -28,11 +28,11 @@ export const Navbar: React.FC = () => {
                         <Link
                             href="/"
                             className="inline-flex items-center"
-                            aria-label="Ketspen home"
+                            aria-label="Sevenfold home"
                         >
                             <Image
                                 src="/branding/logo-long.png"
-                                alt="Ketspen logo"
+                                alt="Sevenfold logo"
                                 width={120}
                                 height={36}
                                 priority
