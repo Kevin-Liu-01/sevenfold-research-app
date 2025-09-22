@@ -166,8 +166,8 @@ const SourcesPanel: React.FC = () => {
                 const extractedMetadata = processResult.metadata || {};
                 const existingPaperInfo = processResult.existing_paper_info || {};
                 
-                // If existing paper found and successfully linked, skip metadata step
-                if (existingPaperInfo.has_existing_paper && existingPaperInfo.linked) {
+                // If existing paper found, skip metadata step
+                if (existingPaperInfo.has_existing_paper) {
                     // Refresh papers and return existing paper info to skip metadata step
                     await refreshPapers();
                     return {

@@ -214,7 +214,7 @@ async def process_pdf(
         metadata["authors"] = []
 
     # Check for existing papers in public corpus if we have a title
-    existing_paper_info = {"has_existing_paper": False, "linked": False, "existing_paper": None}
+    existing_paper_info = {"has_existing_paper": False, "existing_paper": None}
     if metadata.get("title"):
         try:
             title = metadata["title"].strip()
@@ -264,6 +264,7 @@ async def process_pdf(
                 existing_paper_info["has_existing_paper"] = True
                 existing_paper_info["existing_paper"] = best_match
                 
+                # Try to link it to the project if not already linked
                 if not existing_link.data:
                     # Create the project-paper link
                     link_result = (
@@ -277,10 +278,10 @@ async def process_pdf(
                     )
                     
                     if link_result.data:
-                        existing_paper_info["linked"] = True
                         existing_paper_info["message"] = "Paper linked to project"
+                    else:
+                        existing_paper_info["message"] = "Found existing paper but failed to link"
                 else:
-                    existing_paper_info["linked"] = True  # Already linked, still skip metadata
                     existing_paper_info["message"] = "Paper already linked to project"
                     
         except Exception as e:
