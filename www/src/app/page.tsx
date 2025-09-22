@@ -84,7 +84,7 @@ const Hero = () => {
                             ease: "easeOut",
                         }}
                     >
-                        Ketspen helps you find, digest, and produce research in
+                        Sevenfold helps you find, digest, and produce research in
                         one centralized workplace, using project-aware
                         intelligence to eliminate paper-chasing.
                     </motion.p>
@@ -213,7 +213,7 @@ export const Features = () => (
             The Research Stack, Rebuilt
         </h2>
         <p className="text-base text-gray-600 text-center mb-10">
-            Replace scattered, inefficient tools with Ketspen’s unified
+            Replace scattered, inefficient tools with Sevenfold’s unified
             platform—streamline every step of your research process to move
             faster, think deeper, and publish smarter.
         </p>
@@ -228,7 +228,7 @@ export const Features = () => (
                         Smart Results Integration
                     </h3>
                     <p className="text-xs">
-                        Drop in your results and notes—Ketspen synthesizes them
+                        Drop in your results and notes—Sevenfold synthesizes them
                         to identify key findings and recommend applicable
                         papers.
                     </p>
@@ -290,7 +290,7 @@ export const Features = () => (
                         Researcher-Informed Semantic Search
                     </h3>
                     <p className="text-xs">
-                        Surface the most impactful papers—Ketspen learns from
+                        Surface the most impactful papers—Sevenfold learns from
                         top researchers’ reads, highlights and citations.
                     </p>
                 </div>

@@ -12,7 +12,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",  # React/Vite dev server
     "http://localhost:5173",  # Vite default
-    "https://www.ketspen.com"
+    "https://www.sevenfold.so"
 ]
 
 app.add_middleware(

@@ -10,7 +10,7 @@ const TermsAndConditions: React.FC = () => (
     >
         <p>
             These Terms &amp; Conditions (“Terms”) govern your access to and use
-            of the Ketspen.ai and labs.ketspen.ai platform (the “Service”). By
+            of the sevenfold.so and labs.sevenfold.so platform (the “Service”). By
             accessing or using the Service, you agree to be bound by these
             Terms.
         </p>
@@ -31,7 +31,7 @@ const TermsAndConditions: React.FC = () => (
         <h3>3. Intellectual Property</h3>
         <p>
             All content, trademarks, and software underlying our Service are
-            owned by <strong>Ketspen Inc.</strong> or its licensors. We grant
+            owned by <strong>Sevenfold Inc.</strong> or its licensors. We grant
             you a limited, revocable, non-exclusive license to use the Service
             in accordance with these Terms.
         </p>
@@ -47,7 +47,7 @@ const TermsAndConditions: React.FC = () => (
         <p>
             THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE” WITHOUT
             WARRANTIES OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY LAW,{" "}
-            <strong>KETSPEN INC.</strong>’S LIABILITY IS LIMITED TO DIRECT
+            <strong>SEVENFOLD INC.</strong>’S LIABILITY IS LIMITED TO DIRECT
             DAMAGES NOT EXCEEDING U.S. $100.
         </p>
 
@@ -66,7 +66,7 @@ const TermsAndConditions: React.FC = () => (
         <h3>8. Contact Us</h3>
         <p>
             If you have questions about these Terms, please email{" "}
-            <a href="mailto:legal@ketspen.ai">legal@ketspen.ai</a>.
+            <a href="mailto:legal@sevenfold.so">legal@sevenfold.so</a>.
         </p>
     </LegalLayout>
 );

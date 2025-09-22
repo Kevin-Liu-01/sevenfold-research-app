@@ -1,4 +1,4 @@
-// Ketspen DB Types (TypeScript)
+// Sevenfold DB Types (TypeScript)
 // Mirrors Postgres tables: user_profiles, projects, paper_attrs, publ_corpus, priv_corpus
 // Column names kept in snake_case to match DB rows.
 

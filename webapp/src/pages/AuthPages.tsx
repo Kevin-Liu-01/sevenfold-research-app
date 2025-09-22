@@ -25,7 +25,7 @@ const AuthDivider: React.FC = () => (
 
 const AuthFooter: React.FC = () => (
     <div className="text-center text-xs text-gray-500">
-        By continuing, you agree to Ketspen's{" "}
+        By continuing, you agree to Sevenfold's{" "}
         <Link to="/terms" className="underline hover:text-gray-700">
             Terms of Service
         </Link>{" "}
