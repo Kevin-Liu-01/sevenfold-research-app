@@ -12,7 +12,7 @@ const SourcesViewer: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { selectedPaper } = useWorkbench();
+    const { selectedPaper, projectId } = useWorkbench();
 
     // PDF state
     const [pageCount, setPageCount] = useState<number>(0);
@@ -21,7 +21,7 @@ const SourcesViewer: React.FC = () => {
 
     // Fetch signed URL
     useEffect(() => {
-        if (!selectedPaper) return;
+        if (!selectedPaper || !projectId) return;
         setError(null);
         setSignedUrl(null);
         (async () => {
@@ -31,7 +31,7 @@ const SourcesViewer: React.FC = () => {
                 if (authErr || !data?.session?.access_token) throw new Error("Not authenticated");
 
                 const res = await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/signed-url`,
+                    `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/signed-url?project_id=${encodeURIComponent(projectId)}`,
                     {
                         headers: {
                             Authorization: `Bearer ${data.session.access_token}`,
@@ -50,7 +50,7 @@ const SourcesViewer: React.FC = () => {
                 setLoading(false);
             }
         })();
-    }, [selectedPaper]);
+    }, [selectedPaper, projectId]);
 
     // Init WebViewer
     useEffect(() => {
