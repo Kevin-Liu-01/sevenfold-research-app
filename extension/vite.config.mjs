@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-const root = resolve(__dirname, 'extension');
+const root = resolve(__dirname, 'src');
 const outDir = resolve(__dirname, 'dist/extension');
 
 export default defineConfig({

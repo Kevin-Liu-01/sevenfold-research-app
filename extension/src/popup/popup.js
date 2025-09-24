@@ -18,6 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const pdfStatusSection = document.getElementById('pdf-status-section');
   const pdfStatusPill = document.getElementById('pdf-status-pill');
   const pdfStatusMessage = document.getElementById('pdf-status-message');
+  const metadataSection = document.getElementById('metadata-section');
+  const metadataForm = document.getElementById('metadata-form');
+  const metadataTitleInput = document.getElementById('metadata-title');
+  const metadataAbstractInput = document.getElementById('metadata-abstract');
+  const metadataAuthorsInput = document.getElementById('metadata-authors');
+  const metadataYearInput = document.getElementById('metadata-year');
+  const metadataMonthInput = document.getElementById('metadata-month');
+  const metadataDayInput = document.getElementById('metadata-day');
+  const metadataDoiInput = document.getElementById('metadata-doi');
+  const metadataCategoryInput = document.getElementById('metadata-category');
+  const metadataStatusEl = document.getElementById('metadata-status');
+  const metadataSubmitButton = document.getElementById('metadata-submit');
+  const metadataSourceEl = document.getElementById('metadata-source');
 
   if (
     !statusEl ||
@@ -36,7 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
     !projectSelect ||
     !pdfStatusSection ||
     !pdfStatusPill ||
-    !pdfStatusMessage
+    !pdfStatusMessage ||
+    !metadataSection ||
+    !metadataForm ||
+    !metadataTitleInput ||
+    !metadataAbstractInput ||
+    !metadataAuthorsInput ||
+    !metadataYearInput ||
+    !metadataMonthInput ||
+    !metadataDayInput ||
+    !metadataDoiInput ||
+    !metadataCategoryInput ||
+    !metadataStatusEl ||
+    !metadataSubmitButton ||
+    !metadataSourceEl
   ) {
     return;
   }
@@ -49,12 +75,28 @@ document.addEventListener('DOMContentLoaded', () => {
   let defaultProjectId = null;
   let currentPdfStatus = { isPdf: false, url: null, detectedAt: null };
   let currentPdfTabId = null;
+  let hasResolvedSession = false;
+  let metadataContextUrl = null;
+  let metadataLoading = false;
+  let metadataUploading = false;
+  let metadataSuccess = false;
+  let metadataError = null;
+  let metadataPrefilled = false;
+  const metadataCache = new Map();
   setStatus('Checking session…');
   loginButton.disabled = true;
   logoutButton.disabled = true;
   emailLoginButton.disabled = true;
   emailInput.disabled = true;
   passwordInput.disabled = true;
+
+  signedOutView.classList.add('hidden');
+  signedInView.classList.add('hidden');
+  projectsSection.classList.add('hidden');
+  pdfStatusSection.classList.add('hidden');
+  metadataSection.classList.add('hidden');
+
+  resetMetadataForm();
 
   init();
 
@@ -71,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     currentSession = message.payload;
+    hasResolvedSession = true;
     updateStatusForSession();
     if (!currentSession || !currentSession.accessToken) {
       resetProjects();
@@ -88,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(response?.error || 'Login failed');
       }
       currentSession = response.session;
+      hasResolvedSession = true;
       setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
       projectsLoaded = false;
       await loadProjects();
@@ -125,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(response?.error || 'Login failed');
       }
       currentSession = response.session;
+      hasResolvedSession = true;
       setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
       projectsLoaded = false;
       await loadProjects();
@@ -145,9 +190,71 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedProjectId = projectId || null;
       defaultProjectId = projectId || null;
       syncProjectSelect();
+      updateMetadataUI();
     } catch (error) {
       console.error('[popup] set default project error', error);
     }
+  });
+
+  metadataForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!currentSession || !currentSession.accessToken) {
+      metadataError = 'Sign in to upload PDFs.';
+      metadataSuccess = false;
+      updateMetadataUI();
+      return;
+    }
+
+    const collectResult = collectMetadataFromForm();
+    if (!collectResult.ok) {
+      metadataError = collectResult.error;
+      metadataSuccess = false;
+      updateMetadataUI();
+      return;
+    }
+
+    const projectId = selectedProjectId || defaultProjectId || null;
+    if (!projectId) {
+      metadataError = 'Select a project before uploading.';
+      metadataSuccess = false;
+      updateMetadataUI();
+      return;
+    }
+
+    metadataUploading = true;
+    metadataSuccess = false;
+    metadataError = null;
+    updateMetadataUI();
+
+    try {
+      const response = await sendMessage({
+        type: 'upload:request',
+        payload: {
+          url: currentPdfStatus?.url || window.location.href,
+          metadata: { ...collectResult.value, projectId },
+          projectId
+        }
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Unable to upload PDF.');
+      }
+
+      metadataSuccess = true;
+      metadataError = null;
+    } catch (error) {
+      metadataSuccess = false;
+      metadataError = error?.message || 'Unable to upload PDF.';
+    } finally {
+      metadataUploading = false;
+      updateMetadataUI();
+    }
+  });
+
+  metadataForm.addEventListener('input', () => {
+    metadataSuccess = false;
+    metadataError = null;
+    updateMetadataUI();
   });
 
   logoutButton.addEventListener('click', async () => {
@@ -159,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(response?.error || 'Logout failed');
       }
       currentSession = null;
+      hasResolvedSession = true;
       setStatus('Signed out.');
       resetProjects();
       resetPdfStatus();
@@ -190,12 +298,17 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('[popup] init error', error);
       setStatus('Unable to reach background script.');
     } finally {
+      hasResolvedSession = true;
       updateUI();
+      updatePdfStatusUI();
     }
   }
 
   // Enable/disable controls based on whether the user is authenticated.
   function updateUI() {
+    if (!hasResolvedSession) {
+      return;
+    }
     const isAuthed = Boolean(currentSession && currentSession.accessToken);
     signedOutView.classList.toggle('hidden', isAuthed);
     signedInView.classList.toggle('hidden', !isAuthed);
@@ -209,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutButton.disabled = !isAuthed;
 
     updatePdfStatusUI();
+    updateMetadataUI();
   }
 
   function setStatus(message) {
@@ -268,10 +382,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetPdfStatus() {
     currentPdfStatus = { isPdf: false, url: null, detectedAt: null };
     currentPdfTabId = null;
+    metadataContextUrl = null;
+    resetMetadataForm();
     updatePdfStatusUI();
   }
 
   function updatePdfStatusUI() {
+    if (!hasResolvedSession) {
+      return;
+    }
     if (!pdfStatusSection || !pdfStatusPill || !pdfStatusMessage) {
       return;
     }
@@ -282,7 +401,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isAuthed) {
       pdfStatusPill.textContent = 'Sign in required';
       pdfStatusPill.className = 'pill pill-idle';
-      pdfStatusMessage.textContent = 'Sign in to monitor PDF pages and upload them to Harbor.';
+      pdfStatusMessage.textContent = 'Sign in to monitor PDF pages and upload them to Sevenfold.';
+      metadataSection.classList.add('hidden');
+      metadataContextUrl = null;
+      resetMetadataForm();
+      updateMetadataUI();
       return;
     }
 
@@ -290,11 +413,39 @@ document.addEventListener('DOMContentLoaded', () => {
       pdfStatusPill.textContent = 'PDF detected';
       pdfStatusPill.className = 'pill pill-active';
       const url = currentPdfStatus.url ? safeHostname(currentPdfStatus.url) : 'current tab';
-      pdfStatusMessage.textContent = `Metadata form is visible on the PDF page (${url}). Fill it out to upload.`;
+      pdfStatusMessage.textContent = `Metadata form is ready for the PDF (${url}).`;
+
+      metadataSection.classList.remove('hidden');
+
+      metadataSourceEl.classList.toggle('hidden', !currentPdfStatus.source);
+      if (currentPdfStatus.source) {
+        metadataSourceEl.textContent = currentPdfStatus.source === 'arxiv' ? 'arXiv' : currentPdfStatus.source;
+      } else {
+        metadataSourceEl.textContent = '';
+      }
+
+      if (!metadataContextUrl || metadataContextUrl !== currentPdfStatus.url) {
+        metadataContextUrl = currentPdfStatus.url;
+        resetMetadataForm();
+        if (metadataDoiInput) {
+          metadataDoiInput.value = currentPdfStatus.doi || '';
+        }
+        if (currentPdfStatus.doi) {
+          void prefillMetadataForDoi(currentPdfStatus.doi, currentPdfStatus.source);
+        } else {
+          updateMetadataUI();
+        }
+      } else {
+        updateMetadataUI();
+      }
     } else {
       pdfStatusPill.textContent = 'No PDF detected';
       pdfStatusPill.className = 'pill pill-idle';
       pdfStatusMessage.textContent = 'Open a PDF (e.g. a link ending in .pdf or a viewer) to enable uploads.';
+      metadataContextUrl = null;
+      resetMetadataForm();
+      metadataSection.classList.add('hidden');
+      updateMetadataUI();
     }
   }
 
@@ -308,15 +459,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setProjectsLoading(true);
 
     try {
-    const response = await sendMessage({ type: 'projects:list' });
-    if (!response?.ok) {
-      throw new Error(response?.error || 'Unable to fetch projects');
-    }
-    projects = Array.isArray(response.projects) ? response.projects : [];
-    selectedProjectId = response.defaultProjectId || null;
-    projectsLoaded = true;
-    renderProjectList();
-  } catch (error) {
+      const response = await sendMessage({ type: 'projects:list' });
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Unable to fetch projects');
+      }
+      projects = Array.isArray(response.projects) ? response.projects : [];
+      defaultProjectId = response.defaultProjectId || null;
+      if (!selectedProjectId) {
+        selectedProjectId = defaultProjectId;
+      }
+      projectsLoaded = true;
+      renderProjectList();
+    } catch (error) {
       console.error('[popup] load projects error', error);
       setProjectsError(error.message || 'Unable to fetch projects');
       projectsLoaded = false;
@@ -342,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectsEmpty.classList.add('hidden');
       }
       projectSelect.classList.add('hidden');
+      updateMetadataUI();
       return;
     }
 
@@ -377,6 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       projectsList.append(item);
     }
+
+    updateMetadataUI();
   }
 
   function setProjectsLoading(isLoading) {
@@ -397,6 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       projectSelect.disabled = false;
     }
+    updateMetadataUI();
   }
 
   function setProjectsError(message) {
@@ -424,6 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectSelect.disabled = false;
       }
     }
+    updateMetadataUI();
   }
 
   function safeHostname(url) {
@@ -432,6 +591,212 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {
       return 'current tab';
     }
+  }
+
+  function resetMetadataForm() {
+    metadataForm.reset();
+    metadataLoading = false;
+    metadataUploading = false;
+    metadataSuccess = false;
+    metadataError = null;
+    metadataPrefilled = false;
+    metadataSourceEl.classList.add('hidden');
+    metadataSourceEl.textContent = '';
+    metadataStatusEl.textContent = '';
+    metadataStatusEl.className = 'status-message';
+    metadataSubmitButton.textContent = 'Upload PDF';
+    metadataSubmitButton.disabled = true;
+    updateMetadataUI();
+  }
+
+  async function prefillMetadataForDoi(doi, source) {
+    if (!doi) {
+      return;
+    }
+
+    const cached = metadataCache.get(doi);
+    if (cached !== undefined) {
+      if (cached) {
+        applyMetadataToInputs(cached, doi);
+      } else {
+        metadataPrefilled = false;
+        updateMetadataUI();
+      }
+      return;
+    }
+
+    metadataLoading = true;
+    metadataPrefilled = false;
+    metadataError = null;
+    if (source) {
+      metadataSourceEl.classList.remove('hidden');
+      metadataSourceEl.textContent = source === 'arxiv' ? 'arXiv' : source;
+    } else {
+      metadataSourceEl.classList.add('hidden');
+      metadataSourceEl.textContent = '';
+    }
+    updateMetadataUI();
+
+    try {
+      const response = await sendMessage({
+        type: 'metadata:lookup',
+        payload: { doi }
+      });
+
+      if (response?.ok && response.metadata) {
+        metadataCache.set(doi, response.metadata);
+        applyMetadataToInputs(response.metadata, doi);
+      } else {
+        metadataCache.set(doi, null);
+        metadataLoading = false;
+        metadataPrefilled = false;
+        updateMetadataUI();
+      }
+    } catch (error) {
+      metadataCache.set(doi, null);
+      metadataLoading = false;
+      metadataError = error?.message || 'Unable to fetch metadata.';
+      metadataPrefilled = false;
+      updateMetadataUI();
+    }
+  }
+
+  function applyMetadataToInputs(metadata, fallbackDoi) {
+    if (metadataTitleInput && metadata.title) {
+      metadataTitleInput.value = metadata.title;
+    }
+    if (metadataAbstractInput && metadata.abstract !== undefined) {
+      metadataAbstractInput.value = metadata.abstract || '';
+    }
+    if (metadataAuthorsInput && Array.isArray(metadata.authors)) {
+      metadataAuthorsInput.value = metadata.authors.join('\n');
+    }
+    if (metadataYearInput && typeof metadata.year === 'number') {
+      metadataYearInput.value = String(metadata.year);
+    }
+    if (metadataMonthInput && typeof metadata.month === 'number') {
+      metadataMonthInput.value = String(metadata.month);
+    }
+    if (metadataDayInput && typeof metadata.day === 'number') {
+      metadataDayInput.value = String(metadata.day);
+    }
+    if (metadataDoiInput) {
+      metadataDoiInput.value = metadata.doi || fallbackDoi || metadataDoiInput.value;
+    }
+    if (metadataCategoryInput && metadata.category !== undefined) {
+      metadataCategoryInput.value = metadata.category || '';
+    }
+
+    metadataLoading = false;
+    metadataPrefilled = true;
+    metadataError = null;
+    updateMetadataUI();
+  }
+
+  function collectMetadataFromForm() {
+    const title = metadataTitleInput.value.trim();
+    if (!title) {
+      return { ok: false, error: 'Title is required.' };
+    }
+
+    const abstract = metadataAbstractInput.value.trim();
+    const authors = metadataAuthorsInput.value
+      .split(/\n|,/)
+      .map((author) => author.trim())
+      .filter(Boolean);
+
+    const year = parseInteger(metadataYearInput.value, 0, 5000);
+    if (metadataYearInput.value && year === null) {
+      return { ok: false, error: 'Year must be a positive number.' };
+    }
+
+    const month = parseInteger(metadataMonthInput.value, 1, 12);
+    if (metadataMonthInput.value && month === null) {
+      return { ok: false, error: 'Month must be between 1 and 12.' };
+    }
+
+    const day = parseInteger(metadataDayInput.value, 1, 31);
+    if (metadataDayInput.value && day === null) {
+      return { ok: false, error: 'Day must be between 1 and 31.' };
+    }
+
+    return {
+      ok: true,
+      value: {
+        title,
+        abstract: abstract || null,
+        authors,
+        year,
+        month,
+        day,
+        doi: metadataDoiInput.value.trim() || null,
+        category: metadataCategoryInput.value.trim() || null
+      }
+    };
+  }
+
+  function updateMetadataUI() {
+    const isAuthed = Boolean(currentSession && currentSession.accessToken);
+    const hasPdf = isAuthed && currentPdfStatus && currentPdfStatus.isPdf;
+
+    if (!hasPdf) {
+      metadataSection.classList.add('hidden');
+      metadataSubmitButton.disabled = true;
+      return;
+    }
+
+    metadataSection.classList.remove('hidden');
+
+    const disableControls = metadataUploading || metadataLoading;
+    const controls = metadataForm.querySelectorAll('input, textarea');
+    controls.forEach((control) => {
+      control.disabled = disableControls;
+    });
+
+    const projectAvailable = Boolean(selectedProjectId || defaultProjectId);
+
+    if (metadataLoading) {
+      metadataStatusEl.textContent = 'Retrieving metadata…';
+      metadataStatusEl.className = 'status-message';
+    } else if (metadataUploading) {
+      metadataStatusEl.textContent = 'Uploading PDF to Sevenfold…';
+      metadataStatusEl.className = 'status-message';
+    } else if (metadataError) {
+      metadataStatusEl.textContent = metadataError;
+      metadataStatusEl.className = 'status-message error';
+    } else if (metadataSuccess) {
+      metadataStatusEl.textContent = 'Upload complete! You can close this tab or keep browsing.';
+      metadataStatusEl.className = 'status-message success';
+    } else if (metadataPrefilled) {
+      metadataStatusEl.textContent = 'Metadata autofilled from Sevenfold.';
+      metadataStatusEl.className = 'status-message';
+    } else if (!projectAvailable) {
+      metadataStatusEl.textContent = 'Select a project before uploading.';
+      metadataStatusEl.className = 'status-message';
+    } else {
+      metadataStatusEl.textContent = 'Fill in metadata and submit to store this PDF.';
+      metadataStatusEl.className = 'status-message';
+    }
+
+    metadataSubmitButton.textContent = metadataUploading ? 'Uploading…' : metadataSuccess ? 'Uploaded' : 'Upload PDF';
+    metadataSubmitButton.disabled = disableControls || !projectAvailable || metadataSuccess;
+  }
+
+  function parseInteger(value, min, max) {
+    if (!value && value !== 0) {
+      return null;
+    }
+    const parsed = Number.parseInt(String(value), 10);
+    if (Number.isNaN(parsed)) {
+      return null;
+    }
+    if (typeof min === 'number' && parsed < min) {
+      return null;
+    }
+    if (typeof max === 'number' && parsed > max) {
+      return null;
+    }
+    return parsed;
   }
 
   function syncProjectSelect() {
@@ -444,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const optionExists = Array.from(projectSelect.options).some((option) => option.value === desired);
       if (optionExists) {
         projectSelect.value = desired;
+        selectedProjectId = projectSelect.value;
         return;
       }
     }
@@ -452,6 +818,8 @@ document.addEventListener('DOMContentLoaded', () => {
       projectSelect.value = projectSelect.options[0].value;
       selectedProjectId = projectSelect.value;
     }
+
+    updateMetadataUI();
   }
 });
 

@@ -8,7 +8,7 @@
   <body>
     <main>
       <h1>Research Library</h1>
-      <section id="signed-out-view">
+      <section id="signed-out-view" class="hidden">
         <p class="hint">Connect your Supabase account to start saving PDFs.</p>
         <div class="actions">
           <button id="login-button">Sign in</button>
@@ -28,8 +28,8 @@
       </section>
 
       <section id="signed-in-view" class="hidden">
-        <p class="hint">You're signed in. Harbor will watch your tabs for URLs ending in <code>.pdf</code>.</p>
-        <p class="hint">Open a PDF to enable in-page upload controls and send it to your library.</p>
+        <p class="hint">You're signed in. Sevenfold will watch your tabs for URLs ending in <code>.pdf</code>.</p>
+        <p class="hint">Open a PDF to enable metadata capture and upload to your library.</p>
         <section id="pdf-status-section" class="panel hidden">
           <div class="panel-header">
             <h2>Current tab</h2>
@@ -37,13 +37,59 @@
           </div>
           <p id="pdf-status-message" class="hint">Navigate to a PDF page to start the upload flow.</p>
         </section>
+        <section id="metadata-section" class="panel hidden">
+          <div class="panel-header">
+            <h2>PDF metadata</h2>
+            <span id="metadata-source" class="muted hidden"></span>
+          </div>
+          <form id="metadata-form" class="metadata-form">
+            <label class="field">
+              <span>Title <span aria-hidden="true">*</span></span>
+              <input id="metadata-title" type="text" required autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Abstract</span>
+              <textarea id="metadata-abstract" placeholder="Optional summary"></textarea>
+            </label>
+            <label class="field">
+              <span>Authors</span>
+              <textarea id="metadata-authors" placeholder="One author per line"></textarea>
+            </label>
+            <div class="metadata-row">
+              <label class="field">
+                <span>Year</span>
+                <input id="metadata-year" type="number" inputmode="numeric" min="0" />
+              </label>
+              <label class="field">
+                <span>Month</span>
+                <input id="metadata-month" type="number" inputmode="numeric" min="1" max="12" />
+              </label>
+              <label class="field">
+                <span>Day</span>
+                <input id="metadata-day" type="number" inputmode="numeric" min="1" max="31" />
+              </label>
+            </div>
+            <label class="field">
+              <span>DOI</span>
+              <input id="metadata-doi" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Category</span>
+              <input id="metadata-category" type="text" autocomplete="off" />
+            </label>
+            <div class="metadata-actions">
+              <p id="metadata-status" class="status-message"></p>
+              <button type="submit" id="metadata-submit">Upload PDF</button>
+            </div>
+          </form>
+        </section>
         <section id="projects-section" class="panel hidden">
           <div class="panel-header">
             <h2>Your projects</h2>
             <span id="projects-loading" class="muted hidden">Loading…</span>
           </div>
           <p id="projects-error" class="error hidden"></p>
-          <p id="projects-empty" class="hint hidden">No projects yet. Create one in the Harbor web app.</p>
+          <p id="projects-empty" class="hint hidden">No projects yet. Create one in the Sevenfold web app.</p>
           <label class="field">
             <span>Select project</span>
             <select id="project-select"></select>

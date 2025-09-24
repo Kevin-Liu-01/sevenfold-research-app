@@ -8,8 +8,10 @@ const PDF_STATUS_CHANGED_MESSAGE = 'pdf:status-changed';
 const UPLOAD_REQUEST_MESSAGE = 'upload:request';
 const UPLOAD_RESULT_MESSAGE = 'upload:result';
 const UPLOAD_ERROR_MESSAGE = 'upload:error';
+const METADATA_LOOKUP_MESSAGE = 'metadata:lookup';
 
 const pdfStatusByTab = new Map();
+const popupOpenedForTabs = new Set();
 
 console.log('[background] service worker loaded');
 
@@ -28,6 +30,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
 if (chrome.tabs && chrome.tabs.onRemoved) {
   chrome.tabs.onRemoved.addListener((tabId) => {
     pdfStatusByTab.delete(tabId);
+    popupOpenedForTabs.delete(tabId);
   });
 }
 
@@ -103,6 +106,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
       .catch((error) => {
         console.error('[upload] request failed', error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === METADATA_LOOKUP_MESSAGE) {
+    handleMetadataLookup(message.payload)
+      .then((metadata) => {
+        sendResponse({ ok: true, metadata });
+      })
+      .catch((error) => {
+        console.error('[metadata] lookup failed', error);
         sendResponse({ ok: false, error: error.message });
       });
     return true;
@@ -278,17 +293,50 @@ async function handleProjectsListWithDefault() {
   return { projects, defaultProjectId };
 }
 
+async function handleMetadataLookup(payload) {
+  const doi = typeof payload?.doi === 'string' ? payload.doi.trim() : '';
+  if (!doi) {
+    throw new Error('DOI required for metadata lookup');
+  }
+
+  const session = await handleGetSession();
+  if (!session || !session.accessToken) {
+    throw new Error('Sign in to fetch metadata');
+  }
+
+  const { data, error } = await supabase
+    .from('paper_attrs')
+    .select('title, abstract, authors, year, month, day, doi, category')
+    .eq('doi', doi)
+    .maybeSingle();
+
+  if (error) {
+    // Supabase returns PGRST116 when no rows are found. Treat it as null metadata.
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    throw error;
+  }
+
+  return data ?? null;
+}
+
 function handlePdfStatus(payload, sender) {
   const tabId = sender?.tab?.id;
   if (typeof tabId !== 'number') {
     return;
   }
 
+  const previousStatus = pdfStatusByTab.get(tabId);
+
   const status = {
     isPdf: Boolean(payload?.isPdf),
     url: typeof payload?.url === 'string' ? payload.url : null,
     title: typeof payload?.title === 'string' ? payload.title : '',
-    detectedAt: payload?.detectedAt ?? Date.now()
+    detectedAt: payload?.detectedAt ?? Date.now(),
+    doi: typeof payload?.doi === 'string' ? payload.doi : null,
+    source: typeof payload?.source === 'string' ? payload.source : null,
+    arxivId: typeof payload?.arxivId === 'string' ? payload.arxivId : null
   };
 
   pdfStatusByTab.set(tabId, status);
@@ -297,6 +345,21 @@ function handlePdfStatus(payload, sender) {
     { type: PDF_STATUS_CHANGED_MESSAGE, tabId, status },
     () => void chrome.runtime.lastError
   );
+
+  if (status.isPdf) {
+    if (previousStatus?.url !== status.url) {
+      popupOpenedForTabs.delete(tabId);
+    }
+    if (!popupOpenedForTabs.has(tabId) && chrome.action?.openPopup) {
+      popupOpenedForTabs.add(tabId);
+      chrome.action.openPopup().catch((error) => {
+        popupOpenedForTabs.delete(tabId);
+        console.warn('[pdf] failed to open popup', error);
+      });
+    }
+  } else {
+    popupOpenedForTabs.delete(tabId);
+  }
 }
 
 async function handleGetPdfStatus(requestedTabId) {
@@ -310,7 +373,9 @@ async function handleGetPdfStatus(requestedTabId) {
   }
 
   const status =
-    tabId != null ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '' } : null;
+    tabId != null
+      ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '', doi: null, source: null, arxivId: null }
+      : null;
   const defaultProjectId = await getDefaultProjectId();
   return { tabId, status, defaultProjectId };
 }
@@ -328,7 +393,7 @@ async function handleUploadRequest(payload, senderTabId) {
 
     const projectId = await resolveProjectId(payload.projectId);
     if (!projectId) {
-      throw new Error('No project available. Create a project in Harbor first.');
+    throw new Error('No project available. Create a project in Sevenfold first.');
     }
 
     const blob = await fetchPdfBlob(payload.url);
