@@ -213,10 +213,72 @@ async def process_pdf(
     if "authors" in metadata and not isinstance(metadata["authors"], list):
         metadata["authors"] = []
 
+    # Check for existing papers in public corpus if we have a title
+    existing_paper_info = {"has_existing_paper": False, "existing_paper": None}
+    if metadata.get("title"):
+        try:
+            title = metadata["title"].strip()
+            
+            # Use the existing fuzzy_title_search function to find similar titles
+            # This uses trigram similarity with unaccent normalization
+            fuzzy_results = (
+                supabase.rpc("fuzzy_title_search", {
+                    "input_title": title,
+                    "min_sim": 0.8,  # 80% similarity threshold
+                    "limit_count": 5
+                })
+                .execute()
+            )
+            
+            best_match = None
+            
+            if fuzzy_results.data:
+                # Filter results to only include papers that are in the public corpus
+                for paper in fuzzy_results.data:
+                    # Check if this paper exists in publ_corpus
+                    in_public_corpus = (
+                        supabase.table("publ_corpus")
+                        .select("paper_id")
+                        .eq("paper_id", paper["id"])
+                        .limit(1)
+                        .execute()
+                    )
+                    
+                    if in_public_corpus.data:
+                        best_match = paper
+                        print(f"Found fuzzy title match in public corpus: {best_match['title']}")
+                        break
+            
+            if best_match:
+                paper_id = best_match["id"]
+                
+                # Check if this paper is already linked to the project
+                existing_link = (
+                    supabase.table("project_paper_links")
+                    .select("*")
+                    .eq("project_id", project_id)
+                    .eq("paper_id", paper_id)
+                    .execute()
+                )
+                
+                existing_paper_info["has_existing_paper"] = True
+                existing_paper_info["existing_paper"] = best_match
+                
+                # Check if already linked and set message
+                if existing_link.data:
+                    existing_paper_info["message"] = "Paper already linked to project"
+                else:
+                    existing_paper_info["message"] = "Found existing paper, use link-paper endpoint to add to project"
+                    
+        except Exception as e:
+            # Log error but don't fail the entire request
+            print(f"Error checking for existing papers: {str(e)}")
+
     # NOTE: no storage + no signed URL here
     return {
         "status": "ok",
         "metadata": metadata,
+        "existing_paper_info": existing_paper_info,
     }
 
 
@@ -246,15 +308,7 @@ async def upload_pdf(
     if not title:
         raise HTTPException(status_code=400, detail="metadata.title is required")
 
-    # store final file -> <user>/<project>/<uuid>.pdf
-    final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
-    supabase.storage.from_("papers").upload(
-        path=final_path,
-        file=pdf_bytes,
-        file_options={"content-type": "application/pdf"},
-    )
-
-    # write paper_attrs
+    # First create the paper_attrs record to get the paper ID
     ins = (
         supabase.table("paper_attrs")
         .insert(
@@ -272,6 +326,16 @@ async def upload_pdf(
         .execute()
     )
     paper_id = ins.data[0]["id"]
+
+    # Use paper ID for file path instead of random UUID
+    final_path = f"{user_id}/{project_id}/{paper_id}.pdf"
+    
+    # Upload the PDF with the paper ID as filename
+    supabase.storage.from_("papers").upload(
+        path=final_path,
+        file=pdf_bytes,
+        file_options={"content-type": "application/pdf"},
+    )
 
     # link uploader-scoped priv_corpus row (embedding left NULL)
     supabase.table("priv_corpus").insert({"paper_id": paper_id, "user_id": user_id}).execute()
@@ -298,16 +362,17 @@ async def upload_pdf(
 @router.get("/{paper_id}/signed-url")
 def get_signed_url(
     paper_id: str,
+    project_id: str,
     expires_in: int = 60 * 60, 
     authorization: str = Header(...),
 ):
     """
     Return a fresh 1‑hour signed URL for a given paper so the client can view it.
-    Automatically detects whether the paper is in the 'papers' or 'library' bucket
-    based on the pdf_uri field.
+    All papers are stored in the 'papers' bucket.
     
     Args:
         paper_id: The ID of the paper to get the signed URL for.
+        project_id: The ID of the project containing the paper (required as query parameter).
         expires_in: The number of seconds for the signed URL to be valid.
         authorization: The authorization header containing the JWT token.
 
@@ -317,55 +382,29 @@ def get_signed_url(
 
     user_id = _get_user_id(authorization)
     
-    # Fetch the paper's PDF URI
+    # Verify project access first
+    _verify_project(project_id, user_id)
+    
+    # Fetch the paper's PDF URI using both paper_id and project_id
     paper_resp = (
-        supabase.table("paper_attrs")
+        supabase.table("project_paper_links")
         .select("pdf_uri")
-        .eq("id", paper_id)
+        .eq("paper_id", paper_id)
+        .eq("project_id", project_id)
         .single()
         .execute()
     )
     
     if not paper_resp.data or not paper_resp.data.get("pdf_uri"):
-        raise HTTPException(status_code=404, detail="Paper PDF not found")
+        raise HTTPException(status_code=404, detail="Paper PDF not found in this project")
 
     paper = paper_resp.data
     pdf_uri = paper["pdf_uri"]
-    
-    # Check if this is a library paper or user paper based on pdf_uri
-    if pdf_uri.startswith("library/"):
-        # Library paper - accessible to all authenticated users
-        file_path = pdf_uri.replace("library/", "", 1)  # Remove "library/" prefix
-        bucket_name = "library"
-        storage_path = file_path
-    else:
-        # User paper - check access through priv_corpus
-        try:
-            access_check = (
-                supabase.table("priv_corpus")
-                .select("paper_id")
-                .eq("paper_id", paper_id)
-                .eq("user_id", user_id)
-                .single()
-                .execute()
-            )
-            
-            if not access_check.data:
-                raise HTTPException(status_code=404, detail="Paper not found or access denied")
-        except Exception as e:
-            # Handle both "no rows returned" and other database errors
-            if "0 rows" in str(e) or "no rows returned" in str(e).lower():
-                raise HTTPException(status_code=404, detail="Paper not found or access denied")
-            else:
-                raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-        
-        bucket_name = "papers"
-        storage_path = pdf_uri
 
-    # Generate a signed URL from the appropriate bucket
+    # Generate a signed URL from the papers bucket
     try:
-        signed_resp = supabase.storage.from_(bucket_name).create_signed_url(
-            storage_path, expires_in=expires_in
+        signed_resp = supabase.storage.from_("papers").create_signed_url(
+            pdf_uri, expires_in=expires_in
         )
         return {"signed_url": signed_resp["signedURL"]}
     except Exception as exc:
@@ -374,14 +413,16 @@ def get_signed_url(
 @router.put("/{paper_id}/annotations", status_code=200)
 async def upload_annotations(
     paper_id: str,
+    project_id: str,
     annotations: List[str] = Body(..., description="List of annotation strings"),
     authorization: str = Header(...),
 ):
     """
-    Set the annotations array for a paper.
+    Set the annotations array for a paper in a specific project.
 
     Args:
         paper_id: The ID of the paper to annotate.
+        project_id: The ID of the project containing the paper (required as query parameter).
         annotations: A JSON array of text annotations.
         authorization: The Authorization header containing the Bearer JWT.
 
@@ -392,175 +433,137 @@ async def upload_annotations(
     # 1. Authenticate
     user_id = _get_user_id(authorization)
 
-    # 2. Fetch paper and check ownership
-    paper_resp = (
-        supabase
-        .table("papers")
-        .select("user_id")
-        .eq("id", paper_id)
+    # 2. Verify project access
+    _verify_project(project_id, user_id)
+
+    # 3. Check if paper exists in this project
+    paper_link = (
+        supabase.table("project_paper_links")
+        .select("paper_id")
+        .eq("paper_id", paper_id)
+        .eq("project_id", project_id)
         .single()
         .execute()
     )
-    if not paper_resp.data or paper_resp.data.get("user_id") != user_id:
-        raise HTTPException(status_code=404, detail="Paper not found or access denied")
+    if not paper_link.data:
+        raise HTTPException(status_code=404, detail="Paper not found in this project")
 
-    # 3. Update annotations
+    # 4. Update annotations in the project_paper_links table
     update_resp = (
-        supabase
-        .table("papers")
+        supabase.table("project_paper_links")
         .update({"annotations": annotations})
-        .eq("id", paper_id)
+        .eq("paper_id", paper_id)
+        .eq("project_id", project_id)
         .execute()
     )
     
     return {
         "status": "success",
         "paper_id": paper_id,
+        "project_id": project_id,
         "annotations": annotations,
     }
 
-@router.post("/copy-from-library", status_code=201)
-async def copy_paper_from_library(
-    pdf_uri: str = Form(...),
+@router.post("/link-paper", status_code=201)
+async def link_paper_to_project(
+    file: UploadFile,
+    paper_id: str = Form(...),
     project_id: str = Form(...),
-    paper_type: Literal["source", "candidate"] = Form(...),
-    filename: str = Form(...),
     authorization: str = Header(...),
 ):
     """
-    Copy a PDF from the library bucket to a user's project bucket.
+    Link an existing paper from the public corpus to a project and upload the PDF.
     
     Args:
-        pdf_uri: The library path of the PDF (e.g., "library/arXiv-1506.07671.pdf").
-        project_id: The ID of the project to copy the paper to.
-        paper_type: The type of paper to upload.
-        filename: The filename to use for the copied paper.
+        paper_id: The ID of the existing paper to link.
+        project_id: The ID of the project to link the paper to.
+        file: The PDF file to upload for this paper.
         authorization: The authorization header containing the JWT token.
-
+        
     Returns:
-        A dictionary containing the status, paper_id, and preview_url.
+        A dictionary with the status, link information, and preview URL.
     """
-
-    # 1. Authenticate & authorise
+    
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    
+    # 1. Authenticate and verify project ownership
     user_id = _get_user_id(authorization)
     _verify_project(project_id, user_id)
-
-    try:
-        # 2. Download the PDF from the library bucket
-        # Remove "library/" prefix if present to get the file path
-        library_path = pdf_uri.replace("library/", "") if pdf_uri.startswith("library/") else pdf_uri
-        
-        print(f"Original pdf_uri: {pdf_uri}")
-        print(f"Processed library_path: {library_path}")
-        
-        # Download from library bucket
-        try:
-            # First, try to get a signed URL to verify the file exists
-            try:
-                signed_url_resp = supabase.storage.from_("library").create_signed_url(
-                    library_path, expires_in=60  # 1 minute is enough for download
-                )
-                if not signed_url_resp or 'signedURL' not in signed_url_resp:
-                    raise HTTPException(status_code=404, detail=f"Cannot access file in library: {library_path}")
-                
-                print(f"Successfully got signed URL for: {library_path}")
-                
-            except Exception as url_error:
-                raise HTTPException(status_code=404, detail=f"File not found in library bucket: {library_path}. Error: {str(url_error)}")
-
-            # Now try to download the file
-            download_resp = supabase.storage.from_("library").download(library_path)
-            if not download_resp:
-                raise HTTPException(status_code=404, detail="PDF not found in library")
-            
-            # Debug: Check what type of response we got
-            print(f"Download response type: {type(download_resp)}")
-            
-            # The Supabase Python client returns bytes directly
-            if isinstance(download_resp, bytes):
-                pdf_bytes = download_resp
-            elif hasattr(download_resp, 'content'):
-                # If it's a response object with content
-                pdf_bytes = download_resp.content
-            elif hasattr(download_resp, 'data'):
-                # If it's wrapped in a data field
-                pdf_bytes = download_resp.data
-            else:
-                # Try to convert to bytes
-                pdf_bytes = bytes(download_resp) if download_resp else b''
-                
-            print(f"Converted to {len(pdf_bytes)} bytes")
-            
-            # Check if we got HTML (error page) instead of PDF
-            if pdf_bytes.startswith(b'<html') or pdf_bytes.startswith(b'\n       <html'):
-                raise HTTPException(status_code=404, detail=f"File not accessible in library bucket: {library_path}")
-                
-        except HTTPException:
-            raise  # Re-raise HTTP exceptions as-is
-        except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Failed to download from library: {str(e)}")
-
-        # 3. Validate it's a PDF and check structure
-        if not pdf_bytes or len(pdf_bytes) == 0:
-            raise HTTPException(status_code=400, detail="Downloaded file is empty")
-        
-        # Log some debugging info (first 10 bytes)
-        print(f"Downloaded {len(pdf_bytes)} bytes, first 10 bytes: {pdf_bytes[:10]}")
-        
-        # Check PDF header
-        if not pdf_bytes.startswith(b'%PDF'):
-            # Also check if it's text that might be an error message
-            try:
-                text_content = pdf_bytes.decode('utf-8')[:100]
-                raise HTTPException(status_code=400, detail=f"Downloaded file is not a valid PDF. Content starts with: {text_content}")
-            except:
-                raise HTTPException(status_code=400, detail=f"Downloaded file is not a valid PDF. First bytes: {pdf_bytes[:20]}")
-        
-        # Additional PDF validation - check for PDF trailer
-        if b'%%EOF' not in pdf_bytes[-100:]:
-            print("Warning: PDF may be incomplete - no EOF marker found at end")
-        
-        # Check minimum PDF size (should be at least a few KB)
-        if len(pdf_bytes) < 1024:
-            raise HTTPException(status_code=400, detail=f"PDF file seems too small ({len(pdf_bytes)} bytes)")
-            
-        print(f"PDF validation passed: {len(pdf_bytes)} bytes, starts with PDF header")
-
-        # 4. Build a unique storage path -> <user>/<project>/<uuid>.pdf
-        file_name = f"{uuid.uuid4()}.pdf"
-        storage_path = f"{user_id}/{project_id}/{file_name}"
-
-        # 5. Upload to user's papers bucket
-        upload_resp = supabase.storage.from_("papers").upload(
-            path=storage_path,
-            file=pdf_bytes,
-            file_options={"content-type": "application/pdf"},
-        )
-
-        # 6. Immediate preview link (1 day)
-        preview_resp = supabase.storage.from_("papers").create_signed_url(
-            storage_path,
-            expires_in=60 * 60 * 24,  # 1 day
-        )
-
-        # 7. Persist metadata
-        insert_resp = supabase.table("papers").insert(
-            {
-                "project_id": project_id,
-                "user_id": user_id,
-                "storage_path": storage_path,
-                "filename": filename,
-                "type": paper_type,
-            }
-        ).execute()
-
-        paper_id = insert_resp.data[0]["id"]
-
+    
+    # 2. Verify the paper exists in the public corpus
+    paper_in_corpus = (
+        supabase.table("publ_corpus")
+        .select("paper_id")
+        .eq("paper_id", paper_id)
+        .limit(1)
+        .execute()
+    )
+    
+    if not paper_in_corpus.data:
+        raise HTTPException(status_code=404, detail="Paper not found in public corpus")
+    
+    # 3. Validate and read PDF
+    pdf_bytes = await file.read()
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
+    
+    # 4. Check if already linked
+    existing_link = (
+        supabase.table("project_paper_links")
+        .select("*")
+        .eq("project_id", project_id)
+        .eq("paper_id", paper_id)
+        .execute()
+    )
+    
+    if existing_link.data:
         return {
-            "status": "success",
+            "status": "already_linked",
+            "message": "Paper is already linked to this project",
             "paper_id": paper_id,
-            "preview_url": preview_resp["signedURL"],
+            "project_id": project_id,
         }
+    
+    # 5. Upload PDF to storage
+    final_path = f"{user_id}/{project_id}/{uuid.uuid4()}.pdf"
+    supabase.storage.from_("papers").upload(
+        path=final_path,
+        file=pdf_bytes,
+        file_options={"content-type": "application/pdf"},
+    )
+    
+    # 6. Create the project-paper link with PDF URI
+    link_result = (
+        supabase.table("project_paper_links")
+        .insert({
+            "project_id": project_id,
+            "paper_id": paper_id,
+            "has_paper": True,
+            "pdf_uri": final_path
+        })
+        .execute()
+    )
+    
+    if not link_result.data:
+        raise HTTPException(status_code=500, detail="Failed to create project-paper link")
+    
+    # 8. Get paper details for response
+    paper_details = (
+        supabase.table("paper_attrs")
+        .select("title, authors")
+        .eq("id", paper_id)
+        .single()
+        .execute()
+    )
+    
+    return {
+        "status": "success",
+        "message": "Paper successfully linked to project with PDF uploaded",
+        "paper_id": paper_id,
+        "project_id": project_id,
+        "paper_title": paper_details.data.get("title") if paper_details.data else None
+    }
 
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Copy failed: {exc}")
+
+

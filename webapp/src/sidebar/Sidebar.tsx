@@ -164,12 +164,11 @@ const FeedbackButton: React.FC = () => {
 };
 
 export default function Sidebar() {
-    const { currentView, setHoveredView } = useWorkbench();
+    const { setHoveredView } = useWorkbench();
 
     return (
         <div
             className="flex flex-col space-between p-3 w-20 z-10 bg-app-outer"
-            onMouseEnter={() => setHoveredView(currentView)}
             onMouseLeave={() => setHoveredView(null)}
         >
             <HomeButton />

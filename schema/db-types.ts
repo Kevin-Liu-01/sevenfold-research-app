@@ -1,4 +1,4 @@
-// Ketspen DB Types (TypeScript)
+// Sevenfold DB Types (TypeScript)
 // Mirrors Postgres tables: user_profiles, projects, paper_attrs, publ_corpus, priv_corpus
 // Column names kept in snake_case to match DB rows.
 
@@ -88,7 +88,6 @@ export interface Composition {
 
 export interface UploadedPaperPayload {
     file: File;
-    addToIndex: boolean;
     title?: string;
     authors?: string[];
     publicationDate?: string | null;

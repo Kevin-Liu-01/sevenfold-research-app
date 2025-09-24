@@ -5,15 +5,15 @@ import LegalLayout from "@/components/legal";
 const PrivacyPolicy: React.FC = () => (
     <LegalLayout
         pageKey="privacy"
-        title="Ketspen Inc. Privacy Policy"
+        title="Sevenfold Inc. Privacy Policy"
         updated="June 29, 2025"
     >
         <p>
-            This Privacy Policy describes how <strong>Ketspen Inc.</strong>{" "}
+            This Privacy Policy describes how <strong>Sevenfold Inc.</strong>{" "}
             (“we”, “us”, “our”) collects, uses, and discloses information about
             individuals who use our websites (
-            <a href="https://www.ketspen.ai">ketspen.ai</a> and{" "}
-            <a href="https://labs.ketspen.ai">labs.ketspen.ai</a>), other
+            <a href="https://www.sevenfold.so">sevenfold.so</a> and{" "}
+            <a href="https://labs.sevenfold.so">labs.sevenfold.so</a>), other
             applications, services, tools and features, or who purchase our
             products or otherwise interact with us (collectively, the
             “Services”). For the purposes of this Privacy Policy, we are the
@@ -62,7 +62,7 @@ const PrivacyPolicy: React.FC = () => (
             Depending on your jurisdiction, you may have rights to access,
             correct, delete, or restrict use of your personal data. To exercise
             these rights, please contact us at{" "}
-            <a href="mailto:privacy@ketspen.ai">privacy@ketspen.ai</a>.
+            <a href="mailto:privacy@sevenfold.so">privacy@sevenfold.so</a>.
         </p>
 
         <h3>6. Changes to This Policy</h3>

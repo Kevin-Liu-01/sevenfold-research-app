@@ -1,6 +1,6 @@
 # Supabase Schema
 
-You can connect to the Ketspen primary database in Supabase via cli (note you must have `psql` installed):
+You can connect to the Sevenfold primary database in Supabase via cli (note you must have `psql` installed):
 
 ```sh
 psql -h db.rivimoqvqpbypjxfpfhl.supabase.co -p 5432 -d postgres -U postgres
@@ -116,7 +116,7 @@ RETURNING id;
 ### publ_corpus
 
 **Purpose**  
-Public corpus created from Ketspen indexing. Link a public paper (in `paper_attrs`) to search fields used for retrieval (FTS + embeddings).
+Public corpus created from Sevenfold indexing. Link a public paper (in `paper_attrs`) to search fields used for retrieval (FTS + embeddings).
 
 **Columns**  
 - `paper_id` — UUID, PK, FK → `paper_attrs.id`  

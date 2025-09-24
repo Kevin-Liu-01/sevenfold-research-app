@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Ketspen – Unified Research Workflow Platform",
+    title: "Sevenfold - All-In-One Agentic Research Workspace",
     description:
-        "Ketspen unifies discovery, reading, annotation and writing into one project-aware platform.",
+        "Sevenfold unifies discovery, reading, annotation and writing into one project-aware platform.",
     keywords: [
         "research workflow",
         "academic research",
@@ -32,17 +32,17 @@ export const metadata: Metadata = {
         "knowledge management",
     ],
     openGraph: {
-        title: "Ketspen – Unified Research Workflow Platform",
+        title: "Sevenfold – All-In-One Agentic Research Workspace",
         description:
-            "Ketspen unifies discovery, reading, annotation and writing into one project-aware platform.",
-        url: "https://ketspen.com/",
-        siteName: "Ketspen",
+            "Sevenfold unifies discovery, reading, annotation and writing into one project-aware platform.",
+        url: "https://sevenfold.so/",
+        siteName: "Sevenfold",
         images: [
             {
-                url: "https://ketspen.com/og-image.jpg", // Replace with your actual Open Graph image
+                url: "https://sevenfold.so/og-image.jpg", // Replace with your actual Open Graph image
                 width: 1200,
                 height: 630,
-                alt: "Ketspen – Unified Research Workflow Platform",
+                alt: "Sevenfold – All-In-One Agentic Research Workspace",
             },
         ],
         locale: "en_US",
@@ -50,14 +50,14 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "Ketspen – Unified Research Workflow Platform",
+        title: "Sevenfold – All-In-One Agentic Research Workspace",
         description:
-            "Ketspen unifies discovery, reading, annotation and writing into one project-aware platform.",
-        creator: "@ketspen", // Replace with your actual Twitter handle
-        images: ["https://ketspen.com/twitter-image.jpg"], // Replace with your actual Twitter image
+            "Sevenfold unifies discovery, reading, annotation and writing into one project-aware platform.",
+        creator: "@sevenfold", // Replace with your actual Twitter handle
+        images: ["https://sevenfold.so/twitter-image.jpg"], // Replace with your actual Twitter image
     },
     alternates: {
-        canonical: "https://ketspen.com/",
+        canonical: "https://sevenfold.so/",
     },
 };
 

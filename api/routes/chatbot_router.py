@@ -278,7 +278,7 @@ async def _generate_tab_name(user_message: str, paper_filenames: Optional[List[s
 async def send_chat_message(
     convo_id: str = Body(...),
     message: str = Body(...),
-    paper_ids: Optional[List[str]] = Body(None),
+    paper_uris: Optional[List[str]] = Body(None),
     # FINDING SIMILAR PAPERS TO ADD TO CONTEXT NOT IMPLEMENTED YET
     # include_similar_papers: bool = Body(True),
     # max_similar_papers: int = Body(3),
@@ -291,32 +291,45 @@ async def send_chat_message(
     
     # Fetch PDFs from storage if paper_ids provided
 
+    paper_ids = []
+    if paper_uris:
+        for uri in paper_uris:
+            # Extract paper_id from URI format: folder1/folder2/paper_id.pdf
+            # Get the part after the last slash and remove .pdf extension
+            filename = uri.split('/')[-1] 
+            paper_id = filename.replace('.pdf', '') 
+            paper_ids.append(paper_id)
+
     pdf_contents = []
     paper_filenames = []
     
-    if paper_ids:
-        for paper_id in paper_ids:
+    if paper_uris:
+        for uri in paper_uris:
             try:
                 # Download PDF from Supabase storage
                 # The file path in storage is just the paper_id (which is the filename)
-                response = supabase.storage.from_("library").download(paper_id)
+                response = supabase.storage.from_("papers").download(uri)
                 
                 if response:
+                    # Extract just the paper_id for the filename (without .pdf)
+                    filename = uri.split('/')[-1].replace('.pdf', '')
                     pdf_contents.append({
-                        "filename": paper_id,
+                        "filename": filename,
                         "content": response
                     })
-                    paper_filenames.append(paper_id)
+                    paper_filenames.append(filename)
                 else:
+                    paper_id = uri.split('/')[-1].replace('.pdf', '')
                     raise HTTPException(
                         status_code=404, 
-                        detail=f"Paper with ID {paper_id} not found in library"
+                        detail=f"Paper with ID {paper_id} not found in papers bucket"
                     )
             except Exception as e:
+                paper_id = uri.split('/')[-1].replace('.pdf', '')
                 if "404" in str(e):
                     raise HTTPException(
                         status_code=404, 
-                        detail=f"Paper with ID {paper_id} not found in library"
+                        detail=f"Paper with ID {paper_id} not found in papers bucket"
                     )
                 else:
                     raise HTTPException(

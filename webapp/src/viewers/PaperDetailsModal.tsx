@@ -1,4 +1,5 @@
 // src/components/viewers/PaperDetailsModal.tsx
+
 import React, { useMemo, useState, useEffect } from "react";
 import type { Paper } from "../../../schema/db-types";
 import { useWorkbench } from "../context/WorkbenchContext";
@@ -55,44 +56,6 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
             setIsAdding(false);
         }
     };
-
-    //   // Safe early return AFTER all hooks
-    // if (!paper) return null;
-
-    // // Resolve direct or signed URL for PDF
-    // const resolvePdfUrl = async (): Promise<string | null> => {
-    //     if (!paper.pdf_uri) return null;
-    //     if (/^https?:\/\//i.test(paper.pdf_uri)) return paper.pdf_uri;
-
-    //     try {
-    //         const {
-    //             data: { session },
-    //         } = await supabase.auth.getSession();
-    //         if (!session?.access_token) return null;
-
-    //         const filePath = paper.pdf_uri.replace(/^library\//, "");
-    //         const resp = await fetch(
-    //             `${import.meta.env.VITE_API_BASE_URL}/papers/library/${encodeURIComponent(filePath)}/signed-url`,
-    //             { headers: { Authorization: `Bearer ${session.access_token}` } }
-    //         );
-    //         if (!resp.ok) return null;
-    //         const json = await resp.json();
-    //         return json.signed_url ?? null;
-    //     } catch {
-    //         return null;
-    //     }
-    // };
-
-    // const openPdf = async () => {
-    //     if (!paper.pdf_uri) return;
-    //     setPdfBusy(true);
-    //     try {
-    //         const url = await resolvePdfUrl();
-    //         if (url) window.open(url, "_blank", "noopener,noreferrer");
-    //     } finally {
-    //         setPdfBusy(false);
-    //     }
-    // };
 
     return (
         <Modal onClose={onClose}>
