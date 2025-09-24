@@ -6,7 +6,6 @@ import WebViewer from "@pdftron/pdfjs-express";
 
 const SourcesViewer: React.FC = () => {
     const viewerRef = useRef<HTMLDivElement>(null);
-    const initRef = useRef(false);
     const [instance, setInstance] = useState<any>(null);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -17,7 +16,7 @@ const SourcesViewer: React.FC = () => {
     // PDF state
     const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [zoomLevel, setZoomLevel] = useState<number>(100);
+    const [retryCounter, setRetryCounter] = useState(0);
 
     // Fetch signed URL
     useEffect(() => {
@@ -50,38 +49,98 @@ const SourcesViewer: React.FC = () => {
                 setLoading(false);
             }
         })();
-    }, [selectedPaper, projectId]);
+    }, [selectedPaper, projectId, retryCounter]);
 
     // Init WebViewer
     useEffect(() => {
-        if (viewerRef.current && !initRef.current) {
-            initRef.current = true;
-            WebViewer({ path: "/webviewer" }, viewerRef.current).then((inst) => {
+        if (viewerRef.current) {
+            WebViewer({ path: "/webviewer", licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY }, viewerRef.current).then(async (inst: any) => {
                 setInstance(inst);
-                inst.UI.disableElements(["ribbons", "toolsHeader"]);
+                const { documentViewer, annotationManager } = inst.Core;
+
+                inst.UI.setHeaderItems(function(header: any) {
+                    header.getHeader('toolbarGroup-Annotate').delete('toolsOverlay');
+                    const toolItems = header.getHeader('toolbarGroup-Annotate').getItems();
+                    const items = header.getHeader('default').getItems().slice(0, -4);
+                    const lastItems = header.getHeader('default').getItems().slice(-4);
+                    const combined = [
+                        ...items,
+                        ...toolItems,
+                        ...lastItems
+                    ];
+                    header.getHeader('default').update(combined);
+                });
+
+                // hide all ribbon tabs and tools header
+                inst.UI.disableElements(['ribbons', 'toolsHeader']);
+
+                inst.Core.documentViewer.addEventListener(
+                    'documentLoadFailed',
+                    (evt: any) => console.error('PDF failed to load:', evt),
+                );
                 inst.UI.setZoomStepFactors([
                     { step: 2, startZoom: 0 },
                     { step: 5, startZoom: 50 },
                     { step: 7, startZoom: 100 },
                     { step: 15, startZoom: 200 },
                 ]);
-                const dv = inst.Core.documentViewer;
-                dv.addEventListener("documentLoaded", () => {
-                    setPageCount(dv.getPageCount());
-                    setCurrentPage(dv.getCurrentPage());
-                    dv.addEventListener("pageNumberUpdated", (e: any) => {
-                        setCurrentPage(e.pageNumber);
-                    });
+
+                documentViewer.addEventListener("documentLoaded", async () => {
+                    setPageCount(documentViewer.getPageCount());
+                    setCurrentPage(documentViewer.getCurrentPage());
+
+                    // Load annotations from DB
+                    try {
+                        const { data, error } = await supabase
+                            .from("project_paper_links")
+                            .select("annotations")
+                            .eq("project_id", projectId)
+                            .eq("paper_id", selectedPaper!.id)
+                            .single();
+
+                        if (error) throw error;
+
+                        if (data?.annotations) {
+                            await annotationManager.importAnnotations(data.annotations);
+                        }
+                    } catch (err) {
+                        console.error("Error loading annotations:", err);
+                    }
+                });
+
+                documentViewer.addEventListener("pageNumberUpdated", (pageNumber: number) => {
+                    setCurrentPage(pageNumber);
+                });
+
+                annotationManager.addEventListener("annotationChanged", async (_annotations: any, action: any) => {
+                    if (["add", "modify", "delete"].includes(action)) {
+                        const xfdf = await annotationManager.exportAnnotations();
+                        try {
+                            const { error } = await supabase
+                                .from("project_paper_links")
+                                .update({ annotations: xfdf })
+                                .eq("project_id", projectId)
+                                .eq("paper_id", selectedPaper!.id);
+
+                            if (error) throw error;
+                        } catch (err) {
+                            console.error("Error saving annotation:", err);
+                        }
+                    }
                 });
             });
         }
-    }, []);
+        return () => {
+            instance?.dispose();
+            setInstance(null);
+        };
+    }, [projectId, selectedPaper]);
 
     // Load document when URL ready
     useEffect(() => {
         if (instance && signedUrl && selectedPaper) {
-            instance.loadDocument(signedUrl, {
-                filename: selectedPaper.filename,
+            instance.UI.loadDocument(signedUrl, {
+                filename: selectedPaper.title,
             });
         }
     }, [instance, signedUrl, selectedPaper]);
@@ -96,18 +155,9 @@ const SourcesViewer: React.FC = () => {
         [instance, currentPage, pageCount]
     );
 
-    const zoom = useCallback(
-        (factor: number) => {
-            if (!instance) return;
-            instance.UI.zoomTo(zoomLevel + factor);
-            setZoomLevel((z) => Math.min(Math.max(10, z + factor), 400));
-        },
-        [instance, zoomLevel]
-    );
-
     const retry = () => {
         setError(null);
-        setSignedUrl(null);
+        setRetryCounter((c) => c + 1);
     };
 
     if (!selectedPaper) {
@@ -135,34 +185,8 @@ const SourcesViewer: React.FC = () => {
                     </span>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-800 truncate">
-                            {selectedPaper.filename}
+                            {selectedPaper.title}
                         </h3>
-                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                            {selectedPaper.authors && (
-                                <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">people</span>
-                                    <span>{selectedPaper.authors.join(", ")}</span>
-                                </span>
-                            )}
-                            {selectedPaper.created_at && (
-                                <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">calendar_today</span>
-                                    <span>
-                                        {new Date(selectedPaper.created_at).toLocaleDateString()}
-                                    </span>
-                                </span>
-                            )}
-                            {pageCount > 0 && (
-                                <span className="flex items-center space-x-1">
-                                    <span className="material-icons text-base">menu_book</span>
-                                    <span>{pageCount} pages</span>
-                                </span>
-                            )}
-                            <span className="flex items-center space-x-1">
-                                <span className="material-icons text-base">note</span>
-                                <span>—</span>
-                            </span>
-                        </div>
                     </div>
                 </div>
 
@@ -190,7 +214,7 @@ const SourcesViewer: React.FC = () => {
 
                     <a
                         href={signedUrl || "#"}
-                        download={selectedPaper.filename}
+                        download={selectedPaper.title}
                         className="p-2 rounded hover:bg-gray-100"
                     >
                         <span className="material-icons text-gray-600">download</span>
@@ -198,29 +222,14 @@ const SourcesViewer: React.FC = () => {
                 </div>
             </header>
 
-            {/* Keyword Bar (optional) */}
-            {selectedPaper.keywords?.length > 0 && (
-                <div className="flex flex-wrap gap-2 bg-white px-6 py-2 border-b">
-                    {selectedPaper.keywords.map((kw) => (
-                        <span
-                            key={kw}
-                            className="px-3 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full"
-                        >
-                            {kw}
-                        </span>
-                    ))}
-                </div>
-            )}
-
             {/* Main PDF Viewer */}
             <div className="relative flex-1">
                 {loading && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <img
-                            src="/images/logo-bw.png"
-                            alt="Loading..."
-                            className="w-auto h-20 animate-spin"
-                        />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-75">
+                        <div className="flex flex-col items-center space-y-3">
+                            <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+                            <p className="text-gray-600 text-sm">Loading PDF...</p>
+                        </div>
                     </div>
                 )}
                 {error && (
@@ -249,8 +258,6 @@ const SourcesViewer: React.FC = () => {
                         <span>
                             {currentPage} / {pageCount}
                         </span>
-                        <span>•</span>
-                        <span>{zoomLevel}%</span>
                     </div>
                 )}
             </div>
