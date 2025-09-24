@@ -32,6 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const metadataSubmitButton = document.getElementById('metadata-submit');
   const metadataSourceEl = document.getElementById('metadata-source');
 
+  const EMPTY_PDF_STATUS = {
+    isPdf: false,
+    url: null,
+    title: '',
+    detectedAt: null,
+    doi: null,
+    source: null,
+    arxivId: null
+  };
+
   if (
     !statusEl ||
     !loginButton ||
@@ -73,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let projectsLoading = false;
   let selectedProjectId = null;
   let defaultProjectId = null;
-  let currentPdfStatus = { isPdf: false, url: null, detectedAt: null };
+  let currentPdfStatus = { ...EMPTY_PDF_STATUS };
   let currentPdfTabId = null;
   let hasResolvedSession = false;
   let metadataContextUrl = null;
@@ -81,8 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let metadataUploading = false;
   let metadataSuccess = false;
   let metadataError = null;
-  let metadataPrefilled = false;
-  const metadataCache = new Map();
+  let metadataAlreadyIndexed = false;
   setStatus('Checking session…');
   loginButton.disabled = true;
   logoutButton.disabled = true;
@@ -105,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!message || message.type !== 'auth:changed') {
       if (message && message.type === 'pdf:status-changed') {
         if (message.status) {
-          currentPdfStatus = message.status;
+          currentPdfStatus = { ...EMPTY_PDF_STATUS, ...message.status };
           currentPdfTabId = message.tabId ?? currentPdfTabId;
           updatePdfStatusUI();
         }
@@ -198,6 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   metadataForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (metadataAlreadyIndexed) {
+      metadataError = null;
+      metadataSuccess = false;
+      updateMetadataUI();
+      return;
+    }
     if (!currentSession || !currentSession.accessToken) {
       metadataError = 'Sign in to upload PDFs.';
       metadataSuccess = false;
@@ -254,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
   metadataForm.addEventListener('input', () => {
     metadataSuccess = false;
     metadataError = null;
+    metadataAlreadyIndexed = false;
     updateMetadataUI();
   });
 
@@ -362,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const response = await sendMessage({ type: 'pdf:getStatus' });
       if (response?.ok) {
-        currentPdfStatus = response.status || { isPdf: false, url: null, detectedAt: null };
+        currentPdfStatus = response.status ? { ...EMPTY_PDF_STATUS, ...response.status } : { ...EMPTY_PDF_STATUS };
         currentPdfTabId = response.tabId ?? currentPdfTabId;
         if (response.defaultProjectId) {
           defaultProjectId = response.defaultProjectId;
@@ -380,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function resetPdfStatus() {
-    currentPdfStatus = { isPdf: false, url: null, detectedAt: null };
+    currentPdfStatus = { ...EMPTY_PDF_STATUS };
     currentPdfTabId = null;
     metadataContextUrl = null;
     resetMetadataForm();
@@ -416,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pdfStatusMessage.textContent = `Metadata form is ready for the PDF (${url}).`;
 
       metadataSection.classList.remove('hidden');
+      metadataForm.classList.remove('fields-hidden');
 
       metadataSourceEl.classList.toggle('hidden', !currentPdfStatus.source);
       if (currentPdfStatus.source) {
@@ -431,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
           metadataDoiInput.value = currentPdfStatus.doi || '';
         }
         if (currentPdfStatus.doi) {
-          void prefillMetadataForDoi(currentPdfStatus.doi, currentPdfStatus.source);
+          prefillMetadataForDoi(currentPdfStatus.doi, currentPdfStatus.source);
         } else {
           updateMetadataUI();
         }
@@ -599,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
     metadataUploading = false;
     metadataSuccess = false;
     metadataError = null;
-    metadataPrefilled = false;
+    metadataAlreadyIndexed = false;
     metadataSourceEl.classList.add('hidden');
     metadataSourceEl.textContent = '';
     metadataStatusEl.textContent = '';
@@ -614,19 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const cached = metadataCache.get(doi);
-    if (cached !== undefined) {
-      if (cached) {
-        applyMetadataToInputs(cached, doi);
-      } else {
-        metadataPrefilled = false;
-        updateMetadataUI();
-      }
-      return;
-    }
-
     metadataLoading = true;
-    metadataPrefilled = false;
+    metadataAlreadyIndexed = false;
     metadataError = null;
     if (source) {
       metadataSourceEl.classList.remove('hidden');
@@ -643,54 +649,22 @@ document.addEventListener('DOMContentLoaded', () => {
         payload: { doi }
       });
 
-      if (response?.ok && response.metadata) {
-        metadataCache.set(doi, response.metadata);
-        applyMetadataToInputs(response.metadata, doi);
-      } else {
-        metadataCache.set(doi, null);
+      if (response?.ok && response.paperId) {
+        metadataAlreadyIndexed = true;
         metadataLoading = false;
-        metadataPrefilled = false;
+        metadataError = null;
+        updateMetadataUI();
+      } else {
+        metadataLoading = false;
+        metadataAlreadyIndexed = false;
         updateMetadataUI();
       }
     } catch (error) {
-      metadataCache.set(doi, null);
       metadataLoading = false;
       metadataError = error?.message || 'Unable to fetch metadata.';
-      metadataPrefilled = false;
+      metadataAlreadyIndexed = false;
       updateMetadataUI();
     }
-  }
-
-  function applyMetadataToInputs(metadata, fallbackDoi) {
-    if (metadataTitleInput && metadata.title) {
-      metadataTitleInput.value = metadata.title;
-    }
-    if (metadataAbstractInput && metadata.abstract !== undefined) {
-      metadataAbstractInput.value = metadata.abstract || '';
-    }
-    if (metadataAuthorsInput && Array.isArray(metadata.authors)) {
-      metadataAuthorsInput.value = metadata.authors.join('\n');
-    }
-    if (metadataYearInput && typeof metadata.year === 'number') {
-      metadataYearInput.value = String(metadata.year);
-    }
-    if (metadataMonthInput && typeof metadata.month === 'number') {
-      metadataMonthInput.value = String(metadata.month);
-    }
-    if (metadataDayInput && typeof metadata.day === 'number') {
-      metadataDayInput.value = String(metadata.day);
-    }
-    if (metadataDoiInput) {
-      metadataDoiInput.value = metadata.doi || fallbackDoi || metadataDoiInput.value;
-    }
-    if (metadataCategoryInput && metadata.category !== undefined) {
-      metadataCategoryInput.value = metadata.category || '';
-    }
-
-    metadataLoading = false;
-    metadataPrefilled = true;
-    metadataError = null;
-    updateMetadataUI();
   }
 
   function collectMetadataFromForm() {
@@ -746,6 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     metadataSection.classList.remove('hidden');
+    metadataForm.classList.toggle('fields-hidden', metadataAlreadyIndexed);
 
     const disableControls = metadataUploading || metadataLoading;
     const controls = metadataForm.querySelectorAll('input, textarea');
@@ -756,9 +731,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectAvailable = Boolean(selectedProjectId || defaultProjectId);
 
     if (metadataLoading) {
-      metadataStatusEl.textContent = 'Retrieving metadata…';
+      metadataForm.classList.add('fields-hidden');
+      metadataStatusEl.textContent = 'Checking our records for this paper…';
       metadataStatusEl.className = 'status-message';
     } else if (metadataUploading) {
+      metadataForm.classList.add('fields-hidden');
       metadataStatusEl.textContent = 'Uploading PDF to Sevenfold…';
       metadataStatusEl.className = 'status-message';
     } else if (metadataError) {
@@ -767,10 +744,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (metadataSuccess) {
       metadataStatusEl.textContent = 'Upload complete! You can close this tab or keep browsing.';
       metadataStatusEl.className = 'status-message success';
-    } else if (metadataPrefilled) {
-      metadataStatusEl.textContent = 'Metadata autofilled from Sevenfold.';
+    } else if (metadataAlreadyIndexed) {
+      metadataForm.classList.add('fields-hidden');
+      metadataStatusEl.textContent = "We've already indexed this paper before; no need to fill in the metadata.";
       metadataStatusEl.className = 'status-message';
     } else if (!projectAvailable) {
+      metadataForm.classList.add('fields-hidden');
       metadataStatusEl.textContent = 'Select a project before uploading.';
       metadataStatusEl.className = 'status-message';
     } else {
@@ -778,7 +757,12 @@ document.addEventListener('DOMContentLoaded', () => {
       metadataStatusEl.className = 'status-message';
     }
 
-    metadataSubmitButton.textContent = metadataUploading ? 'Uploading…' : metadataSuccess ? 'Uploaded' : 'Upload PDF';
+    const idleButtonLabel = 'Upload PDF';
+    metadataSubmitButton.textContent = metadataUploading
+      ? 'Uploading…'
+      : metadataSuccess
+      ? 'Uploaded'
+      : idleButtonLabel;
     metadataSubmitButton.disabled = disableControls || !projectAvailable || metadataSuccess;
   }
 

@@ -105,7 +105,7 @@ button:disabled {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .panel {
@@ -213,6 +213,11 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.metadata-form.fields-hidden > .field,
+.metadata-form.fields-hidden > .metadata-row {
+  display: none;
 }
 
 #metadata-status {

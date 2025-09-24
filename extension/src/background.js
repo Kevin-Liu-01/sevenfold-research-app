@@ -10,6 +10,20 @@ const UPLOAD_RESULT_MESSAGE = 'upload:result';
 const UPLOAD_ERROR_MESSAGE = 'upload:error';
 const METADATA_LOOKUP_MESSAGE = 'metadata:lookup';
 
+const EMPTY_PDF_STATUS = {
+  isPdf: false,
+  url: null,
+  title: '',
+  detectedAt: null,
+  doi: null,
+  source: null,
+  arxivId: null
+};
+
+const METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+const metadataLookupCache = new Map();
+
 const pdfStatusByTab = new Map();
 const popupOpenedForTabs = new Set();
 
@@ -113,8 +127,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === METADATA_LOOKUP_MESSAGE) {
     handleMetadataLookup(message.payload)
-      .then((metadata) => {
-        sendResponse({ ok: true, metadata });
+      .then((paperId) => {
+        sendResponse({ ok: true, paperId });
       })
       .catch((error) => {
         console.error('[metadata] lookup failed', error);
@@ -299,6 +313,11 @@ async function handleMetadataLookup(payload) {
     throw new Error('DOI required for metadata lookup');
   }
 
+  const cachedPaperId = getCachedPaperId(doi);
+  if (cachedPaperId !== undefined) {
+    return cachedPaperId;
+  }
+
   const session = await handleGetSession();
   if (!session || !session.accessToken) {
     throw new Error('Sign in to fetch metadata');
@@ -306,19 +325,41 @@ async function handleMetadataLookup(payload) {
 
   const { data, error } = await supabase
     .from('paper_attrs')
-    .select('title, abstract, authors, year, month, day, doi, category')
+    .select('id')
     .eq('doi', doi)
     .maybeSingle();
 
   if (error) {
     // Supabase returns PGRST116 when no rows are found. Treat it as null metadata.
     if (error.code === 'PGRST116') {
+      setCachedPaperId(doi, null);
       return null;
     }
     throw error;
   }
 
-  return data ?? null;
+  const paperId = data?.id ?? null;
+  setCachedPaperId(doi, paperId);
+  return paperId;
+}
+
+function getCachedPaperId(doi) {
+  const cached = metadataLookupCache.get(doi);
+  if (!cached) {
+    return undefined;
+  }
+  if (cached.expiresAt <= Date.now()) {
+    metadataLookupCache.delete(doi);
+    return undefined;
+  }
+  return cached.paperId ?? null;
+}
+
+function setCachedPaperId(doi, paperId) {
+  metadataLookupCache.set(doi, {
+    paperId: paperId ?? null,
+    expiresAt: Date.now() + METADATA_CACHE_TTL_MS
+  });
 }
 
 function handlePdfStatus(payload, sender) {
@@ -372,10 +413,7 @@ async function handleGetPdfStatus(requestedTabId) {
     }
   }
 
-  const status =
-    tabId != null
-      ? pdfStatusByTab.get(tabId) ?? { isPdf: false, url: null, title: '', doi: null, source: null, arxivId: null }
-      : null;
+  const status = tabId != null ? pdfStatusByTab.get(tabId) ?? { ...EMPTY_PDF_STATUS } : null;
   const defaultProjectId = await getDefaultProjectId();
   return { tabId, status, defaultProjectId };
 }
