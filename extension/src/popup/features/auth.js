@@ -1,0 +1,191 @@
+import { getState, setState } from '../state/store.js';
+import { sendMessage } from '../services/runtimeMessaging.js';
+
+export function createAuthFeature({
+  elements,
+  setStatus,
+  loadProjects,
+  loadPdfStatus,
+  resetProjects,
+  resetPdfStatus,
+  refreshUI
+}) {
+  const {
+    loginButton,
+    logoutButton,
+    emailInput,
+    passwordInput,
+    emailLoginButton
+  } = elements;
+
+  function disableAuthControls() {
+    loginButton.disabled = true;
+    logoutButton.disabled = true;
+    emailLoginButton.disabled = true;
+    emailInput.disabled = true;
+    passwordInput.disabled = true;
+  }
+
+  function enableAuthInputs() {
+    const { currentSession } = getState();
+    const isAuthed = Boolean(currentSession && currentSession.accessToken);
+    loginButton.disabled = isAuthed;
+    emailLoginButton.disabled = isAuthed;
+    emailInput.disabled = isAuthed;
+    passwordInput.disabled = isAuthed;
+    logoutButton.disabled = !isAuthed;
+  }
+
+  async function handleSupabaseLogin() {
+    disableAuthControls();
+    setStatus('Opening Supabase login…');
+
+    try {
+      const response = await sendMessage({ type: 'auth:login' });
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Login failed');
+      }
+
+      setState({
+        currentSession: response.session,
+        hasResolvedSession: true,
+        projectsLoaded: false
+      });
+
+      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      await loadProjects();
+      await loadPdfStatus();
+    } catch (error) {
+      console.error('[popup] login error', error);
+      setStatus(`Login error: ${error.message}`);
+    } finally {
+      passwordInput.value = '';
+      enableAuthInputs();
+      refreshUI();
+    }
+  }
+
+  async function handleEmailLogin() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if (!email || !password) {
+      setStatus('Enter email and password to continue.');
+      return;
+    }
+
+    disableAuthControls();
+    setStatus('Signing in with email…');
+
+    try {
+      const response = await sendMessage({
+        type: 'auth:loginPassword',
+        email,
+        password
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Login failed');
+      }
+
+      setState({
+        currentSession: response.session,
+        hasResolvedSession: true,
+        projectsLoaded: false
+      });
+
+      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      await loadProjects();
+      await loadPdfStatus();
+    } catch (error) {
+      console.error('[popup] email login error', error);
+      setStatus(`Email login error: ${error.message}`);
+    } finally {
+      passwordInput.value = '';
+      enableAuthInputs();
+      refreshUI();
+    }
+  }
+
+  async function handleLogout() {
+    logoutButton.disabled = true;
+    setStatus('Signing out…');
+
+    try {
+      const response = await sendMessage({ type: 'auth:logout' });
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Logout failed');
+      }
+
+      setState({ currentSession: null, hasResolvedSession: true });
+      setStatus('Signed out.');
+      resetProjects();
+      resetPdfStatus();
+    } catch (error) {
+      console.error('[popup] logout error', error);
+      setStatus(`Logout error: ${error.message}`);
+    } finally {
+      passwordInput.value = '';
+      enableAuthInputs();
+      refreshUI();
+    }
+  }
+
+  async function bootstrapSession() {
+    console.log('init');
+    try {
+      console.log('fetching session');
+      const response = await sendMessage({ type: 'auth:getSession' });
+      console.log('[popup] got session', response);
+      if (response?.ok) {
+        setState({ currentSession: response.session || null });
+        if (response.session) {
+          setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+          await loadProjects();
+          await loadPdfStatus();
+        } else {
+          setStatus('Not signed in.');
+        }
+      } else {
+        setStatus('Unable to fetch session. Sign in to continue.');
+      }
+    } catch (error) {
+      console.error('[popup] init error', error);
+      setStatus('Unable to reach background script.');
+    } finally {
+      setState({ hasResolvedSession: true });
+      enableAuthInputs();
+      refreshUI();
+    }
+  }
+
+  function handleAuthChanged(session) {
+    setState({ currentSession: session, hasResolvedSession: true });
+    const isAuthed = Boolean(session && session.accessToken);
+
+    if (isAuthed) {
+      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      void loadProjects();
+      void loadPdfStatus();
+    } else {
+      setStatus('Not signed in.');
+      resetProjects();
+      resetPdfStatus();
+    }
+
+    enableAuthInputs();
+    refreshUI();
+  }
+
+  function init() {
+    loginButton.addEventListener('click', handleSupabaseLogin);
+    emailLoginButton.addEventListener('click', handleEmailLogin);
+    logoutButton.addEventListener('click', handleLogout);
+  }
+
+  return {
+    init,
+    bootstrapSession,
+    handleAuthChanged,
+    enableAuthInputs
+  };
+}

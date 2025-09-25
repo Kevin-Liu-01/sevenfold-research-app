@@ -15,7 +15,7 @@ export default defineConfig({
       input: {
         background: resolve(root, 'background.js'),
         content: resolve(root, 'content.js'),
-        popup: resolve(root, 'popup/popup.js')
+        popup: resolve(root, 'popup/popup.js'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
@@ -27,17 +27,17 @@ export default defineConfig({
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
         format: 'es',
-        inlineDynamicImports: false
-      }
-    }
+        inlineDynamicImports: false,
+      },
+    },
   },
   plugins: [
     viteStaticCopy({
       targets: [
         { src: resolve(root, 'manifest.json'), dest: '.' },
         { src: resolve(root, 'popup/index.html'), dest: 'popup' },
-        { src: resolve(root, 'popup/styles.css'), dest: 'popup' }
-      ]
-    })
-  ]
+        { src: resolve(root, 'popup/styles.css'), dest: 'popup' },
+      ],
+    }),
+  ],
 });

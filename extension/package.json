@@ -5,8 +5,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch --mode development",
-    "lint": "eslint \"extension/**/*.js\"",
-    "format": "prettier --write \"extension/**/*.{js,css,html}\" vite.config.mjs",
+    "lint": "eslint \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.js,css,html}\" vite.config.mjs",
     "zip": "npm run build && node scripts/zip-extension.js"
   },
   "repository": {
