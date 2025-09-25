@@ -111,16 +111,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Listen for session updates broadcast by the background worker.
   chrome.runtime.onMessage.addListener((message) => {
-    if (!message || message.type !== 'auth:changed') {
-      if (message && message.type === 'pdf:status-changed') {
-        if (message.status) {
-          currentPdfStatus = { ...EMPTY_PDF_STATUS, ...message.status };
-          currentPdfTabId = message.tabId ?? currentPdfTabId;
-          updatePdfStatusUI();
-        }
+    if (!message) {
+      return;
+    }
+
+    if (message.type === 'pdf:status-changed') {
+      if (message.status) {
+        currentPdfStatus = { ...EMPTY_PDF_STATUS, ...message.status };
+        currentPdfTabId = message.tabId ?? currentPdfTabId;
+        updatePdfStatusUI();
       }
       return;
     }
+
+    if (message.type !== 'auth:changed') {
+      return;
+    }
+
     currentSession = message.payload;
     hasResolvedSession = true;
     updateStatusForSession();
@@ -207,12 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   metadataForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (metadataAlreadyIndexed) {
-      metadataError = null;
-      metadataSuccess = false;
-      updateMetadataUI();
-      return;
-    }
+
     if (!currentSession || !currentSession.accessToken) {
       metadataError = 'Sign in to upload PDFs.';
       metadataSuccess = false;
@@ -247,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         payload: {
           url: currentPdfStatus?.url || window.location.href,
           metadata: { ...collectResult.value, projectId },
-          projectId
+          projectId: projectId
         }
       });
 
@@ -296,8 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Bootstrap the popup with the current session (if any).
   async function init() {
+    console.log('init');
     try {
+      console.log('fetching session');
       const response = await sendMessage({ type: 'auth:getSession' });
+      console.log('[popup] got session', response);
       if (response?.ok) {
         currentSession = response.session || null;
         if (currentSession) {
@@ -343,6 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setStatus(message) {
     statusEl.textContent = message;
+  }
+
+  function hideStatus() {
+    statusEl.textContent = '';
   }
 
   function updateStatusForSession() {
@@ -430,9 +439,6 @@ document.addEventListener('DOMContentLoaded', () => {
       pdfStatusPill.className = 'pill pill-active';
       const url = currentPdfStatus.url ? safeHostname(currentPdfStatus.url) : 'current tab';
       pdfStatusMessage.textContent = `Metadata form is ready for the PDF (${url}).`;
-
-      metadataSection.classList.remove('hidden');
-      metadataForm.classList.remove('fields-hidden');
 
       metadataSourceEl.classList.toggle('hidden', !currentPdfStatus.source);
       if (currentPdfStatus.source) {
@@ -669,10 +675,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function collectMetadataFromForm() {
     const title = metadataTitleInput.value.trim();
-    if (!title) {
-      return { ok: false, error: 'Title is required.' };
-    }
-
     const abstract = metadataAbstractInput.value.trim();
     const authors = metadataAuthorsInput.value
       .split(/\n|,/)
@@ -746,6 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
       metadataStatusEl.className = 'status-message success';
     } else if (metadataAlreadyIndexed) {
       metadataForm.classList.add('fields-hidden');
+      metadataTitleInput.removeAttribute('required');
       metadataStatusEl.textContent = "We've already indexed this paper before; no need to fill in the metadata.";
       metadataStatusEl.className = 'status-message';
     } else if (!projectAvailable) {
@@ -753,6 +756,8 @@ document.addEventListener('DOMContentLoaded', () => {
       metadataStatusEl.textContent = 'Select a project before uploading.';
       metadataStatusEl.className = 'status-message';
     } else {
+      metadataForm.classList.remove('fields-hidden');
+      metadataTitleInput.setAttribute('required', 'required');
       metadataStatusEl.textContent = 'Fill in metadata and submit to store this PDF.';
       metadataStatusEl.className = 'status-message';
     }
@@ -761,8 +766,8 @@ document.addEventListener('DOMContentLoaded', () => {
     metadataSubmitButton.textContent = metadataUploading
       ? 'Uploading…'
       : metadataSuccess
-      ? 'Uploaded'
-      : idleButtonLabel;
+        ? 'Uploaded'
+        : idleButtonLabel;
     metadataSubmitButton.disabled = disableControls || !projectAvailable || metadataSuccess;
   }
 

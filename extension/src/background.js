@@ -1,7 +1,6 @@
 import { supabaseConfig, apiConfig } from './config.js';
 import { supabase } from './background/supabaseClient.js';
 
-const REFRESH_MARGIN_MS = 2 * 60 * 1000;
 const OAUTH_SCOPES = 'openid email profile';
 const PDF_STATUS_MESSAGE = 'pdf:status';
 const PDF_STATUS_CHANGED_MESSAGE = 'pdf:status-changed';
@@ -20,12 +19,16 @@ const EMPTY_PDF_STATUS = {
   arxivId: null
 };
 
-const METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
 const metadataLookupCache = new Map();
 
 const pdfStatusByTab = new Map();
 const popupOpenedForTabs = new Set();
+
+const SESSION_PRIME_DELAY_MS = 50; // Allow auth event to fire before getSession fallback.
+
+let cachedSession;
+let sessionPrimingPromise = null;
+const pendingSessionResolvers = new Set();
 
 console.log('[background] service worker loaded');
 
@@ -33,12 +36,8 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('[background] extension installed');
 });
 
-bootstrapSession().catch((error) => {
-  console.error('[auth] bootstrap failed', error);
-});
-
 supabase.auth.onAuthStateChange((_event, session) => {
-  broadcastAuthChanged(normalizeSession(session));
+  updateSessionCache(session);
 });
 
 if (chrome.tabs && chrome.tabs.onRemoved) {
@@ -78,6 +77,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'auth:getSession') {
+    console.log('[auth] getSession requested');
     handleGetSession()
       .then((session) => sendResponse({ ok: true, session }))
       .catch((error) => {
@@ -98,6 +98,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === PDF_STATUS_MESSAGE) {
+    console.log('[background] pdf status received', message.payload, sender?.tab?.id);
     handlePdfStatus(message.payload, sender);
     sendResponse({ ok: true });
     return false;
@@ -162,28 +163,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return undefined;
 });
 
-async function bootstrapSession() {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      throw error;
-    }
-
-    let session = data.session;
-    if (shouldRefresh(session)) {
-      const refreshed = await supabase.auth.refreshSession();
-      if (refreshed.error) {
-        throw refreshed.error;
-      }
-      session = refreshed.data.session;
-    }
-
-    broadcastAuthChanged(normalizeSession(session));
-  } catch (error) {
-    console.error('[auth] bootstrap session failed', error);
-  }
-}
-
 async function handleLogin(requestedProvider) {
   const provider = requestedProvider || supabaseConfig.defaultProvider;
   if (!provider) {
@@ -227,9 +206,7 @@ async function handleLogin(requestedProvider) {
     throw exchange.error;
   }
 
-  const session = normalizeSession(exchange.data.session);
-  broadcastAuthChanged(session);
-  return session;
+  return updateSessionCache(exchange.data.session);
 }
 
 async function handlePasswordLogin(email, password) {
@@ -242,27 +219,11 @@ async function handlePasswordLogin(email, password) {
     throw error;
   }
 
-  const session = normalizeSession(data.session);
-  broadcastAuthChanged(session);
-  return session;
+  return updateSessionCache(data.session);
 }
 
 async function handleGetSession() {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    throw error;
-  }
-
-  let session = data.session;
-  if (shouldRefresh(session)) {
-    const refreshed = await supabase.auth.refreshSession();
-    if (refreshed.error) {
-      throw refreshed.error;
-    }
-    session = refreshed.data.session;
-  }
-
-  return normalizeSession(session);
+  return await waitForCachedSession();
 }
 
 async function handleLogout() {
@@ -271,7 +232,106 @@ async function handleLogout() {
     throw error;
   }
 
-  broadcastAuthChanged(null);
+  updateSessionCache(null);
+}
+
+function waitForCachedSession() {
+  if (cachedSession !== undefined) {
+    console.log('[auth] returning cached session');
+    return Promise.resolve(cachedSession);
+  }
+
+  console.log('[auth] waiting for session to be available');
+  return new Promise((resolve) => {
+    pendingSessionResolvers.add(resolve);
+    scheduleSessionPrime();
+  });
+}
+
+function scheduleSessionPrime() {
+  if (cachedSession !== undefined || sessionPrimingPromise) {
+    return;
+  }
+
+  sessionPrimingPromise = (async () => {
+    await new Promise((resolve) => setTimeout(resolve, SESSION_PRIME_DELAY_MS));
+    if (cachedSession !== undefined) {
+      return cachedSession;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        throw error;
+      }
+      return updateSessionCache(data.session);
+    } catch (error) {
+      console.error('[auth] initial session fetch failed', error);
+      return updateSessionCache(null);
+    } finally {
+      sessionPrimingPromise = null;
+    }
+  })();
+}
+
+function updateSessionCache(rawSession, { broadcast = true } = {}) {
+  const normalized = normalizeSession(rawSession);
+  const previous = cachedSession;
+  const changed = !sessionsEqual(previous, normalized);
+
+  cachedSession = normalized;
+  resolvePendingSessions(normalized);
+
+  if (broadcast && (changed || previous === undefined)) {
+    broadcastAuthChanged(normalized);
+  }
+
+  return normalized;
+}
+
+function resolvePendingSessions(session) {
+  if (!pendingSessionResolvers.size) {
+    return;
+  }
+
+  for (const resolve of pendingSessionResolvers) {
+    try {
+      resolve(session);
+    } catch (error) {
+      console.error('[auth] failed to resolve pending session listener', error);
+    }
+  }
+  pendingSessionResolvers.clear();
+}
+
+function sessionsEqual(a, b) {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return a === b;
+  }
+
+  if (a.accessToken !== b.accessToken) {
+    return false;
+  }
+  if (a.tokenType !== b.tokenType) {
+    return false;
+  }
+  if (a.expiresAt !== b.expiresAt) {
+    return false;
+  }
+
+  const userA = a.user ?? null;
+  const userB = b.user ?? null;
+  if (userA === userB) {
+    return true;
+  }
+  if (!userA || !userB) {
+    return false;
+  }
+
+  return JSON.stringify(userA) === JSON.stringify(userB);
 }
 
 async function handleListProjects() {
@@ -308,16 +368,20 @@ async function handleProjectsListWithDefault() {
 }
 
 async function handleMetadataLookup(payload) {
+  console.log('[metadata] lookup requested', payload);
   const doi = typeof payload?.doi === 'string' ? payload.doi.trim() : '';
   if (!doi) {
     throw new Error('DOI required for metadata lookup');
   }
 
+  console.log('[metadata] looking up DOI', doi);
   const cachedPaperId = getCachedPaperId(doi);
   if (cachedPaperId !== undefined) {
+    console.log('[metadata] returning cached paper ID', cachedPaperId);
     return cachedPaperId;
   }
 
+  console.log('[metadata] cache miss, querying db');
   const session = await handleGetSession();
   if (!session || !session.accessToken) {
     throw new Error('Sign in to fetch metadata');
@@ -348,18 +412,11 @@ function getCachedPaperId(doi) {
   if (!cached) {
     return undefined;
   }
-  if (cached.expiresAt <= Date.now()) {
-    metadataLookupCache.delete(doi);
-    return undefined;
-  }
   return cached.paperId ?? null;
 }
 
 function setCachedPaperId(doi, paperId) {
-  metadataLookupCache.set(doi, {
-    paperId: paperId ?? null,
-    expiresAt: Date.now() + METADATA_CACHE_TTL_MS
-  });
+  metadataLookupCache.set(doi, { paperId: paperId ?? null });
 }
 
 function handlePdfStatus(payload, sender) {
@@ -431,29 +488,48 @@ async function handleUploadRequest(payload, senderTabId) {
 
     const projectId = await resolveProjectId(payload.projectId);
     if (!projectId) {
-    throw new Error('No project available. Create a project in Sevenfold first.');
+      throw new Error('No project available. Create a project in Sevenfold first.');
     }
 
     const blob = await fetchPdfBlob(payload.url);
 
-    const uploadUrl = buildUploadUrl();
-    console.log('[upload] uploading to', uploadUrl);
-    const formData = new FormData();
-    formData.append('file', blob, deriveFileNameFromUrl(payload.url));
-    formData.append('project_id', projectId);
-    formData.append('paper_type', payload.paperType || 'source');
+    const doi = typeof payload?.metadata?.doi === 'string' ? payload.metadata.doi.trim() : '';
+    let response;
+    if (doi && getCachedPaperId(doi)) {
+      // link the paper ID to this project
+      const linkPaperUrl = buildLinkPaperUrl();
+      const paperId = getCachedPaperId(doi);
+      console.log('[upload] linking paper by ID to project', linkPaperUrl, paperId, projectId);
+      const formData = new FormData();
+      formData.append('file', blob);
+      formData.append('paper_id', paperId);
+      formData.append('project_id', projectId);
+      response = await fetch(linkPaperUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`
+        },
+        body: formData
+      });
+    } else {
+      const uploadUrl = buildUploadUrl();
+      console.log('[upload] uploading to', uploadUrl);
+      const formData = new FormData();
+      formData.append('file', blob, deriveFileNameFromUrl(payload.url));
+      formData.append('project_id', projectId);
+      formData.append('paper_type', payload.paperType || 'source');
 
-    const metadata = normalizeMetadata(payload.metadata);
-    formData.append('metadata_json', JSON.stringify(metadata));
+      const metadata = normalizeMetadata(payload.metadata);
+      formData.append('metadata_json', JSON.stringify(metadata));
 
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`
-      },
-      body: formData
-    });
-
+      response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`
+        },
+        body: formData
+      });
+    }
     const responseBody = await parseJsonSafe(response);
     if (!response.ok) {
       const message = responseBody?.detail || responseBody?.error || response.statusText;
@@ -518,6 +594,18 @@ function buildUploadUrl() {
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 
+function buildLinkPaperUrl() {
+  if (!apiConfig?.baseUrl) {
+    throw new Error('API base URL not configured');
+  }
+
+  const base = apiConfig.baseUrl.endsWith('/')
+    ? apiConfig.baseUrl.slice(0, -1)
+    : apiConfig.baseUrl;
+  const path = apiConfig.linkPaperPath || '/link-paper';
+  return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
 function deriveFileNameFromUrl(url) {
   try {
     const parsed = new URL(url);
@@ -548,8 +636,8 @@ function normalizeMetadata(rawMetadata) {
   const abstract = sanitizeNullableString(rawMetadata.abstract);
   const authors = Array.isArray(rawMetadata.authors)
     ? rawMetadata.authors
-        .map((author) => (typeof author === 'string' ? author.trim() : ''))
-        .filter(Boolean)
+      .map((author) => (typeof author === 'string' ? author.trim() : ''))
+      .filter(Boolean)
     : [];
 
   const year = sanitizeNullableInteger(rawMetadata.year, 0, 5000, 'Year must be a positive number.');
@@ -622,24 +710,6 @@ async function parseJsonSafe(response) {
   } catch {
     return {};
   }
-}
-
-function shouldRefresh(session) {
-  if (!session) {
-    return false;
-  }
-
-  const expiresAt = session.expires_at
-    ? session.expires_at * 1000
-    : session.expires_in
-      ? Date.now() + session.expires_in * 1000
-      : null;
-
-  if (!expiresAt) {
-    return false;
-  }
-
-  return expiresAt - REFRESH_MARGIN_MS <= Date.now();
 }
 
 function normalizeSession(session) {

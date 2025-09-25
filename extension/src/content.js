@@ -41,6 +41,7 @@ function setupObservers() {
   urlCheckInterval = window.setInterval(() => {
     if (window.location.href !== lastKnownUrl) {
       lastKnownUrl = window.location.href;
+      console.log('[content] URL change detected to', lastKnownUrl);
       detectPdf();
     }
   }, 1000);
@@ -60,6 +61,7 @@ function scheduleDetection() {
 function detectPdf() {
   const url = new URL(window.location.href);
   const pathname = url.pathname.toLowerCase();
+  console.log('[content] checking for PDF at', url.href);
 
   const endsWithPdf = pathname.endsWith('.pdf') || pathname.endsWith('.pdf/');
   const contentTypePdf = (document.contentType || '').toLowerCase() === 'application/pdf';
@@ -76,13 +78,16 @@ function detectPdf() {
     let source = null;
 
     if (isPdf) {
-      const arxivInfo = extractArxivInfo(url.pathname);
-      if (arxivInfo) {
-        ({ doi, arxivId } = arxivInfo);
-        source = 'arxiv';
+      if (url.hostname === ARXIV_HOST) {
+        const arxivInfo = extractArxivInfo(url.pathname);
+        if (arxivInfo) {
+          ({ doi, arxivId } = arxivInfo);
+          source = 'arxiv';
+        }
       }
     }
 
+    console.log('[content] notify background: isPdf=', isPdf, 'doi=', doi, 'arxivId=', arxivId);
     notifyBackground({
       isPdf,
       url: window.location.href,
@@ -188,6 +193,7 @@ function sendMessageToBackground(message) {
 }
 
 function extractArxivInfo(pathname) {
+  console.log('[content] extracting arXiv info from', pathname);
   const segments = pathname.split('/').filter(Boolean);
   if (!segments.length) {
     return null;
