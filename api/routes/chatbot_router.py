@@ -7,11 +7,25 @@ import anthropic
 import os
 import json
 import base64
+from pathlib import Path
 
 from db.supabase import supabase
 from utils.auth import get_user_id_from_token
 
 load_dotenv()
+
+PROMPTS_ROOT = Path(__file__).resolve().parent.parent / "prompts"
+
+
+def _load_prompt(*relative_parts: str) -> str:
+    """Load a prompt text file from the prompts directory."""
+    return (PROMPTS_ROOT.joinpath(*relative_parts)).read_text(encoding="utf-8")
+
+
+CHAT_SYSTEM_PROMPT = _load_prompt("chatbot", "chat_system_prompt.xml")
+PDF_SYSTEM_PROMPT = _load_prompt("chatbot", "pdf_system_prompt.xml")
+TAB_TITLE_SYSTEM_PROMPT = _load_prompt("chatbot", "tab_title_system_prompt.xml")
+TAB_TITLE_USER_TEMPLATE = _load_prompt("chatbot", "tab_title_user_prompt.xml")
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -70,9 +84,7 @@ def _build_chat_prompt(
 ) -> List[Dict[str, str]]:
     """Build the prompt for the LLM including all context."""
     
-    system_content = """You are an AI research assistant helping users understand and work with scientific papers. 
-You provide detailed, accurate, and helpful responses about papers, their content, methodologies, and how they can be integrated into research work.
-Be concise but thorough, and always ground your responses in the actual paper content when available."""
+    system_content = CHAT_SYSTEM_PROMPT
 
     if paper_context:
         system_content += f"\n\nCurrent Paper Being Discussed:"
@@ -103,7 +115,7 @@ Be concise but thorough, and always ground your responses in the actual paper co
 async def _generate_tab_name(user_message: str, paper_filenames: Optional[List[str]] = None) -> str:
     """Generate a concise tab name based on the first message."""
     try:
-        prompt = f"Based on this user message, generate a very short (3-5 words) conversation title. Just return the title, nothing else.\n\nUser message: {user_message}"
+        prompt = TAB_TITLE_USER_TEMPLATE.format(user_message=user_message)
         
         if paper_filenames:
             if len(paper_filenames) == 1:
@@ -115,7 +127,7 @@ async def _generate_tab_name(user_message: str, paper_filenames: Optional[List[s
         
         response = client.messages.create(
             model="claude-sonnet-4-20250514", # Best for balancing performance and cost
-            system="You are a helpful assistant that generates concise conversation titles.",
+            system=TAB_TITLE_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=50,
             temperature=0.7
@@ -273,8 +285,7 @@ async def send_chat_message(
     # Build messages based on whether PDF is uploaded
     if pdf_contents:
         # PDF upload flow
-        system_message = """You are an AI research assistant helping users understand and analyze PDF papers they upload. 
-Provide detailed analysis based on the PDF content. Help the user understand the paper's contributions, methodology, findings, and how it could be integrated into their research."""
+        system_message = PDF_SYSTEM_PROMPT
         
         if len(pdf_contents) > 1:
             system_message += f"\n\nThe user has uploaded {len(pdf_contents)} PDFs. Analyze them comprehensively and help identify relationships between them when relevant."
