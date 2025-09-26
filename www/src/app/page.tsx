@@ -206,7 +206,9 @@ const Carousel = () => {
     );
 };
 
-export const Features = () => (
+const placeholderImage = "/images/mockup.webp";
+
+const Features = () => (
     <section className="max-w-6xl mx-auto px-4 py-12 font-dmsans">
         {/* HEADER */}
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-4">
@@ -235,7 +237,7 @@ export const Features = () => (
                 </div>
                 {/* image placeholder at 40% */}
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="Smart Results Integration"
                     width={500}
                     height={300}
@@ -256,7 +258,7 @@ export const Features = () => (
                     </p>
                 </div>
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="Intelligent Annotation Tools"
                     width={500}
                     height={300}
@@ -276,7 +278,7 @@ export const Features = () => (
                     </p>
                 </div>
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="Unified Paper Library"
                     width={500}
                     height={300}
@@ -295,7 +297,7 @@ export const Features = () => (
                     </p>
                 </div>
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="Researcher-Informed Semantic Search"
                     width={500}
                     height={300}
@@ -315,7 +317,7 @@ export const Features = () => (
                     </p>
                 </div>
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="AI-Powered Writing & Auto-Citation"
                     width={500}
                     height={300}
@@ -334,7 +336,7 @@ export const Features = () => (
                     </p>
                 </div>
                 <Image
-                    src="/images/placeholder.png"
+                    src={placeholderImage}
                     alt="Chat with Your Corpus"
                     width={500}
                     height={300}

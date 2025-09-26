@@ -6,7 +6,7 @@ import WebViewer from "@pdftron/pdfjs-express";
 
 const SourcesViewer: React.FC = () => {
     const viewerRef = useRef<HTMLDivElement>(null);
-    const [instance, setInstance] = useState<any>(null);
+    const [instance, setInstance] = useState<WebViewer.Instance | null>(null);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,8 +43,8 @@ const SourcesViewer: React.FC = () => {
                 }
                 const { signed_url } = await res.json();
                 setSignedUrl(signed_url);
-            } catch (e: any) {
-                setError(e.message);
+            } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "An unknown error occurred");
             } finally {
                 setLoading(false);
             }
@@ -57,7 +57,7 @@ const SourcesViewer: React.FC = () => {
             WebViewer(
                 { path: "/webviewer", licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY },
                 viewerRef.current
-            ).then(async (inst: any) => {
+            ).then(async (inst: WebViewer.Instance) => {
                 setInstance(inst);
                 const { documentViewer, annotationManager } = inst.Core;
 
@@ -112,8 +112,9 @@ const SourcesViewer: React.FC = () => {
 
                 annotationManager.addEventListener(
                     "annotationChanged",
-                    async (_annotations: any, action: any) => {
-                        if (["add", "modify", "delete"].includes(action)) {
+                    async (_annotations: unknown, action: unknown) => {
+                        const actionType = typeof action === "string" ? action : "";
+                        if (["add", "modify", "delete"].includes(actionType)) {
                             const xfdf = await annotationManager.exportAnnotations();
                             try {
                                 const { error } = await supabase

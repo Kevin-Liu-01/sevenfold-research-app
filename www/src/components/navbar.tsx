@@ -5,6 +5,9 @@ import { MenuIcon, XIcon, ArrowUpRightIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
+const rawAppUrl = (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "");
+const appBaseUrl = rawAppUrl.replace(/\/$/, "");
+
 /**
  * Primary site navigation optimised for accessibility & SEO.
  * - semantic <nav> with aria‑label
@@ -74,7 +77,7 @@ export const Navbar: React.FC = () => {
                     {/* CTA + Mobile toggle */}
                     <div className="col-span-1 flex justify-end items-center">
                         <Link
-                            href="/home"
+                            href={appBaseUrl}
                             className="hidden md:inline-flex items-center gap-1 rounded-lg bg-black px-4 py-2 text-white font-semibold hover:bg-gray-800 transition"
                         >
                             Open&nbsp;App
@@ -151,14 +154,14 @@ export const Navbar: React.FC = () => {
                     {/* CTA buttons */}
                     <div className="pt-4 space-y-3">
                         <Link
-                            href="/signup"
+                            href={`${appBaseUrl}/signup`}
                             onClick={() => setIsOpen(false)}
                             className="block rounded-lg bg-black text-white text-center font-semibold px-4 py-2 hover:bg-gray-800 transition"
                         >
                             Sign&nbsp;Up
                         </Link>
                         <Link
-                            href="/login"
+                            href={`${appBaseUrl}/signin`}
                             onClick={() => setIsOpen(false)}
                             className="block rounded-lg border border-black text-center font-semibold px-4 py-2 hover:bg-gray-50 transition"
                         >

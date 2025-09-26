@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 
 import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Composition } from "../../../schema/db-types";
@@ -84,7 +84,6 @@ const CompositionBox: React.FC<{
 const CompositionsList: React.FC<{
     compositions: Composition[];
     selectedComposition: Composition | null;
-    setSelectedComposition: (composition: Composition | null) => void;
     onSelectComposition: (composition: Composition) => void;
 }> = ({ compositions, selectedComposition, onSelectComposition }) => {
     if (!compositions || compositions.length === 0) {
@@ -173,9 +172,9 @@ const ComposePanel: React.FC = () => {
             setSelectedComposition(newComposition);
             setCurrentView(ViewType.Compose);
             await refreshCompositions();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error creating composition:", error);
-            alert(error.message || "Failed to create composition");
+            alert(error instanceof Error ? error.message : "Failed to create composition");
         } finally {
             setIsCreating(false);
         }
@@ -192,7 +191,6 @@ const ComposePanel: React.FC = () => {
             <CompositionsList
                 compositions={filtered}
                 selectedComposition={selectedComposition}
-                setSelectedComposition={setSelectedComposition}
                 onSelectComposition={handleSelectComposition}
             />
         </div>

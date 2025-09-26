@@ -41,7 +41,6 @@ const ChatConvoBox: React.FC<{
 const ChatConvosList: React.FC<{
     convos: ChatConvo[];
     selectedConvo: ChatConvo | null;
-    setSelectedConvo: (convo: ChatConvo | null) => void;
     onSelectConvo: (convo: ChatConvo) => void;
 }> = ({ convos, selectedConvo, onSelectConvo }) => {
     if (!convos || convos.length === 0) {
@@ -84,7 +83,6 @@ const ChatPanel: React.FC = () => {
             <ChatConvosList
                 convos={convos}
                 selectedConvo={selectedConvo}
-                setSelectedConvo={setSelectedConvo}
                 onSelectConvo={handleSelectConvo}
             />
         </div>
