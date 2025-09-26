@@ -1,13 +1,18 @@
-name: Azure Static Web Apps CI/CD
+name: Deploy Landing Page (WWW) to Azure Static Web Apps
 
 on:
   push:
     branches:
       - prod
+    paths:
+      - 'www/**'
+      - '.github/workflows/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - prod
+    paths:
+      - 'www/**'
 
 jobs:
   build_and_deploy_job:
@@ -44,3 +49,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GREEN_SEA_04B41270F }}
           action: "close"
+
