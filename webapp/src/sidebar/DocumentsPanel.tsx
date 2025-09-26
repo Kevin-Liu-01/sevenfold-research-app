@@ -1,6 +1,6 @@
 // components/workbench/DocumentsPanel.tsx
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 
 interface DocumentItem {
     id: string;

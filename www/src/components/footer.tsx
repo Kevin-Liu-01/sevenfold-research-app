@@ -3,6 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRightIcon } from "lucide-react";
 
+const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+const appBaseUrl = (rawAppUrl && rawAppUrl.length > 0 ? rawAppUrl : "http://localhost:5173").replace(/\/$/, "");
+
 export const Footer: React.FC = () => {
     return (
         <footer className="mt-8" role="contentinfo" aria-label="Site footer">
@@ -19,7 +22,7 @@ export const Footer: React.FC = () => {
                             Ready to start your research journey?
                         </h2>
                         <Link
-                            href="/signup"
+                            href={`${appBaseUrl}/signup`}
                             className="inline-block bg-black text-white font-bold px-6 py-2 rounded-lg text-base hover:bg-blue-700 transition"
                             aria-label="Sign up for Sevenfold research platform"
                         >
@@ -136,7 +139,7 @@ export const Footer: React.FC = () => {
                                 </li>
                                 <li>
                                     <Link
-                                        href="/signup"
+                                        href={`${appBaseUrl}/signup`}
                                         className="text-gray-600 hover:text-gray-900 text-sm transition"
                                     >
                                         Sign Up
@@ -144,7 +147,7 @@ export const Footer: React.FC = () => {
                                 </li>
                                 <li>
                                     <Link
-                                        href="/home"
+                                        href={appBaseUrl}
                                         className="text-gray-600 hover:text-gray-900 text-sm transition"
                                     >
                                         Web App
