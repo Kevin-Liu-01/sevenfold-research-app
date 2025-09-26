@@ -37,6 +37,7 @@ export default defineConfig({
         { src: resolve(root, 'manifest.json'), dest: '.' },
         { src: resolve(root, 'popup/index.html'), dest: 'popup' },
         { src: resolve(root, 'popup/styles.css'), dest: 'popup' },
+        { src: resolve(root, 'content/shadow-root.html'), dest: 'content' },
       ],
     }),
   ],

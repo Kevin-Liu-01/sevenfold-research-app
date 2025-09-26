@@ -3,6 +3,7 @@ const MAX_NOTIFY_ATTEMPTS = 4;
 const NOTIFY_RETRY_DELAY_MS = 500;
 const ARXIV_HOST = 'arxiv.org';
 const ARXIV_DOI_PREFIX = '10.48550/arXiv.';
+const SHADOW_HOST_ID = 'sevenfold-shadow-root-host';
 
 const state = {
   isPdf: false,
@@ -16,6 +17,9 @@ let lastKnownUrl = window.location.href;
 let notifyRetryTimer = null;
 let notifyAttempts = 0;
 let lastNotifyPayload = null;
+let shadowRootHost = null;
+let shadowTemplatePromise = null;
+let shadowMounted = false;
 
 console.log('[content] script injected on', window.location.href);
 
@@ -72,6 +76,9 @@ function detectPdf() {
 
   if (isPdf !== state.isPdf || window.location.href !== state.lastUrlNotified) {
     state.isPdf = isPdf;
+
+    console.log('[content] PDF detected, displaying shadow root');
+    handleShadowRootForPdf(isPdf);
 
     let doi = null;
     let arxivId = null;
@@ -155,6 +162,83 @@ function attemptNotifyBackground() {
         clearNotifyRetry();
       }
     });
+}
+
+function handleShadowRootForPdf(isPdf) {
+  if (isPdf) {
+    void mountShadowRoot();
+  } else {
+    removeShadowRoot();
+  }
+}
+
+async function mountShadowRoot() {
+  const host = ensureShadowHost();
+  if (!host) {
+    return;
+  }
+
+  if (shadowMounted && host.shadowRoot && host.shadowRoot.childElementCount) {
+    return;
+  }
+
+  if (!host.shadowRoot) {
+    host.attachShadow({ mode: 'open' });
+  }
+
+  try {
+    const template = await loadShadowTemplate();
+    host.shadowRoot.innerHTML = template;
+    shadowMounted = true;
+  } catch (error) {
+    console.warn('[content] failed to mount shadow root', error);
+  }
+}
+
+function removeShadowRoot() {
+  if (shadowRootHost && shadowRootHost.isConnected && shadowRootHost.dataset.sevenfoldShadowHost === 'true') {
+    shadowRootHost.remove();
+  }
+  shadowRootHost = null;
+  shadowMounted = false;
+}
+
+function ensureShadowHost() {
+  if (shadowRootHost && shadowRootHost.isConnected) {
+    return shadowRootHost;
+  }
+
+  const existing = document.getElementById(SHADOW_HOST_ID);
+  if (existing) {
+    shadowRootHost = existing;
+    return shadowRootHost;
+  }
+
+  const target = document.body || document.documentElement;
+  if (!target) {
+    return null;
+  }
+
+  const host = document.createElement('div');
+  host.id = SHADOW_HOST_ID;
+  host.dataset.sevenfoldShadowHost = 'true';
+  host.style.all = 'initial';
+  target.append(host);
+  shadowRootHost = host;
+  return shadowRootHost;
+}
+
+function loadShadowTemplate() {
+  if (!shadowTemplatePromise) {
+    const resourceUrl = chrome.runtime.getURL('content/shadow-root.html');
+    shadowTemplatePromise = fetch(resourceUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to load shadow root template: ${response.status}`);
+      }
+      return response.text();
+    });
+  }
+  return shadowTemplatePromise;
 }
 
 function scheduleNotifyRetry() {

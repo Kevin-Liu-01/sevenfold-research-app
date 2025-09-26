@@ -23,5 +23,11 @@
   "action": {
     "default_popup": "popup/index.html",
     "default_title": "Research Library"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content/shadow-root.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
