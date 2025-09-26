@@ -49,8 +49,8 @@ def _load_prompt(*relative_parts: str) -> str:
     return (PROMPTS_ROOT.joinpath(*relative_parts)).read_text(encoding="utf-8")
 
 
-SYSTEM_INSTRUCTIONS = _load_prompt("papers", "metadata_system_prompt.txt")
-PROMPT_TEXT = _load_prompt("papers", "metadata_user_prompt.txt")
+SYSTEM_INSTRUCTIONS = _load_prompt("papers", "metadata_system_prompt.xml")
+PROMPT_TEXT = _load_prompt("papers", "metadata_user_prompt.xml")
 
 @router.post("/process-pdf")
 async def process_pdf(

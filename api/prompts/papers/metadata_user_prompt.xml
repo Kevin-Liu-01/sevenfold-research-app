@@ -1,3 +1,4 @@
+<prompt>
 From the attached PDF pages, extract a single JSON object with the following schema:
 {
   "title": "TEXT NOT NULL",
@@ -15,3 +16,4 @@ Rules:
 - If you cannot find a field, use null (or [] for authors).
 - 'category' should be a broad, human-readable discipline (e.g., Computer Science).
 - If a date is present, split into year, month, day integers (use null if missing).
+</prompt>

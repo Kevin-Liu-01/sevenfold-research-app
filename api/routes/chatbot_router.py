@@ -22,10 +22,10 @@ def _load_prompt(*relative_parts: str) -> str:
     return (PROMPTS_ROOT.joinpath(*relative_parts)).read_text(encoding="utf-8")
 
 
-CHAT_SYSTEM_PROMPT = _load_prompt("chatbot", "chat_system_prompt.txt")
-PDF_SYSTEM_PROMPT = _load_prompt("chatbot", "pdf_system_prompt.txt")
-TAB_TITLE_SYSTEM_PROMPT = _load_prompt("chatbot", "tab_title_system_prompt.txt")
-TAB_TITLE_USER_TEMPLATE = _load_prompt("chatbot", "tab_title_user_prompt.txt")
+CHAT_SYSTEM_PROMPT = _load_prompt("chatbot", "chat_system_prompt.xml")
+PDF_SYSTEM_PROMPT = _load_prompt("chatbot", "pdf_system_prompt.xml")
+TAB_TITLE_SYSTEM_PROMPT = _load_prompt("chatbot", "tab_title_system_prompt.xml")
+TAB_TITLE_USER_TEMPLATE = _load_prompt("chatbot", "tab_title_user_prompt.xml")
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
