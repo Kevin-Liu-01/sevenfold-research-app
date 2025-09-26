@@ -2,14 +2,14 @@
 FROM python:3.11
 
 # Set the working directory inside the container
-WORKDIR /api
+WORKDIR /code
 
 # Copy your requirements file and install dependencies
-COPY ./requirements.txt /api/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /api/requirements.txt
+COPY ./api/requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Copy your application code into the container
-COPY . /api/
+COPY ./api/. /code/
 
 EXPOSE 8080
 
