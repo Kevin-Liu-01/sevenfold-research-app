@@ -7,7 +7,7 @@ on:
     branches: 
       [ prod ]
     paths:
-    - '**'
+    - 'api/**'
     - '.github/workflows/sevenfold-api-AutoDeployTrigger-e5fbb458-3b72-4716-9746-26ed7cfd2c40.yml'
 
   # Allow manual trigger 
@@ -45,5 +45,6 @@ jobs:
           imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
+
 
 
