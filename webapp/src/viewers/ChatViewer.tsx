@@ -9,7 +9,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../auth/supabaseClient";
-import { useWorkbench } from "../context/WorkbenchContext";
+import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Paper, ChatConvo, ChatMessage } from "../../../schema/db-types";
 import { marked } from "marked";
 import "katex/dist/katex.min.css";
@@ -100,9 +100,10 @@ const QueryResultBody: React.FC<{
     tab: "response" | "papers";
     response?: string;
     isPending: boolean;
-    papers: { id: string; title?: string; filename?: string }[];
+    papers: Paper[];
     selectedPaperIds: string[];
-}> = ({ tab, response, isPending }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ tab, response, isPending, papers, selectedPaperIds, onSelectPaper }) => {
     if (tab === "response") {
         return (
             <div>
@@ -121,6 +122,37 @@ const QueryResultBody: React.FC<{
             </div>
         );
     }
+    if (tab === "papers") {
+        const relevantPapers = papers.filter((p) => selectedPaperIds.includes(p.id));
+
+        if (relevantPapers.length === 0) {
+            return (
+                <p className="text-sm text-gray-500">
+                    No papers were associated with this response.
+                </p>
+            );
+        }
+
+        return (
+            <div className="space-y-3">
+                {relevantPapers.map((paper) => (
+                    <div
+                        key={paper.id}
+                        onClick={() => onSelectPaper(paper)}
+                        className="p-3 rounded-md border border-gray-200 hover:bg-gray-100 cursor-pointer transition"
+                    >
+                        <h4 className="font-medium text-sm text-gray-800 truncate">
+                            {paper.title || "Untitled Paper"}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                            {paper.authors?.join(", ") || "Unknown authors"}
+                        </p>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return null;
 };
 
@@ -128,11 +160,21 @@ const QueryResultCard: React.FC<{
     query: string;
     response?: string;
     isPending: boolean;
-    papers: { id: string; title?: string; filename?: string }[];
+    papers: Paper[];
     selectedPaperIds: string[];
     tab: "response" | "papers";
     onTabChange: (tab: "response" | "papers") => void;
-}> = ({ query, response, isPending, papers, selectedPaperIds, tab, onTabChange }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({
+    query,
+    response,
+    isPending,
+    papers,
+    selectedPaperIds,
+    tab,
+    onTabChange,
+    onSelectPaper,
+}) => {
     return (
         <div className="p-6 w-full h-full flex flex-col">
             {/* Card Header (Query + Tabs) */}
@@ -157,11 +199,12 @@ const QueryResultCard: React.FC<{
                         isPending={isPending}
                         papers={papers}
                         selectedPaperIds={selectedPaperIds}
+                        onSelectPaper={onSelectPaper}
                     />
                 </div>
 
                 {/* Sticky Footer for Action Buttons */}
-                <div className="sticky bottom-0 bg-app-inner py-3 -mx-6 px-6">
+                {/* <div className="sticky bottom-0 bg-app-inner py-3 -mx-6 px-6">
                     <div className="flex gap-3 text-gray-400 text-sm">
                         <button className="hover:text-orange-600">
                             <span className="material-icons text-base">thumb_up</span>
@@ -173,7 +216,7 @@ const QueryResultCard: React.FC<{
                             <span className="material-icons text-base">content_copy</span>
                         </button>
                     </div>
-                </div>
+                </div> */}
             </div>
         </div>
     );
@@ -181,9 +224,10 @@ const QueryResultCard: React.FC<{
 
 const QueryResultsPager: React.FC<{
     items: { query: string; response?: string; isPending: boolean }[];
-    papers: { id: string; title?: string; filename?: string }[];
+    papers: Paper[];
     selectedPaperIds: string[];
-}> = ({ items, papers, selectedPaperIds }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ items, papers, selectedPaperIds, onSelectPaper }) => {
     const [tabs, setTabs] = useState<Record<number, "response" | "papers">>({});
     useEffect(() => {
         setTabs((old) => {
@@ -257,6 +301,7 @@ const QueryResultsPager: React.FC<{
                             selectedPaperIds={selectedPaperIds}
                             tab={tabs[i] ?? "response"}
                             onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
+                            onSelectPaper={onSelectPaper}
                         />
                     </div>
                 ))}
@@ -286,7 +331,8 @@ const QueryResultsPager: React.FC<{
 
 export const MessageList: React.FC<{
     messages: ChatMessage[];
-}> = ({ messages }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ messages, onSelectPaper }) => {
     const { papers, selectedConvo } = useWorkbench();
     const items = useMemo(() => {
         const out: { query: string; response?: string; isPending: boolean }[] = [];
@@ -313,7 +359,14 @@ export const MessageList: React.FC<{
         ? (selectedConvo!.paper_ids as string[])
         : [];
 
-    return <QueryResultsPager items={items} papers={papers} selectedPaperIds={selectedPaperIds} />;
+    return (
+        <QueryResultsPager
+            items={items}
+            papers={papers}
+            selectedPaperIds={selectedPaperIds}
+            onSelectPaper={onSelectPaper}
+        />
+    );
 };
 
 const ChatInput: React.FC<{
@@ -384,7 +437,7 @@ const NewChatPage: React.FC<{
                 alt="Logo"
                 className="text-4xl h-12 font-bold text-gray-900 mb-6"
             />
-            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 rounded-xl p-4 shadow-sm">
+            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 min-h-32 rounded-xl p-4 shadow-sm">
                 <textarea
                     placeholder="What are you researching today?"
                     className="w-full resize-none bg-transparent text-lg text-gray-800 placeholder-gray-400 focus:outline-none"
@@ -399,26 +452,6 @@ const NewChatPage: React.FC<{
                     rows={2}
                     disabled={disabled}
                 />
-                <div className="flex justify-end gap-3 mt-3">
-                    <button
-                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
-                        disabled={disabled}
-                    >
-                        <span className="material-icons">attach_file</span>
-                    </button>
-                    <button
-                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
-                        disabled={disabled}
-                    >
-                        <span className="material-icons">mic</span>
-                    </button>
-                    <button
-                        className="text-gray-500 hover:text-orange-600 disabled:opacity-40"
-                        disabled={disabled}
-                    >
-                        <span className="material-icons">smart_toy</span>
-                    </button>
-                </div>
             </div>
 
             <div className="mt-6 text-left w-full max-w-3xl">
@@ -458,7 +491,15 @@ const NewChatPage: React.FC<{
 };
 
 const ChatViewer: React.FC = () => {
-    const { projectId, papers, selectedConvo, setSelectedConvo, refreshConvos } = useWorkbench();
+    const {
+        projectId,
+        papers,
+        selectedConvo,
+        setSelectedConvo,
+        refreshConvos,
+        setSelectedPaper,
+        setCurrentView,
+    } = useWorkbench();
 
     const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() =>
         papers.map((p) => p.id)
@@ -511,25 +552,35 @@ const ChatViewer: React.FC = () => {
             prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
         );
 
-    const getPaperUris = useCallback(async (paperIds: string[]) => {
-        if (!paperIds.length || !projectId) return [];
-        
-        const { data, error } = await supabase
-            .from("project_paper_links")
-            .select("paper_id, pdf_uri")
-            .eq("project_id", projectId)
-            .in("paper_id", paperIds)
-            .not("pdf_uri", "is", null);
-        
-        if (error) {
-            console.error("Error fetching paper URIs:", error);
-            return [];
-        }
-        
-        // adding type annotation here
-        return (data || []).map((item: { paper_id: string; pdf_uri: string | null }) => item.pdf_uri).filter(Boolean);
-    }, [projectId]);
-    
+    const getPaperUris = useCallback(
+        async (paperIds: string[]) => {
+            if (!paperIds.length || !projectId) return [];
+
+            const { data, error } = await supabase
+                .from("project_paper_links")
+                .select("paper_id, pdf_uri")
+                .eq("project_id", projectId)
+                .in("paper_id", paperIds)
+                .not("pdf_uri", "is", null);
+
+            if (error) {
+                console.error("Error fetching paper URIs:", error);
+                return [];
+            }
+
+            // adding type annotation here
+            return (data || [])
+                .map((item: { paper_id: string; pdf_uri: string | null }) => item.pdf_uri)
+                .filter(Boolean);
+        },
+        [projectId]
+    );
+
+    const handleSelectPaper = (paper: Paper) => {
+        setSelectedPaper(paper);
+        setCurrentView(ViewType.Sources);
+    };
+
     const sendMessage = useCallback(async () => {
         const trimmed = input.trim();
         if (!trimmed || sending) return;
@@ -585,7 +636,11 @@ const ChatViewer: React.FC = () => {
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
-                body: JSON.stringify({ convo_id: convoId, message: trimmed, paper_uris: paperUris }),
+                body: JSON.stringify({
+                    convo_id: convoId,
+                    message: trimmed,
+                    paper_uris: paperUris,
+                }),
             });
 
             if (!res.ok) {
@@ -628,6 +683,7 @@ const ChatViewer: React.FC = () => {
         selectedPaperIds,
         setSelectedConvo,
         refreshConvos,
+        getPaperUris,
     ]);
 
     return (
@@ -647,7 +703,7 @@ const ChatViewer: React.FC = () => {
             ) : (
                 <>
                     <ConvoHeader convo={selectedConvo} />
-                    <MessageList messages={messages} />
+                    <MessageList messages={messages} onSelectPaper={handleSelectPaper} />
                     <ChatInput
                         value={input}
                         setValue={setInput}

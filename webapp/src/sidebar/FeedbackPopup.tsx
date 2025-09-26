@@ -31,18 +31,21 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                 <span className="font-semibold text-gray-800 text-base">Feedback</span>
             </div>
 
-            <div className="mb-3 w-full text-xs text-gray-600">
+            <div className="mb-1 w-full text-sm text-gray-600">
+                Found a bug or have suggestions? We'd love to hear from you!
+            </div>
+            <div className="my-3 w-full font-bold text-sm text-gray-600">
                 Join our Discord community:{" "}
                 <a
                     href="https://discord.gg/kMK6kmYQCu"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 underline"
+                    className="text-kets-orange-400 underline"
                 >
                     discord.gg/kMK6kmYQCu
                 </a>
             </div>
-
+            {/* 
             {sent ? (
                 <div className="text-green-600 text-sm font-medium">
                     Thank you for your feedback!
@@ -70,7 +73,7 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                         Send
                     </button>
                 </form>
-            )}
+            )} */}
         </div>
     );
 };

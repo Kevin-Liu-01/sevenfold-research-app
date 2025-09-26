@@ -151,7 +151,7 @@ const SettingsViewer: React.FC = () => {
     }
 
     return (
-        <div className="p-6 md:p-10">
+        <div className="p-6 md:p-10 h-full overflow-auto">
             {/* Header card */}
             <div className="mx-auto max-w-4xl rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-emerald-50 shadow-sm">
                 <div className="flex items-center justify-between px-6 py-5 border-b border-amber-200/70">
@@ -195,7 +195,9 @@ const SettingsViewer: React.FC = () => {
                 <div className="px-6 py-6 grid grid-cols-1 gap-6">
                     {/* Project ID */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">Project ID</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Project ID
+                        </label>
                         <div className="mt-2 flex items-center gap-3">
                             <code className="rounded-lg bg-white/70 px-3 py-2 text-sm text-gray-700 border border-gray-300">
                                 {project.id}
@@ -211,7 +213,9 @@ const SettingsViewer: React.FC = () => {
 
                     {/* Name */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">Project name</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Project name
+                        </label>
                         <input
                             type="text"
                             value={name}
@@ -224,7 +228,9 @@ const SettingsViewer: React.FC = () => {
 
                     {/* Description below name with larger box */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Description
+                        </label>
                         <textarea
                             value={description ?? ""}
                             onChange={(e) => setDescription(e.target.value)}
@@ -237,7 +243,9 @@ const SettingsViewer: React.FC = () => {
 
                     {/* Settings JSON */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Settings (JSON)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Settings (JSON)
+                        </label>
                         <textarea
                             value={settingsText}
                             onChange={(e) => setSettingsText(e.target.value)}
@@ -267,7 +275,9 @@ const SettingsViewer: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="font-semibold text-rose-900">Danger zone</h3>
-                            <p className="text-sm text-rose-800">Delete project and all associated data.</p>
+                            <p className="text-sm text-rose-800">
+                                Delete project and all associated data.
+                            </p>
                         </div>
                         <button
                             onClick={deleteProject}
