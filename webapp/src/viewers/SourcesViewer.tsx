@@ -192,26 +192,6 @@ const SourcesViewer: React.FC = () => {
 
                 {/* Right: Page Nav & Zoom */}
                 <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => goToPage(-1)}
-                        disabled={currentPage <= 1}
-                        className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                    >
-                        <span className="material-icons text-gray-600">chevron_left</span>
-                    </button>
-                    <span className="text-sm text-gray-700">
-                        {currentPage} / {pageCount || "—"}
-                    </span>
-                    <button
-                        onClick={() => goToPage(1)}
-                        disabled={currentPage >= pageCount}
-                        className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                    >
-                        <span className="material-icons text-gray-600">chevron_right</span>
-                    </button>
-
-                    <div className="h-6 border-l border-gray-300" />
-
                     <a
                         href={signedUrl || "#"}
                         download={selectedPaper.title}
