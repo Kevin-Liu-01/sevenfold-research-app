@@ -39,7 +39,7 @@ const NewProjectPage: React.FC = () => {
         }
 
         // Insert to projects with correct columns
-        const { data, error: insertError } = await supabase
+        const { error: insertError } = await supabase
             .from("projects")
             .insert({
                 owner_id: user.id,

@@ -15,7 +15,7 @@ import SourceViewer from "../viewers/SourcesViewer";
 import ComposeViewer from "../viewers/ComposeViewer";
 import SettingsViewer from "../viewers/SettingsViewer";
 
-const SidepanelMap: Partial<Record<ViewType, React.FC<any>>> = {
+const SidepanelMap: Partial<Record<ViewType, React.FC>> = {
     [ViewType.Chat]: () => <ChatPanel />,
     [ViewType.Sources]: () => <SourcesPanel />,
     [ViewType.Compose]: () => <ComposePanel />,
@@ -46,7 +46,7 @@ const Sidepanel: React.FC = () => {
     );
 };
 
-const ViewerMap: Record<ViewType, React.FC<any>> = {
+const ViewerMap: Record<ViewType, React.FC> = {
     [ViewType.Search]: SearchViewer,
     [ViewType.Chat]: ChatViewer,
     [ViewType.Sources]: SourceViewer,

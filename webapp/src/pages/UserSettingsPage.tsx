@@ -180,10 +180,6 @@ const UserSettingsPage: React.FC = () => {
                 
                 // Update the local profile state immediately for UI responsiveness
                 if (profile) {
-                    const updatedProfile = {
-                        ...profile,
-                        ...updateData
-                    };
                     // Update form data to show the changes immediately
                     setFormData(prev => ({
                         ...prev,
@@ -191,7 +187,7 @@ const UserSettingsPage: React.FC = () => {
                     }));
                     // We'll refresh the profile after animation completes
                 }
-            } catch (updateError) {
+            } catch {
                 // Still show success message even if there was an error
             }
 
@@ -216,7 +212,7 @@ const UserSettingsPage: React.FC = () => {
                 // Now refresh the profile after animation is complete
                 refreshProfile();
             }, 1500);
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Failed to update profile' });
         } finally {
             setLoading(false);
