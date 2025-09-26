@@ -6,7 +6,7 @@ import { Eye, EyeOff, Github } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const rawMarketingUrl = import.meta.env.VITE_MARKETING_URL?.trim();
-const marketingBaseUrl = rawMarketingUrl.replace(/\/$/, "");
+const marketingBaseUrl = rawMarketingUrl ? rawMarketingUrl.replace(/\/$/, "") : "";
 
 const AuthHeader: React.FC<{ title: string; description?: string }> = ({ title, description }) => (
     <div className="text-center">
