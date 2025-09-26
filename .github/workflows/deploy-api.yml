@@ -1,4 +1,4 @@
-name: Trigger auto deployment for sevenfold-api
+name: Deploy Sevenfold API to Azure Container Apps
 
 # When this action will be executed
 on:
@@ -45,6 +45,7 @@ jobs:
           imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
+
 
 
 
