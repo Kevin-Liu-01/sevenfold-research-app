@@ -3,8 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRightIcon } from "lucide-react";
 
-const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-const appBaseUrl = (rawAppUrl && rawAppUrl.length > 0 ? rawAppUrl : "http://localhost:5173").replace(/\/$/, "");
+const rawAppUrl = (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "");
+const appBaseUrl = rawAppUrl.replace(/\/$/, "");
 
 export const Footer: React.FC = () => {
     return (
