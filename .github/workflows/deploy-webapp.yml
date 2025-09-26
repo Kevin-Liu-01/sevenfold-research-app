@@ -1,13 +1,18 @@
-name: Azure Static Web Apps CI/CD
+name: Deploy WebApp to Azure Static Web Apps
 
 on:
   push:
     branches:
       - prod
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - prod
+    paths:
+      - 'webapp/**'
 
 jobs:
   build_and_deploy_job:
@@ -44,3 +49,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_SMOKE_0F3F4200F }}
           action: "close"
+
