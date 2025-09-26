@@ -147,14 +147,6 @@ const SourcesViewer: React.FC = () => {
     }, [instance, signedUrl, selectedPaper]);
 
     // Handlers
-    // const goToPage = useCallback(
-    //     (delta: number) => {
-    //         if (!instance) return;
-    //         const next = Math.min(Math.max(1, currentPage + delta), pageCount);
-    //         instance.UI.setCurrentPage(next);
-    //     },
-    //     [instance, currentPage, pageCount]
-    // );
 
     const retry = () => {
         setError(null);
