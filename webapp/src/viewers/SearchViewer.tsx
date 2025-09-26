@@ -186,8 +186,8 @@ const SearchViewer: React.FC = () => {
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
     const [kwPreset, setKwPreset] = useState<Preset>("M");
-    const [semPreset, setSemPreset] = useState<Preset>("M");
-    const [ctxPreset, setCtxPreset] = useState<Preset>("M");
+    const [semPreset, setSemPreset] = useState<Preset>("L");
+    const [ctxPreset, setCtxPreset] = useState<Preset>("OFF");
 
     const kwPresetVals: Record<Preset, number> = { OFF: 0.1, L: 0.3, M: 0.7, H: 1.0 };
     const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.2, M: 0.5, H: 0.9 };

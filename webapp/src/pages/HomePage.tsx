@@ -250,12 +250,6 @@ const HomePage: React.FC = () => {
                                                     ).toLocaleDateString()}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-sm text-gray-400">
-                                                <span className="material-icons-outlined text-sm">
-                                                    visibility
-                                                </span>
-                                                <span>View</span>
-                                            </div>
                                         </div>
                                     </div>
                                 ))}
