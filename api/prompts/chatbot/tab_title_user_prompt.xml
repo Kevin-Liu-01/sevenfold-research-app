@@ -1,0 +1,5 @@
+<prompt>
+Based on this user message, generate a very short (3-5 words) conversation title. Just return the title, nothing else.
+
+User message: {user_message}
+</prompt>
