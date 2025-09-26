@@ -104,7 +104,6 @@ const QueryResultBody: React.FC<{
     selectedPaperIds: string[];
     onSelectPaper: (paper: Paper) => void;
 }> = ({ tab, response, isPending, papers, selectedPaperIds, onSelectPaper }) => {
-    console.log(selectedPaperIds);
     if (tab === "response") {
         return (
             <div>
