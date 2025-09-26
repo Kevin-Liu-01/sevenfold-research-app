@@ -19,8 +19,8 @@ export interface UserProfile {
 }
 
 export interface Project {
-  research_question: any;
-  keywords: any;
+  research_question: string | null;
+  keywords: string[] | null;
   id: UUID;
   owner_id: UUID;
   name: string;
