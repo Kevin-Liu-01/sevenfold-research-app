@@ -86,7 +86,7 @@ const CompositionsList: React.FC<{
     selectedComposition: Composition | null;
     setSelectedComposition: (composition: Composition | null) => void;
     onSelectComposition: (composition: Composition) => void;
-}> = ({ compositions, selectedComposition, setSelectedComposition, onSelectComposition }) => {
+}> = ({ compositions, selectedComposition, onSelectComposition }) => {
     if (!compositions || compositions.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No compositions found</div>;
     } else {
@@ -106,7 +106,14 @@ const CompositionsList: React.FC<{
 };
 
 const ComposePanel: React.FC = () => {
-    const { projectId, compositions, selectedComposition, setSelectedComposition, refreshCompositions, setCurrentView } = useWorkbench();
+    const {
+        projectId,
+        compositions,
+        selectedComposition,
+        setSelectedComposition,
+        refreshCompositions,
+        setCurrentView,
+    } = useWorkbench();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -132,7 +139,10 @@ const ComposePanel: React.FC = () => {
     const createNewComposition = async () => {
         setIsCreating(true);
         try {
-            const { data: { session }, error: authErr } = await supabase.auth.getSession();
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
             if (authErr || !session?.access_token) {
                 throw new Error("Not authenticated");
             }

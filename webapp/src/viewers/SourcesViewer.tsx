@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
@@ -147,14 +147,6 @@ const SourcesViewer: React.FC = () => {
     }, [instance, signedUrl, selectedPaper]);
 
     // Handlers
-    const goToPage = useCallback(
-        (delta: number) => {
-            if (!instance) return;
-            const next = Math.min(Math.max(1, currentPage + delta), pageCount);
-            instance.UI.setCurrentPage(next);
-        },
-        [instance, currentPage, pageCount]
-    );
 
     const retry = () => {
         setError(null);

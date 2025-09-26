@@ -81,7 +81,7 @@ const PapersList: React.FC<{
     selectedPaper: Paper | null;
     setSelectedPaper: (paper: Paper | null) => void;
     onSelectPaper: (paper: Paper) => void;
-}> = ({ papers, selectedPaper, setSelectedPaper, onSelectPaper }) => {
+}> = ({ papers, selectedPaper, onSelectPaper }) => {
     if (!papers || papers.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No papers found</div>;
     } else {

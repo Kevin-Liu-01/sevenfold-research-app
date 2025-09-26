@@ -1,21 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 
 interface FeedbackPopupProps {
     onClose: () => void;
 }
 
 const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
-    const [email, setEmail] = useState("");
-    const [description, setDescription] = useState("");
-    const [sent, setSent] = useState(false);
+    // const [email, setEmail] = useState("");
+    // const [description, setDescription] = useState("");
+    // const [sent, setSent] = useState(false);
 
-    const handleSend = (e: React.FormEvent) => {
-        e.preventDefault();
-        setSent(true);
-        setTimeout(() => {
-            onClose();
-        }, 1200);
-    };
+    // const handleSend = (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //     setSent(true);
+    //     setTimeout(() => {
+    //         onClose();
+    //     }, 1200);
+    // };
 
     return (
         <div className="relative flex flex-col items-start">
