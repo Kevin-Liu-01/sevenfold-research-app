@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 
-import { useWorkbench } from "../context/WorkbenchContext";
+import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Composition } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 
@@ -85,7 +85,8 @@ const CompositionsList: React.FC<{
     compositions: Composition[];
     selectedComposition: Composition | null;
     setSelectedComposition: (composition: Composition | null) => void;
-}> = ({ compositions, selectedComposition, setSelectedComposition }) => {
+    onSelectComposition: (composition: Composition) => void;
+}> = ({ compositions, selectedComposition, setSelectedComposition, onSelectComposition }) => {
     if (!compositions || compositions.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No compositions found</div>;
     } else {
@@ -96,7 +97,7 @@ const CompositionsList: React.FC<{
                         key={composition.id}
                         composition={composition}
                         isSelected={selectedComposition?.id === composition.id}
-                        onClick={() => setSelectedComposition(composition)}
+                        onClick={() => onSelectComposition(composition)}
                     />
                 ))}
             </div>
@@ -105,7 +106,7 @@ const CompositionsList: React.FC<{
 };
 
 const ComposePanel: React.FC = () => {
-    const { projectId, compositions, selectedComposition, setSelectedComposition, refreshCompositions } = useWorkbench();
+    const { projectId, compositions, selectedComposition, setSelectedComposition, refreshCompositions, setCurrentView } = useWorkbench();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -120,6 +121,12 @@ const ComposePanel: React.FC = () => {
                 (c.type && c.type.toLowerCase().includes(q))
         );
     }, [compositions, searchQuery]);
+
+    // Handle composition selection
+    const handleSelectComposition = (composition: Composition) => {
+        setSelectedComposition(composition);
+        setCurrentView(ViewType.Compose);
+    };
 
     // Create new untitled LaTeX composition
     const createNewComposition = async () => {
@@ -154,6 +161,7 @@ const ComposePanel: React.FC = () => {
 
             const newComposition = await res.json();
             setSelectedComposition(newComposition);
+            setCurrentView(ViewType.Compose);
             await refreshCompositions();
         } catch (error: any) {
             console.error("Error creating composition:", error);
@@ -175,6 +183,7 @@ const ComposePanel: React.FC = () => {
                 compositions={filtered}
                 selectedComposition={selectedComposition}
                 setSelectedComposition={setSelectedComposition}
+                onSelectComposition={handleSelectComposition}
             />
         </div>
     );

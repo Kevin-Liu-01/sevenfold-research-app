@@ -1,7 +1,6 @@
 import React, { useState, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWorkbench } from "../context/WorkbenchContext";
-import supabase from "../auth/supabaseClient";
 
 import PaperDetailsModal from "./PaperDetailsModal";
 import type { Paper } from "../../../schema/db-types";
@@ -141,25 +140,30 @@ const WeightTabs: React.FC<{
 const ResultsList: React.FC<{
     results: Paper[];
     onPaperClick: (paper: Paper) => void;
-}> = ({ results, onPaperClick }) => (
-    <div className="flex-1 overflow-y-auto p-3 space-y-4">
+}> = ({ results, onPaperClick }) => {
+    // Helper function to truncate authors list
+    const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
+        if (!authors || authors.length === 0) return "";
+        if (authors.length <= maxAuthors) {
+            return authors.join(', ');
+        }
+        return `${authors.slice(0, maxAuthors).join(', ')} et al.`;
+    };
+    
+    return (
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {results.map((paper) => (
             <div
                 key={paper.id}
                 onClick={() => onPaperClick(paper)}
-                className="p-4 rounded-md shadow-sm space-y-1"
+                className="p-4 rounded-md shadow-sm space-y-1 cursor-pointer hover:bg-gray-50"
             >
-                <a
-                    href={paper.pdf_uri || ""}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-lg font-semibold text-blue-800 hover:underline"
-                >
+                <h3 className="text-lg font-semibold text-blue-800 hover:underline">
                     {paper.title}
-                </a>
+                </h3>
                 <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
-                    {paper.authors && <span>{paper.authors.join(", ")}</span>}
+                    {paper.authors && <span>{truncateAuthors(paper.authors)}</span>}
                 </div>
                 {paper.abstract && (
                     <p className="text-gray-700 line-clamp-3 text-sm">{paper.abstract}</p>
@@ -169,6 +173,7 @@ const ResultsList: React.FC<{
         {results.length === 0 && <p className="text-center text-gray-500 mt-8">No papers found.</p>}
     </div>
 );
+};
 
 const SearchViewer: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -181,7 +186,7 @@ const SearchViewer: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     // Get workbench context for project management
-    const { projectId, refreshPapers, openModal, closeModal } = useWorkbench();
+    const { projectId, openModal, closeModal } = useWorkbench();
 
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
@@ -234,28 +239,8 @@ const SearchViewer: React.FC = () => {
             <PaperDetailsModal
                 paper={paper}
                 onClose={closeModal}
-                onAddToProject={handleAddToProject}
             />
         );
-    };
-
-    const handleAddToProject = async (paper: Paper) => {
-        try {
-            const { error: insertErr } = await supabase.from("project_paper_links").insert({
-                project_id: projectId,
-                paper_id: paper.id,
-                has_paper: true,
-                annotations: null,
-            });
-
-            if (insertErr) throw new Error(`Failed to link paper: ${insertErr.message}`);
-
-            await refreshPapers();
-            closeModal();
-        } catch (error) {
-            console.error("Failed to link paper to project:", error);
-            throw error;
-        }
     };
 
     useEffect(() => {

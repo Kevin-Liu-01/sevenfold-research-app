@@ -18,8 +18,6 @@ import { InlineMath, BlockMath } from "react-katex";
 marked.setOptions({
     gfm: true,
     breaks: true,
-    mangle: false,
-    headerIds: false,
 });
 
 function ConvoHeader({ convo }: { convo: ChatConvo }) {
@@ -342,6 +340,7 @@ const ChatInput: React.FC<{
                 />
                 <div className="flex justify-between items-center mt-3">
                     <div className="flex gap-2">
+                        {/* Hidden non-functional buttons 
                         <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                             <span className="material-icons text-base">attach_file</span>
                             Source
@@ -354,6 +353,7 @@ const ChatInput: React.FC<{
                             <span className="material-icons text-base">smart_toy</span>
                             Model
                         </button>
+                        */}
                     </div>
                     <button
                         onClick={onSend}
@@ -437,7 +437,7 @@ const NewChatPage: React.FC<{
                                         : "bg-gray-100 border-gray-300 text-gray-500"
                                 }`}
                         >
-                            {paper.title || paper.filename || "Untitled"}
+                            {paper.title || "Untitled"}
                         </button>
                     ))}
                 </div>

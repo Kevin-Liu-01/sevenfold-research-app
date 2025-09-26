@@ -1,7 +1,5 @@
-import React, { useState, useMemo } from "react";
-
-import { useWorkbench } from "../context/WorkbenchContext";
-import type { ChatConvo } from "../../database.types";
+import { useWorkbench, ViewType } from "../context/WorkbenchContext";
+import type { ChatConvo } from "../../../schema/db-types";
 
 const NewChatButton: React.FC<{
     onClick: () => void;
@@ -44,7 +42,8 @@ const ChatConvosList: React.FC<{
     convos: ChatConvo[];
     selectedConvo: ChatConvo | null;
     setSelectedConvo: (convo: ChatConvo | null) => void;
-}> = ({ convos, selectedConvo, setSelectedConvo }) => {
+    onSelectConvo: (convo: ChatConvo) => void;
+}> = ({ convos, selectedConvo, setSelectedConvo, onSelectConvo }) => {
     if (!convos || convos.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No conversations found</div>;
     } else {
@@ -55,7 +54,7 @@ const ChatConvosList: React.FC<{
                         key={convo.id}
                         convo={convo}
                         isSelected={selectedConvo?.id === convo.id}
-                        onClick={() => setSelectedConvo(convo)}
+                        onClick={() => onSelectConvo(convo)}
                     />
                 ))}
             </div>
@@ -64,16 +63,29 @@ const ChatConvosList: React.FC<{
 };
 
 const ChatPanel: React.FC = () => {
-    const { convos, selectedConvo, setSelectedConvo, refreshConvos } = useWorkbench();
+    const { convos, selectedConvo, setSelectedConvo, setCurrentView } = useWorkbench();
+
+    // Handle conversation selection
+    const handleSelectConvo = (convo: ChatConvo) => {
+        setSelectedConvo(convo);
+        setCurrentView(ViewType.Chat);
+    };
+
+    // Handle new chat creation
+    const handleNewChat = () => {
+        setSelectedConvo(null);
+        setCurrentView(ViewType.Chat);
+    };
 
     return (
         <div className="flex flex-col space-y-3">
             <h1 className="text-lg font-semibold">Conversations</h1>
-            <NewChatButton onClick={() => setSelectedConvo(null)} />
+            <NewChatButton onClick={handleNewChat} />
             <ChatConvosList
                 convos={convos}
                 selectedConvo={selectedConvo}
                 setSelectedConvo={setSelectedConvo}
+                onSelectConvo={handleSelectConvo}
             />
         </div>
     );

@@ -1,35 +1,23 @@
 // src/components/viewers/PaperDetailsModal.tsx
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useEffect } from "react";
 import type { Paper } from "../../../schema/db-types";
-import { useWorkbench } from "../context/WorkbenchContext";
 import Modal from "../components/ui/Modal";
 
 type Props = {
     paper: Paper;
     onClose: () => void;
-    onAddToProject: (paper: Paper) => Promise<void> | void;
 };
 
-const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) => {
-    const { papers } = useWorkbench();
-
-    const [isAdding, setIsAdding] = useState(false);
-    const [added, setAdded] = useState(false);
-    // const [pdfBusy, setPdfBusy] = useState(false);
-
-    // This is a function to check if the paper is already in the project
-    // Since the paper object has an `id` field that uniquely identifies it,
-    // we can use that to determine if it's already added.
-    const isAlreadyInProject = useMemo(() => {
-        if (!paper) return false;
-        return papers.some((p) => p.id === paper.id);
-    }, [paper, papers]);
-
-    // keep added state synced
-    useEffect(() => {
-        setAdded(isAlreadyInProject);
-    }, [isAlreadyInProject]);
+const PaperDetailsModal: React.FC<Props> = ({ paper, onClose }) => {
+    // Helper function to truncate authors list
+    const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
+        if (!authors || authors.length === 0) return "";
+        if (authors.length <= maxAuthors) {
+            return authors.join(', ');
+        }
+        return `${authors.slice(0, maxAuthors).join(', ')} et al. (+${authors.length - maxAuthors} more)`;
+    };
 
     useEffect(() => {
         const onEsc = (e: KeyboardEvent) => {
@@ -46,14 +34,9 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
         return [y, m, d].filter(Boolean).join("-") || null;
     }, [paper.year, paper.month, paper.day]);
 
-    const handleAdd = async () => {
-        if (isAdding) return;
-        setIsAdding(true);
-        try {
-            await onAddToProject(paper);
-            setAdded(true);
-        } finally {
-            setIsAdding(false);
+    const handleGoToPaper = () => {
+        if (paper.doi) {
+            window.open(`https://doi.org/${paper.doi}`, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -75,7 +58,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                     {!!paper.authors?.length && (
                         <div>
                             <span className="font-semibold">Authors:</span>{" "}
-                            {paper.authors.join(", ")}
+                            {truncateAuthors(paper.authors)}
                         </div>
                     )}
                     {paper.year && (
@@ -121,14 +104,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                 )}
 
                 {/* Footer */}
-                <div className="mt-8 pt-4 border-t flex flex-col items-end gap-3">
-                    {added && (
-                        <div className="flex items-center gap-2 text-kets-orange font-semibold">
-                            <span className="material-icons">check_circle</span>
-                            Added to project!
-                        </div>
-                    )}
-
+                <div className="mt-8 pt-4 border-t flex justify-end">
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
@@ -137,22 +113,13 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose, onAddToProject }) 
                             <span className="material-icons text-sm">close</span>
                             Close
                         </button>
-                        {!added && (
+                        {paper.doi && (
                             <button
-                                onClick={handleAdd}
-                                disabled={isAdding}
-                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-kets-green text-white font-semibold shadow hover:opacity-90 disabled:opacity-50"
+                                onClick={handleGoToPaper}
+                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-kets-orange text-white font-semibold shadow hover:opacity-90"
                             >
-                                {isAdding ? (
-                                    <>
-                                        <span className="material-icons animate-spin text-sm">
-                                            autorenew
-                                        </span>
-                                        Adding…
-                                    </>
-                                ) : (
-                                    <>Add to Project</>
-                                )}
+                                <span className="material-icons text-sm">open_in_new</span>
+                                Go to Paper
                             </button>
                         )}
                     </div>
