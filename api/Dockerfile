@@ -5,11 +5,11 @@ FROM python:3.11
 WORKDIR /code
 
 # Copy your requirements file and install dependencies
-COPY ./api/requirements.txt /code/requirements.txt
+COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Copy your application code into the container
-COPY ./api/. /code/
+COPY . /code/
 
 EXPOSE 8080
 
