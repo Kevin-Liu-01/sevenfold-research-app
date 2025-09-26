@@ -5,7 +5,7 @@ import { MenuIcon, XIcon, ArrowUpRightIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+const rawAppUrl = (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "");
 const appBaseUrl = rawAppUrl.replace(/\/$/, "");
 
 /**
