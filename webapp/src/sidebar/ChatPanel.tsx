@@ -41,9 +41,8 @@ const ChatConvoBox: React.FC<{
 const ChatConvosList: React.FC<{
     convos: ChatConvo[];
     selectedConvo: ChatConvo | null;
-    setSelectedConvo: (convo: ChatConvo | null) => void;
     onSelectConvo: (convo: ChatConvo) => void;
-}> = ({ convos, selectedConvo, setSelectedConvo, onSelectConvo }) => {
+}> = ({ convos, selectedConvo, onSelectConvo }) => {
     if (!convos || convos.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No conversations found</div>;
     } else {
@@ -84,7 +83,6 @@ const ChatPanel: React.FC = () => {
             <ChatConvosList
                 convos={convos}
                 selectedConvo={selectedConvo}
-                setSelectedConvo={setSelectedConvo}
                 onSelectConvo={handleSelectConvo}
             />
         </div>

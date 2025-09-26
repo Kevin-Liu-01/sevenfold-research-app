@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import supabase from "../auth/supabaseClient";
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -144,7 +144,7 @@ export const WorkbenchProvider: React.FC<{
             console.error("Error fetching project papers:", error.message);
             return;
         }
-        const newPapersList = (data ?? []).map((p: any) => p.paper).filter((p): p is Paper => !!p);
+        const newPapersList = (data ?? []).map((p: { paper: Paper }) => p.paper).filter((p): p is Paper => !!p);
 
         setPapers((prevPapers) => {
             // Compare the new list with the old one to detect added papers

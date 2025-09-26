@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
@@ -79,9 +79,8 @@ const PaperBox: React.FC<{
 const PapersList: React.FC<{
     papers: Paper[];
     selectedPaper: Paper | null;
-    setSelectedPaper: (paper: Paper | null) => void;
     onSelectPaper: (paper: Paper) => void;
-}> = ({ papers, selectedPaper, setSelectedPaper, onSelectPaper }) => {
+}> = ({ papers, selectedPaper, onSelectPaper }) => {
     if (!papers || papers.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No papers found</div>;
     } else {
@@ -202,8 +201,8 @@ const SourcesPanel: React.FC = () => {
 
             await refreshPapers();
             closeModal();
-        } catch (error: any) {
-            setError(error.message);
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An unknown error occurred");
         } finally {
             setIsUploading(false);
         }
@@ -257,8 +256,8 @@ const SourcesPanel: React.FC = () => {
 
             await refreshPapers();
             return true;
-        } catch (error: any) {
-            setError(error.message || "Failed to upload paper");
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Failed to upload paper");
             return false;
         } finally {
             setIsUploading(false);
@@ -312,11 +311,10 @@ const SourcesPanel: React.FC = () => {
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             <div className="flex-1 min-h-0">
                 <PapersList
-                    papers={filtered}
-                    selectedPaper={selectedPaper}
-                    setSelectedPaper={setSelectedPaper}
-                    onSelectPaper={handleSelectPaper}
-                />
+                papers={filtered}
+                selectedPaper={selectedPaper}
+                onSelectPaper={handleSelectPaper}
+            />
             </div>
         </div>
     );
