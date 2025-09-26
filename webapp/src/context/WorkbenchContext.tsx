@@ -1,5 +1,3 @@
-// src/components/context/WorkbenchContext.tsx
-
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import supabase from "../auth/supabaseClient";
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
@@ -44,6 +42,9 @@ interface WorkbenchContextType {
     modal: React.ReactNode | null;
     openModal: (content: React.ReactNode) => void;
     closeModal: () => void;
+
+    // Notifications
+    notification: string | null;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
@@ -78,6 +79,19 @@ export const WorkbenchProvider: React.FC<{
 
     // Modals
     const [modal, setModal] = useState<React.ReactNode | null>(null);
+
+    // Notification state for when a new paper is added
+    const [notification, setNotification] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Automatically clear the notification after a few seconds
+        if (notification) {
+            const timer = setTimeout(() => {
+                setNotification(null);
+            }, 5000); // 5 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
 
     const setHoveredView = useCallback(
         (view: ViewType | null) => {
@@ -130,13 +144,31 @@ export const WorkbenchProvider: React.FC<{
             console.error("Error fetching project papers:", error.message);
             return;
         }
-        const papers = (data ?? []).map((p: any) => p.paper).filter((p): p is Paper => !!p);
-        setPapers(papers);
+        const newPapersList = (data ?? []).map((p: any) => p.paper).filter((p): p is Paper => !!p);
+
+        setPapers((prevPapers) => {
+            // Compare the new list with the old one to detect added papers
+            if (prevPapers.length > 0 && newPapersList.length > prevPapers.length) {
+                const prevPaperIds = new Set(prevPapers.map((p) => p.id));
+                const addedPaper = newPapersList.find((p) => !prevPaperIds.has(p.id));
+
+                if (addedPaper) {
+                    const title = addedPaper.title || addedPaper.filename || "Untitled Paper";
+                    const truncatedTitle =
+                        title.length > 25 ? `${title.substring(0, 22)}...` : title;
+                    setNotification(`Added: ${truncatedTitle}`);
+                }
+            }
+            return newPapersList;
+        });
     }, [projectId]);
 
     // Chat Conversations
     const [convos, setConvos] = useState<ChatConvo[]>([]);
-    const [selectedConvo, setSelectedConvo] = useState<ChatConvo | null>(null);
+    const [selectedConvo, setSelectedConvo] = usePersistentState<ChatConvo | null>(
+        `workbench:${projectId}:selectedConvo`,
+        null
+    );
 
     const refreshConvos = useCallback(async () => {
         if (!projectId) return;
@@ -189,10 +221,16 @@ export const WorkbenchProvider: React.FC<{
     }, [projectId]);
 
     useEffect(() => {
+        // Note for future reference:
+        // By explicitly depending only on `projectId`, we ensure this data fetch
+        // runs once when the component mounts and again only if the project ID changes.
+        // The refresh functions are stable due to `useCallback`, so they don't
+        // need to be in the dependency array. This prevents re-fetching and state
+        // resets when parent components re-render due to focus changes.
         refreshPapers();
         refreshConvos();
         refreshCompositions();
-    }, [refreshPapers, refreshCompositions]);
+    }, [projectId]);
 
     return (
         <WorkbenchContext.Provider
@@ -217,6 +255,7 @@ export const WorkbenchProvider: React.FC<{
                 modal,
                 openModal,
                 closeModal,
+                notification,
             }}
         >
             {children}

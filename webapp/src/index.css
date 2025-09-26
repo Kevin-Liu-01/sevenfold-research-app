@@ -54,8 +54,8 @@
     --color-kets-orange-700: #b14313;
     --color-kets-orange-800: #8f3410;
     --color-kets-orange-900: #74280d;
-    --color-app-outer: #F3F3F3;
-    --color-app-inner: #F7FCFE;
+    --color-app-outer: #f3f3f3;
+    --color-app-inner: #f7fcfe;
 }
 
 /* Custom Utility: no-scrollbar */
@@ -112,4 +112,41 @@
 
 ::selection {
     background-color: rgba(245, 121, 32, 0.5);
+}
+
+@keyframes fade-in-sidebar {
+    from {
+        opacity: 0;
+        transform: translate(-10px, -50%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(0, -50%);
+    }
+}
+@keyframes fade-out-sidebar {
+    from {
+        opacity: 1;
+        transform: translate(0, -50%);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-10px, -50%);
+    }
+}
+.source-notification-bubble {
+    transform: translate(-10px, -50%); /* Initial state */
+    animation:
+        fade-in-sidebar 0.3s ease-out forwards,
+        fade-out-sidebar 0.3s ease-in 4.7s forwards;
+}
+.source-notification-bubble::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid #f97316; /* Corresponds to bg-kets-orange-400 */
 }
