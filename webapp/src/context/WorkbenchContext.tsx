@@ -71,7 +71,10 @@ export const WorkbenchProvider: React.FC<{
 
     // Compositions
     const [compositions, setCompositions] = useState<Composition[]>([]);
-    const [selectedComposition, setSelectedComposition] = useState<Composition | null>(null);
+    const [selectedComposition, setSelectedComposition] = usePersistentState<Composition | null>(
+        `workbench:${projectId}:selectedComposition`,
+        null
+    );
 
     // Modals
     const [modal, setModal] = useState<React.ReactNode | null>(null);
