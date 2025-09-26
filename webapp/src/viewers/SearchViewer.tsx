@@ -140,8 +140,18 @@ const WeightTabs: React.FC<{
 const ResultsList: React.FC<{
     results: Paper[];
     onPaperClick: (paper: Paper) => void;
-}> = ({ results, onPaperClick }) => (
-    <div className="flex-1 overflow-y-auto p-3 space-y-4">
+}> = ({ results, onPaperClick }) => {
+    // Helper function to truncate authors list
+    const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
+        if (!authors || authors.length === 0) return "";
+        if (authors.length <= maxAuthors) {
+            return authors.join(', ');
+        }
+        return `${authors.slice(0, maxAuthors).join(', ')} et al.`;
+    };
+    
+    return (
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {results.map((paper) => (
             <div
                 key={paper.id}
@@ -153,7 +163,7 @@ const ResultsList: React.FC<{
                 </h3>
                 <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
                     {paper.year && <span>{paper.year} •</span>}
-                    {paper.authors && <span>{paper.authors.join(", ")}</span>}
+                    {paper.authors && <span>{truncateAuthors(paper.authors)}</span>}
                 </div>
                 {paper.abstract && (
                     <p className="text-gray-700 line-clamp-3 text-sm">{paper.abstract}</p>
@@ -163,6 +173,7 @@ const ResultsList: React.FC<{
         {results.length === 0 && <p className="text-center text-gray-500 mt-8">No papers found.</p>}
     </div>
 );
+};
 
 const SearchViewer: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();

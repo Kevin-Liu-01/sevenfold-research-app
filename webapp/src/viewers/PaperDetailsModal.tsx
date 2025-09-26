@@ -10,6 +10,14 @@ type Props = {
 };
 
 const PaperDetailsModal: React.FC<Props> = ({ paper, onClose }) => {
+    // Helper function to truncate authors list
+    const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
+        if (!authors || authors.length === 0) return "";
+        if (authors.length <= maxAuthors) {
+            return authors.join(', ');
+        }
+        return `${authors.slice(0, maxAuthors).join(', ')} et al. (+${authors.length - maxAuthors} more)`;
+    };
 
     useEffect(() => {
         const onEsc = (e: KeyboardEvent) => {
@@ -50,7 +58,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose }) => {
                     {!!paper.authors?.length && (
                         <div>
                             <span className="font-semibold">Authors:</span>{" "}
-                            {paper.authors.join(", ")}
+                            {truncateAuthors(paper.authors)}
                         </div>
                     )}
                     {paper.year && (
