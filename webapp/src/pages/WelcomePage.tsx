@@ -40,7 +40,14 @@ const WelcomePage: React.FC = () => {
             return;
         }
         const meta: Record<string, unknown> = user.user_metadata ?? {};
-        const full = meta.full_name || meta.name || meta.user_name || "";
+        const full =
+            typeof meta.full_name === "string"
+                ? meta.full_name
+                : typeof meta.name === "string"
+                  ? meta.name
+                  : typeof meta.user_name === "string"
+                    ? meta.user_name
+                    : "";
         const [f = "", l = ""] = full.split(" ");
         setForm((prev) => ({
             ...prev,
@@ -149,7 +156,9 @@ const WelcomePage: React.FC = () => {
                     pfp_path = await uploadAvatarIfAny();
                 } catch (uploadErr: unknown) {
                     setError(
-                        (uploadErr instanceof Error ? uploadErr.message : "Avatar upload failed. Please try another image.")
+                        uploadErr instanceof Error
+                            ? uploadErr.message
+                            : "Avatar upload failed. Please try another image."
                     );
                     setSubmitting(false);
                     return;

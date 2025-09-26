@@ -70,7 +70,7 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({
                 img.onerror = null;
                 resolve();
             };
-            img.onerror = (e) => {
+            img.onerror = () => {
                 img.onload = null;
                 img.onerror = null;
                 reject(new Error("Failed to load image for cropping"));

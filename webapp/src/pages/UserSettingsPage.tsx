@@ -8,21 +8,21 @@ const UserSettingsPage: React.FC = () => {
     const location = useLocation();
     const { profile, updateProfile, user, session, refreshProfile } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+        null
+    );
     const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
     const [fadeOut, setFadeOut] = useState(false);
     const animationRef = useRef({ show: false, fade: false });
-    
 
-    
     // Form state
     const [formData, setFormData] = useState({
         first_name: "",
         last_name: "",
         institution: "",
-        email: ""
+        email: "",
     });
-    
+
     // Profile picture state
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -34,7 +34,7 @@ const UserSettingsPage: React.FC = () => {
                 first_name: profile.first_name || "",
                 last_name: profile.last_name || "",
                 institution: profile.institution || "",
-                email: user?.email || session?.user?.email || ""
+                email: user?.email || session?.user?.email || "",
             });
         }
     }, [profile, user, session]);
@@ -62,7 +62,9 @@ const UserSettingsPage: React.FC = () => {
                         if (!error && data?.signedUrl) {
                             setAvatarUrl(data.signedUrl);
                         } else {
-                            const pub = supabase.storage.from("user_pfps").getPublicUrl(profile.pfp_path!);
+                            const pub = supabase.storage
+                                .from("user_pfps")
+                                .getPublicUrl(profile.pfp_path!);
                             setAvatarUrl(pub.data.publicUrl || null);
                         }
                     });
@@ -83,9 +85,9 @@ const UserSettingsPage: React.FC = () => {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
@@ -96,16 +98,16 @@ const UserSettingsPage: React.FC = () => {
         try {
             setUploading(true);
             setMessage(null);
-            
+
             // Check file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
-                throw new Error('File size must be less than 5MB');
+                throw new Error("File size must be less than 5MB");
             }
 
             // Use the same file path structure as WelcomePage
-            const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+            const ext = (file.name.split(".").pop() || "png").toLowerCase();
             const key = `users/${profile?.user_id}/avatar-${Date.now()}.${ext}`;
-            
+
             const { error: uploadError } = await supabase.storage
                 .from("user_pfps")
                 .upload(key, file, {
@@ -120,30 +122,29 @@ const UserSettingsPage: React.FC = () => {
 
             // Update profile with new avatar path
             await updateProfile({ pfp_path: key });
-            
+
             // Show success animation
             setShowSuccessAnimation(true);
             setFadeOut(false);
-            setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
-            
+            setMessage({ type: "success", text: "Profile picture updated successfully!" });
+
             // Start fade out after 2.5 seconds
             setTimeout(() => {
                 setFadeOut(true);
             }, 2500);
-            
+
             // Hide success animation after 3 seconds
             setTimeout(() => {
                 setShowSuccessAnimation(false);
                 setFadeOut(false);
             }, 3000);
-            
+
             // Refresh the avatar URL
             setAvatarUrl(supabase.storage.from("user_pfps").getPublicUrl(key).data.publicUrl);
-            
         } catch (error) {
-            setMessage({ 
-                type: 'error', 
-                text: error instanceof Error ? error.message : 'Failed to upload profile picture' 
+            setMessage({
+                type: "error",
+                text: error instanceof Error ? error.message : "Failed to upload profile picture",
             });
         } finally {
             setUploading(false);
@@ -152,7 +153,7 @@ const UserSettingsPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!profile) {
             return;
         }
@@ -164,7 +165,7 @@ const UserSettingsPage: React.FC = () => {
             const updateData = {
                 first_name: formData.first_name.trim(),
                 last_name: formData.last_name.trim(),
-                institution: formData.institution.trim() || null,
+                institution: formData.institution.trim() || "",
             };
 
             try {
@@ -177,13 +178,13 @@ const UserSettingsPage: React.FC = () => {
                 if (error) {
                     throw error;
                 }
-                
+
                 // Update the local profile state immediately for UI responsiveness
                 if (profile) {
                     // Update form data to show the changes immediately
-                    setFormData(prev => ({
+                    setFormData((prev) => ({
                         ...prev,
-                        ...updateData
+                        ...updateData,
                     }));
                     // We'll refresh the profile after animation completes
                 }
@@ -195,25 +196,25 @@ const UserSettingsPage: React.FC = () => {
             setShowSuccessAnimation(true);
             setFadeOut(false);
             animationRef.current = { show: true, fade: false };
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
-            
+            setMessage({ type: "success", text: "Profile updated successfully!" });
+
             // Start fade out after 1 second
             setTimeout(() => {
                 setFadeOut(true);
                 animationRef.current.fade = true;
             }, 1000);
-            
+
             // Hide success animation after 1.5 seconds
             setTimeout(() => {
                 setShowSuccessAnimation(false);
                 setFadeOut(false);
                 animationRef.current = { show: false, fade: false };
-                
+
                 // Now refresh the profile after animation is complete
                 refreshProfile();
             }, 1500);
         } catch {
-            setMessage({ type: 'error', text: 'Failed to update profile' });
+            setMessage({ type: "error", text: "Failed to update profile" });
         } finally {
             setLoading(false);
         }
@@ -222,10 +223,10 @@ const UserSettingsPage: React.FC = () => {
     if (!profile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f57920] mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading profile...</p>
-                    </div>
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f57920] mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading profile...</p>
+                </div>
             </div>
         );
     }
@@ -254,12 +255,12 @@ const UserSettingsPage: React.FC = () => {
 
             {/* Success Animation */}
             {showSuccessAnimation && (
-                <div 
+                <div
                     className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50"
                     style={{
                         opacity: fadeOut ? 0 : 1,
-                        transform: `translate(-50%, ${fadeOut ? '-10px' : '0px'})`,
-                        transition: 'all 0.5s ease-in-out'
+                        transform: `translate(-50%, ${fadeOut ? "-10px" : "0px"})`,
+                        transition: "all 0.5s ease-in-out",
                     }}
                 >
                     <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
@@ -269,14 +270,14 @@ const UserSettingsPage: React.FC = () => {
                 </div>
             )}
 
-
-
             {/* Main Content */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                     {/* Profile Picture Section */}
                     <div className="mb-8">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Picture</h2>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                            Profile Picture
+                        </h2>
                         <div className="flex items-center gap-6">
                             <div className="relative">
                                 <img
@@ -293,7 +294,7 @@ const UserSettingsPage: React.FC = () => {
                             <div>
                                 <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200">
                                     <span className="material-icons-outlined">upload</span>
-                                    {uploading ? 'Uploading...' : 'Change Picture'}
+                                    {uploading ? "Uploading..." : "Change Picture"}
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -302,19 +303,19 @@ const UserSettingsPage: React.FC = () => {
                                         disabled={uploading}
                                     />
                                 </label>
-
-
                             </div>
                         </div>
                     </div>
 
                     {/* Message Display */}
                     {message && (
-                        <div className={`mb-6 p-4 rounded-lg ${
-                            message.type === 'success' 
-                                ? 'bg-green-50 text-green-800 border border-green-200' 
-                                : 'bg-red-50 text-red-800 border border-red-200'
-                        }`}>
+                        <div
+                            className={`mb-6 p-4 rounded-lg ${
+                                message.type === "success"
+                                    ? "bg-green-50 text-green-800 border border-green-200"
+                                    : "bg-red-50 text-red-800 border border-red-200"
+                            }`}
+                        >
                             {message.text}
                         </div>
                     )}
@@ -323,7 +324,10 @@ const UserSettingsPage: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                <label
+                                    htmlFor="first_name"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
                                     First Name *
                                 </label>
                                 <input
@@ -339,7 +343,10 @@ const UserSettingsPage: React.FC = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                <label
+                                    htmlFor="last_name"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
                                     Last Name *
                                 </label>
                                 <input
@@ -356,7 +363,10 @@ const UserSettingsPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="institution" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label
+                                htmlFor="institution"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
                                 Institution
                             </label>
                             <input
@@ -371,7 +381,10 @@ const UserSettingsPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label
+                                htmlFor="email"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
                                 Email Address
                             </label>
                             <input
@@ -388,7 +401,6 @@ const UserSettingsPage: React.FC = () => {
                                     Email loading... Please wait for authentication to complete.
                                 </p>
                             )}
-
                         </div>
 
                         {/* Action Buttons */}
@@ -412,7 +424,9 @@ const UserSettingsPage: React.FC = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <span className="material-icons-outlined text-lg">save</span>
+                                        <span className="material-icons-outlined text-lg">
+                                            save
+                                        </span>
                                         Save Changes
                                     </>
                                 )}

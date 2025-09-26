@@ -43,7 +43,7 @@ const ChatConvosList: React.FC<{
     selectedConvo: ChatConvo | null;
     setSelectedConvo: (convo: ChatConvo | null) => void;
     onSelectConvo: (convo: ChatConvo) => void;
-}> = ({ convos, selectedConvo, setSelectedConvo, onSelectConvo }) => {
+}> = ({ convos, selectedConvo, onSelectConvo }) => {
     if (!convos || convos.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No conversations found</div>;
     } else {
