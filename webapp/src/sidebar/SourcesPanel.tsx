@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useWorkbench } from "../context/WorkbenchContext";
+import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 import UploadPaperModal from "./UploadPaperModal";
@@ -80,7 +80,8 @@ const PapersList: React.FC<{
     papers: Paper[];
     selectedPaper: Paper | null;
     setSelectedPaper: (paper: Paper | null) => void;
-}> = ({ papers, selectedPaper, setSelectedPaper }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ papers, selectedPaper, setSelectedPaper, onSelectPaper }) => {
     if (!papers || papers.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No papers found</div>;
     } else {
@@ -91,7 +92,7 @@ const PapersList: React.FC<{
                         key={paper.id}
                         paper={paper}
                         isSelected={selectedPaper?.id === paper.id}
-                        onClick={() => setSelectedPaper(paper)}
+                        onClick={() => onSelectPaper(paper)}
                     />
                 ))}
             </div>
@@ -107,10 +108,17 @@ const SourcesPanel: React.FC = () => {
         refreshPapers,
         openModal,
         closeModal,
+        setCurrentView,
     } = useWorkbench();
     const [searchQuery, setSearchQuery] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Handle paper selection
+    const handleSelectPaper = (paper: Paper) => {
+        setSelectedPaper(paper);
+        setCurrentView(ViewType.Sources);
+    };
 
     const filtered = useMemo(() => {
         if (!searchQuery.trim()) return papers;
@@ -215,9 +223,9 @@ const SourcesPanel: React.FC = () => {
                 title: payload.title?.trim() || payload.file.name.replace(".pdf", ""),
                 authors: payload.authors || [],
                 doi: payload.doi?.trim() || null,
-                year: null,
-                month: null,
-                day: null,
+                year: null as number | null,
+                month: null as number | null,
+                day: null as number | null,
             };
 
             if (payload.publicationDate) {
@@ -307,6 +315,7 @@ const SourcesPanel: React.FC = () => {
                     papers={filtered}
                     selectedPaper={selectedPaper}
                     setSelectedPaper={setSelectedPaper}
+                    onSelectPaper={handleSelectPaper}
                 />
             </div>
         </div>

@@ -24,18 +24,6 @@ client = anthropic.Anthropic(
 class ChatTabCreate(BaseModel):
     project_id: str
 
-# NOT USED AS OF NOW SINCE PYDANTIC MODELS DO NOT SUPPORT FILE UPLOADS
-class ChatRequest(BaseModel):
-    tab_id: str
-    message: str
-    paper_id: Optional[str] = None
-    include_similar_papers: bool = True
-    max_similar_papers: int = 3
-
-class ChatTabUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-
 # Helper functions
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""
@@ -73,50 +61,6 @@ def _verify_tab_access(tab_id: str, user_id: str) -> Dict:
         raise HTTPException(status_code=403, detail="Access denied to this chat tab")
     
     return result.data
-
-# Used for adding context for querying through paper similarity search but that is not being done now
-# def _get_paper_details(paper_id: str) -> Optional[Dict[str, Any]]:
-#     """Get paper details from the database."""
-#     if not paper_id:
-#         return None
-        
-#     result = supabase.table("papers").select("*").eq("id", paper_id).single().execute()
-    
-#     if not result.data:
-#         return None
-    
-#     paper_data = result.data
-#     title = paper_data.get("filename", "Unknown Paper")
-#     abstract = ""
-    
-#     if paper_data.get("annotations"):
-#         try:
-#             annotations = json.loads(paper_data["annotations"]) if isinstance(paper_data["annotations"], str) else paper_data["annotations"]
-#             title = annotations.get("title", title)
-#             abstract = annotations.get("abstract", "")
-#         except:
-#             pass
-    
-#     return {
-#         "id": paper_id,
-#         "title": title,
-#         "abstract": abstract,
-#         "type": paper_data.get("type"),
-#         "metadata": paper_data
-#     }
-
-# Used for adding context for querying through paper similarity search but that is not being done now
-# def _find_similar_papers(paper_id: str, limit: int = 3) -> List[Dict[str, Any]]:
-#     """Find similar papers using embeddings."""
-#     try:
-#         result = supabase.rpc("match_documents", {
-#             "query_paper_id": paper_id,
-#             "match_count": limit
-#         }).execute()
-        
-#         return result.data if result.data else []
-#     except:
-#         return []
 
 def _build_chat_prompt(
     message: str,
@@ -191,101 +135,15 @@ async def _generate_tab_name(user_message: str, paper_filenames: Optional[List[s
 
 # API Endpoints
 
-# @router.post("/tabs", status_code=201)
-# async def create_chat_tab(
-#     tab_data: ChatTabCreate,
-#     authorization: str = Header(...),
-# ):
-#     """Create a new chat tab for a project."""
-#     # Authenticate & authorize
-#     user_id = _get_user_id(authorization)
-#     _verify_project(tab_data.project_id, user_id)
-    
-#     # Create the tab with empty name
-#     result = (
-#         supabase
-#         .table("chatbot_tabs")
-#         .insert({
-#             "project_id": tab_data.project_id,
-#             "name": "", # Tabs now start without names and are given a name after the first message is sent
-#         })
-#         .execute()
-#     )
-    
-#     if not result.data:
-#         raise HTTPException(status_code=500, detail="Failed to create chat tab")
-    
-#     return result.data[0]
-
-# @router.get("/tabs/project/{project_id}")
-# async def get_project_tabs(
-#     project_id: str,
-#     authorization: str = Header(...),
-# ):
-#     """Get all chat tabs for a project."""
-#     # Authenticate & authorize
-#     user_id = _get_user_id(authorization)
-#     _verify_project(project_id, user_id)
-    
-#     # Get tabs
-#     result = (
-#         supabase
-#         .table("chatbot_tabs")
-#         .select("*")
-#         .eq("project_id", project_id)
-#         .order("created_at", desc=True)
-#         .execute()
-#     )
-    
-#     return result.data if result.data else []
-
-# # NOT BEING USED AS OF NOW
-# # @router.get("/tabs/{tab_id}")
-# # async def get_chat_tab(
-# #     tab_id: str,
-# #     authorization: str = Header(...),
-# # ):
-# #     """Get a specific chat tab."""
-# #     # Authenticate & authorize
-# #     user_id = _get_user_id(authorization)
-# #     tab_data = _verify_tab_access(tab_id, user_id)
-    
-# #     return tab_data
-
-# @router.get("/tabs/{tab_id}/messages")
-# async def get_tab_messages(
-#     tab_id: str,
-#     authorization: str = Header(...),
-# ):
-#     """Get all messages for a specific chat tab."""
-#     # Authenticate & authorize
-#     user_id = _get_user_id(authorization)
-#     _verify_tab_access(tab_id, user_id)
-    
-#     # Get messages
-#     result = (
-#         supabase
-#         .table("chatbot_messages")
-#         .select("*")
-#         .eq("tab_id", tab_id)
-#         .order("created_at", desc=False)
-#         .execute()
-#     )
-    
-#     return result.data if result.data else []
-
 @router.post("/new_message", status_code=200)
 async def send_chat_message(
     convo_id: str = Body(...),
     message: str = Body(...),
     paper_uris: Optional[List[str]] = Body(None),
-    # FINDING SIMILAR PAPERS TO ADD TO CONTEXT NOT IMPLEMENTED YET
-    # include_similar_papers: bool = Body(True),
-    # max_similar_papers: int = Body(3),
-    # authorization: str = Header(...), - NOT BEING DONE RIGHT NOW
+    # authorization: str = Header(...)
 ):
     """Send a message to the chatbot with optional PDF upload."""
-    # Authenticate & authorize - NOT BEING DONE RIGHT NOW
+    # Authenticate & authorize - Not being implemented as of now
     # user_id = _get_user_id(authorization)
     # tab_data = _verify_tab_access(tab_id, user_id)
     
@@ -366,16 +224,6 @@ async def send_chat_message(
             if not update_result.data:
                 raise HTTPException(status_code=500, detail="Failed to update paper_ids")
     
-    # # Get paper context if provided (and no PDF uploaded) - CAN GET PAPER CONTEXT WITH OR WITHOUT PDF UPLOAD SO CHANGE LATER
-    # paper_context = None
-    # if paper_id and not file:
-    #     paper_context = _get_paper_details(paper_id)
-    
-    # # Get similar papers if requested (and no PDF uploaded) - CAN GET PAPER CONTEXT WITH OR WITHOUT PDF UPLOAD SO CHANGE LATER
-    # similar_papers = []
-    # if paper_id and include_similar_papers and not file:
-    #     similar_papers = _find_similar_papers(paper_id, max_similar_papers)
-    
     # Get conversation history
     history_result = (
         supabase
@@ -403,7 +251,7 @@ async def send_chat_message(
     is_first_message = len(conversation_history) == 0
     should_generate_name = is_first_message and (not result.data.get("name") or result.data["name"] == "")
     
-    # Save user message with metadata - NOT BEING IMPLEMENTED RIGHT NOW
+    # Save user message with metadata - Not being implemented as of now
     # user_message_metadata = {"user_id": user_id}
     user_message_metadata = {}
     
@@ -473,8 +321,8 @@ Provide detailed analysis based on the PDF content. Help the user understand the
         messages = _build_chat_prompt(
             message,
             conversation_history,
-            None, # WILL NOT BE IMPLEMENTING PAPER_CONTEXT RIGHT NOW
-            None # WILL NOT BE IMPLEMENTING SIMILAR_PAPERS RIGHT NOW
+            None, # Paper_Context not being used as of now
+            None # Similar_Papers not being used as of now
         )
         
         # Convert to Claude format
@@ -554,8 +402,8 @@ Provide detailed analysis based on the PDF content. Help the user understand the
     
     response_data = {
         "message": assistant_content,
-        # "paper_context": paper_context, - NOT IMPLEMENTED YET
-        # "similar_papers": similar_papers - NOT IMPLEMENTED YET
+        # "paper_context": paper_context, - Not being used as of now
+        # "similar_papers": similar_papers - Not being used as of now
     }
     
     if paper_ids:
@@ -565,102 +413,3 @@ Provide detailed analysis based on the PDF content. Help the user understand the
         response_data["tab_name_generated"] = tab_name_generated
     
     return response_data
-
-# @router.put("/tabs/{tab_id}", status_code=200)
-# async def update_chat_tab(
-#     tab_id: str,
-#     update_data: ChatTabUpdate = Body(...),
-#     authorization: str = Header(...),
-# ):
-#     """Update a chat tab's name or description."""
-#     # Authenticate & authorize
-#     user_id = _get_user_id(authorization)
-#     _verify_tab_access(tab_id, user_id)
-    
-#     # Build update data
-#     updates = {}
-#     if update_data.name is not None:
-#         updates["name"] = update_data.name
-#     if update_data.description is not None:
-#         updates["description"] = update_data.description
-    
-#     if not updates:
-#         return {"message": "No updates provided"}
-    
-#     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    
-#     # Update tab
-#     result = supabase.table("chatbot_tabs") \
-#         .update(updates) \
-#         .eq("id", tab_id) \
-#         .execute()
-    
-#     if not result.data:
-#         raise HTTPException(status_code=500, detail="Failed to update tab")
-    
-#     return result.data[0]
-
-# @router.delete("/tabs/{tab_id}", status_code=200)
-# async def delete_chat_tab(
-#     tab_id: str,
-#     authorization: str = Header(...),
-# ):
-#     """Delete a chat tab and all its associated messages."""
-#     # Authenticate & authorize
-#     user_id = _get_user_id(authorization)
-#     _verify_tab_access(tab_id, user_id)
-    
-#     # Hard delete - this will cascade delete all messages due to ON DELETE CASCADE
-#     result = (
-#         supabase
-#         .table("chatbot_tabs")
-#         .delete()
-#         .eq("id", tab_id)
-#         .execute()
-#     )
-    
-#     if not result.data:
-#         raise HTTPException(status_code=500, detail="Failed to delete tab")
-    
-#     return {"message": "Chat tab and all messages deleted successfully", "tab_id": tab_id}
-
-# @router.delete("/messages/{message_id}", status_code=200)
-# async def delete_message(
-#     message_id: str,
-#     authorization: str = Header(...),
-# ):
-#     """Delete a specific message from the conversation."""
-#     # Authenticate
-#     user_id = _get_user_id(authorization)
-    
-#     # Get the message first to find its tab_id
-#     message_result = (
-#         supabase
-#         .table("chatbot_messages")
-#         .select("id, tab_id")
-#         .eq("id", message_id)
-#         .single()
-#         .execute()
-#     )
-    
-#     if not message_result.data:
-#         raise HTTPException(status_code=404, detail="Message not found")
-    
-#     tab_id = message_result.data["tab_id"]
-    
-#     # Verify user has access to this tab
-#     _verify_tab_access(tab_id, user_id)
-    
-#     # Delete only this specific message
-#     result = (
-#         supabase
-#         .table("chatbot_messages")
-#         .delete()
-#         .eq("id", message_id)
-#         .execute()
-#     )
-    
-#     if not result.data:
-#         raise HTTPException(status_code=500, detail="Failed to delete message")
-    
-#     return {"message": "Message deleted successfully", "message_id": message_id}
