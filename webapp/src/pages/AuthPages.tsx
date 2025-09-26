@@ -149,8 +149,8 @@ export const SigninPage: React.FC = () => {
         try {
             await signIn(email, password);
             navigate("/");
-        } catch (err: any) {
-            setError(err.message || "Error signing in");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Error signing in");
         } finally {
             setLoading(false);
         }
@@ -273,8 +273,8 @@ export const SignupPage: React.FC = () => {
                     message: "Please check your email to verify your account",
                 },
             });
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -382,8 +382,8 @@ export const ForgotPasswordPage: React.FC = () => {
             await resetPassword(email);
             setSent(true);
             navigate("/signin");
-        } catch (err: any) {
-            setError(err.message || "Something went wrong");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setLoading(false);
         }

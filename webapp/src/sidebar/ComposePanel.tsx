@@ -105,7 +105,14 @@ const CompositionsList: React.FC<{
 };
 
 const ComposePanel: React.FC = () => {
-    const { projectId, compositions, selectedComposition, setSelectedComposition, refreshCompositions, setCurrentView } = useWorkbench();
+    const {
+        projectId,
+        compositions,
+        selectedComposition,
+        setSelectedComposition,
+        refreshCompositions,
+        setCurrentView,
+    } = useWorkbench();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -131,7 +138,10 @@ const ComposePanel: React.FC = () => {
     const createNewComposition = async () => {
         setIsCreating(true);
         try {
-            const { data: { session }, error: authErr } = await supabase.auth.getSession();
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
             if (authErr || !session?.access_token) {
                 throw new Error("Not authenticated");
             }

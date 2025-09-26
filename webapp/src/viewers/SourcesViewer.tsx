@@ -148,7 +148,6 @@ const SourcesViewer: React.FC = () => {
     }, [instance, signedUrl, selectedPaper]);
 
     // Handlers
-    
 
     const retry = () => {
         setError(null);

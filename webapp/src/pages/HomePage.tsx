@@ -61,7 +61,7 @@ const HomePage: React.FC = () => {
         (project) =>
             project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             project.research_question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.keywords?.some((keyword) =>
+            project.keywords?.some((keyword: string) =>
                 keyword.toLowerCase().includes(searchTerm.toLowerCase())
             )
     );
