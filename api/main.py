@@ -8,6 +8,10 @@ from routes.compose_router import router as compose_router
 
 app = FastAPI()
 
+@app.get("/")
+async def root():
+    return {"message": "Sevenfold API"}
+
 # CORS config (adjust for production)
 origins = [
     "http://localhost:3000",  # React/Vite dev server
