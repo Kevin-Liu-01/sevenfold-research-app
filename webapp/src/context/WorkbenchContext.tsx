@@ -144,7 +144,11 @@ export const WorkbenchProvider: React.FC<{
             console.error("Error fetching project papers:", error.message);
             return;
         }
-        const newPapersList = (data ?? []).map((p: { paper: Paper }) => p.paper).filter((p): p is Paper => !!p);
+        const newPapersList = (data ?? [])
+            .map((p: any) =>
+                p && typeof p.paper === "object" && p.paper !== null ? p.paper : null
+            )
+            .filter((p): p is Paper => !!p);
 
         setPapers((prevPapers) => {
             // Compare the new list with the old one to detect added papers
