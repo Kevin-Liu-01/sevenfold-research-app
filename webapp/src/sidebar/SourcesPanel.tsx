@@ -223,9 +223,9 @@ const SourcesPanel: React.FC = () => {
                 title: payload.title?.trim() || payload.file.name.replace(".pdf", ""),
                 authors: payload.authors || [],
                 doi: payload.doi?.trim() || null,
-                year: null,
-                month: null,
-                day: null,
+                year: null as number | null,
+                month: null as number | null,
+                day: null as number | null,
             };
 
             if (payload.publicationDate) {

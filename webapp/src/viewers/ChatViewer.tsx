@@ -18,8 +18,6 @@ import { InlineMath, BlockMath } from "react-katex";
 marked.setOptions({
     gfm: true,
     breaks: true,
-    mangle: false,
-    headerIds: false,
 });
 
 function ConvoHeader({ convo }: { convo: ChatConvo }) {
@@ -439,7 +437,7 @@ const NewChatPage: React.FC<{
                                         : "bg-gray-100 border-gray-300 text-gray-500"
                                 }`}
                         >
-                            {paper.title || paper.filename || "Untitled"}
+                            {paper.title || "Untitled"}
                         </button>
                     ))}
                 </div>
