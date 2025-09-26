@@ -6,7 +6,7 @@ import WebViewer from "@pdftron/pdfjs-express";
 
 const SourcesViewer: React.FC = () => {
     const viewerRef = useRef<HTMLDivElement>(null);
-    const [instance, setInstance] = useState<WebViewer.Instance | null>(null);
+    const [instance, setInstance] = useState<WebViewer["Instance"] | null>(null);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ const SourcesViewer: React.FC = () => {
             WebViewer(
                 { path: "/webviewer", licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY },
                 viewerRef.current
-            ).then(async (inst: WebViewer.Instance) => {
+            ).then(async (inst: WebViewer["Instance"]) => {
                 setInstance(inst);
                 const { documentViewer, annotationManager } = inst.Core;
 
