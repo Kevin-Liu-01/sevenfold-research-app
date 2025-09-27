@@ -1,4 +1,4 @@
-const elementIds = {
+const popupElementIds = {
   statusEl: 'status',
   loginButton: 'login-button',
   logoutButton: 'logout-button',
@@ -6,7 +6,11 @@ const elementIds = {
   passwordInput: 'password-input',
   emailLoginButton: 'email-login-button',
   signedOutView: 'signed-out-view',
-  signedInView: 'signed-in-view',
+  signedInView: 'signed-in-view'
+};
+
+const shadowElementIds = {
+  statusEl: 'status',
   projectsSection: 'projects-section',
   projectsList: 'projects-list',
   projectsEmpty: 'projects-empty',
@@ -31,26 +35,55 @@ const elementIds = {
   metadataSourceEl: 'metadata-source'
 };
 
-export function queryPopupElements() {
+function lookupById(root, id) {
+  if (!root) {
+    return null;
+  }
+
+  if (typeof root.getElementById === 'function') {
+    return root.getElementById(id);
+  }
+
+  if (typeof root.querySelector === 'function') {
+    const safeId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(id) : id;
+    return root.querySelector(`#${safeId}`);
+  }
+
+  return null;
+}
+
+function collectElements(root, idMap, contextLabel) {
   const elements = {};
   const missing = [];
 
-  for (const [key, id] of Object.entries(elementIds)) {
-    const node = document.getElementById(id);
+  for (const [key, id] of Object.entries(idMap)) {
+    const node = lookupById(root, id);
     if (!node) {
       missing.push(id);
     }
-    elements[key] = node;
+    elements[key] = node || null;
   }
 
   if (missing.length) {
-    console.error('[popup] missing elements', missing);
+    console.error(`[ui] missing ${contextLabel} elements`, missing);
     return null;
   }
 
   return elements;
 }
 
-export function getElementIds() {
-  return { ...elementIds };
+export function queryPopupElements(root = document) {
+  return collectElements(root, popupElementIds, 'popup');
+}
+
+export function queryShadowElements(root = document) {
+  return collectElements(root, shadowElementIds, 'shadow');
+}
+
+export function getPopupElementIds() {
+  return { ...popupElementIds };
+}
+
+export function getShadowElementIds() {
+  return { ...shadowElementIds };
 }

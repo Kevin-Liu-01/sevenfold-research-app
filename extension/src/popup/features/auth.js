@@ -18,6 +18,12 @@ export function createAuthFeature({
     emailLoginButton
   } = elements;
 
+  const loadProjectsFn = typeof loadProjects === 'function' ? loadProjects : null;
+  const loadPdfStatusFn = typeof loadPdfStatus === 'function' ? loadPdfStatus : null;
+  const resetProjectsFn = typeof resetProjects === 'function' ? resetProjects : null;
+  const resetPdfStatusFn = typeof resetPdfStatus === 'function' ? resetPdfStatus : null;
+  const refreshUIFn = typeof refreshUI === 'function' ? refreshUI : null;
+
   function disableAuthControls() {
     loginButton.disabled = true;
     logoutButton.disabled = true;
@@ -53,15 +59,19 @@ export function createAuthFeature({
       });
 
       setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
-      await loadProjects();
-      await loadPdfStatus();
+      if (loadProjectsFn) {
+        await loadProjectsFn();
+      }
+      if (loadPdfStatusFn) {
+        await loadPdfStatusFn();
+      }
     } catch (error) {
       console.error('[popup] login error', error);
       setStatus(`Login error: ${error.message}`);
     } finally {
       passwordInput.value = '';
       enableAuthInputs();
-      refreshUI();
+      refreshUIFn?.();
     }
   }
 
@@ -94,15 +104,19 @@ export function createAuthFeature({
       });
 
       setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
-      await loadProjects();
-      await loadPdfStatus();
+      if (loadProjectsFn) {
+        await loadProjectsFn();
+      }
+      if (loadPdfStatusFn) {
+        await loadPdfStatusFn();
+      }
     } catch (error) {
       console.error('[popup] email login error', error);
       setStatus(`Email login error: ${error.message}`);
     } finally {
       passwordInput.value = '';
       enableAuthInputs();
-      refreshUI();
+      refreshUIFn?.();
     }
   }
 
@@ -118,15 +132,15 @@ export function createAuthFeature({
 
       setState({ currentSession: null, hasResolvedSession: true });
       setStatus('Signed out.');
-      resetProjects();
-      resetPdfStatus();
+      resetProjectsFn?.();
+      resetPdfStatusFn?.();
     } catch (error) {
       console.error('[popup] logout error', error);
       setStatus(`Logout error: ${error.message}`);
     } finally {
       passwordInput.value = '';
       enableAuthInputs();
-      refreshUI();
+      refreshUIFn?.();
     }
   }
 
@@ -140,8 +154,12 @@ export function createAuthFeature({
         setState({ currentSession: response.session || null });
         if (response.session) {
           setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
-          await loadProjects();
-          await loadPdfStatus();
+          if (loadProjectsFn) {
+            await loadProjectsFn();
+          }
+          if (loadPdfStatusFn) {
+            await loadPdfStatusFn();
+          }
         } else {
           setStatus('Not signed in.');
         }
@@ -154,7 +172,7 @@ export function createAuthFeature({
     } finally {
       setState({ hasResolvedSession: true });
       enableAuthInputs();
-      refreshUI();
+      refreshUIFn?.();
     }
   }
 
@@ -164,16 +182,20 @@ export function createAuthFeature({
 
     if (isAuthed) {
       setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
-      void loadProjects();
-      void loadPdfStatus();
+      if (loadProjectsFn) {
+        void loadProjectsFn();
+      }
+      if (loadPdfStatusFn) {
+        void loadPdfStatusFn();
+      }
     } else {
       setStatus('Not signed in.');
-      resetProjects();
-      resetPdfStatus();
+      resetProjectsFn?.();
+      resetPdfStatusFn?.();
     }
 
     enableAuthInputs();
-    refreshUI();
+    refreshUIFn?.();
   }
 
   function init() {

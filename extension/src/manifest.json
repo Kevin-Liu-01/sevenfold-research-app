@@ -26,7 +26,14 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["content/shadow-root.html"],
+      "resources": [
+        "content/shadow-root.html",
+        "content/shadowApp.js",
+        "popup/dom/*.js",
+        "popup/services/*.js",
+        "popup/features/*.js",
+        "popup/state/*.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

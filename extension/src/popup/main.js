@@ -2,8 +2,6 @@ import { queryPopupElements } from './dom/elements.js';
 import { getState } from './state/store.js';
 import { addTypedMessageListener } from './services/runtimeMessaging.js';
 import { createAuthFeature } from './features/auth.js';
-import { createProjectsFeature } from './features/projects.js';
-import { createPdfMetadataFeature } from './features/pdfMetadata.js';
 
 console.log('[popup] loaded');
 
@@ -21,8 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     emailInput,
     passwordInput,
     signedOutView,
-    signedInView,
-    projectsSection
+    signedInView
   } = elements;
 
   function setStatus(message) {
@@ -38,16 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAuthed = Boolean(state.currentSession && state.currentSession.accessToken);
     signedOutView.classList.toggle('hidden', isAuthed);
     signedInView.classList.toggle('hidden', !isAuthed);
-    projectsSection.classList.toggle('hidden', !isAuthed);
 
     loginButton.disabled = isAuthed;
     emailLoginButton.disabled = isAuthed;
     emailInput.disabled = isAuthed;
     passwordInput.disabled = isAuthed;
     logoutButton.disabled = !isAuthed;
-
-    metadataFeature.updatePdfStatusUI();
-    metadataFeature.updateMetadataUI();
   }
 
   setStatus('Checking session…');
@@ -59,38 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   signedOutView.classList.add('hidden');
   signedInView.classList.add('hidden');
-  projectsSection.classList.add('hidden');
-
-  const metadataFeature = createPdfMetadataFeature({ elements });
-  metadataFeature.resetMetadataForm();
-
-  const projectsFeature = createProjectsFeature({
-    elements,
-    updateMetadataUI: metadataFeature.updateMetadataUI
-  });
-  metadataFeature.setSyncProjectSelect(projectsFeature.syncProjectSelect);
 
   const authFeature = createAuthFeature({
     elements,
     setStatus,
-    loadProjects: projectsFeature.loadProjects,
-    loadPdfStatus: metadataFeature.loadPdfStatus,
-    resetProjects: projectsFeature.resetProjects,
-    resetPdfStatus: metadataFeature.resetPdfStatus,
     refreshUI: updateUI
   });
 
-  metadataFeature.init();
-  projectsFeature.init();
   authFeature.init();
-
-  addTypedMessageListener('pdf:status-changed', (message) => {
-    if (!message?.status) {
-      return false;
-    }
-    metadataFeature.handlePdfStatusChange(message.status, message.tabId);
-    return false;
-  });
 
   addTypedMessageListener('auth:changed', (message) => {
     authFeature.handleAuthChanged(message?.payload || null);

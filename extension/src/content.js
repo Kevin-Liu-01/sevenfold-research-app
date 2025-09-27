@@ -20,6 +20,30 @@ let lastNotifyPayload = null;
 let shadowRootHost = null;
 let shadowTemplatePromise = null;
 let shadowMounted = false;
+let shadowAppController = null;
+let shadowAppModulePromise = null;
+
+function loadShadowAppModule() {
+  if (!shadowAppModulePromise) {
+    try {
+      const moduleUrl = chrome.runtime.getURL('content/shadowApp.js');
+      if (!moduleUrl) {
+        throw new Error('Unable to resolve shadow app module URL');
+      }
+      shadowAppModulePromise = import(moduleUrl).catch((error) => {
+        shadowAppModulePromise = null;
+        throw error;
+      });
+    } catch (error) {
+      console.warn('[content] failed to resolve shadow app module', error);
+      shadowAppModulePromise = Promise.reject(error);
+      shadowAppModulePromise.catch(() => {
+        shadowAppModulePromise = null;
+      });
+    }
+  }
+  return shadowAppModulePromise;
+}
 
 console.log('[content] script injected on', window.location.href);
 
@@ -189,6 +213,15 @@ async function mountShadowRoot() {
   try {
     const template = await loadShadowTemplate();
     host.shadowRoot.innerHTML = template;
+    shadowAppController?.destroy();
+    try {
+      const module = await loadShadowAppModule();
+      if (module?.initShadowApp) {
+        shadowAppController = await module.initShadowApp(host.shadowRoot);
+      }
+    } catch (error) {
+      console.warn('[content] failed to initialize shadow app', error);
+    }
     shadowMounted = true;
   } catch (error) {
     console.warn('[content] failed to mount shadow root', error);
@@ -196,6 +229,15 @@ async function mountShadowRoot() {
 }
 
 function removeShadowRoot() {
+  if (shadowAppController) {
+    try {
+      shadowAppController.destroy();
+    } catch (error) {
+      console.warn('[content] failed to destroy shadow app', error);
+    }
+  }
+  shadowAppController = null;
+
   if (shadowRootHost && shadowRootHost.isConnected && shadowRootHost.dataset.sevenfoldShadowHost === 'true') {
     shadowRootHost.remove();
   }
@@ -312,4 +354,11 @@ window.addEventListener('beforeunload', () => {
     window.clearInterval(urlCheckInterval);
   }
   clearNotifyRetry();
+  if (shadowAppController) {
+    try {
+      shadowAppController.destroy();
+    } catch (error) {
+      console.warn('[content] failed to destroy shadow app on unload', error);
+    }
+  }
 });
