@@ -33,14 +33,18 @@ jobs:
 
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: api/Dockerfile
-          _targetLabelKey_: _targetLabel_
-          registryUrl: sevenfoldapiregistry.azurecr.io
-          registryUsername: ${{ secrets.SEVENFOLDAPI_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.SEVENFOLDAPI_REGISTRY_PASSWORD }}
-          containerAppName: sevenfold-api
-          resourceGroup: sevenfold-rg
-          imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
-          _buildArgumentsKey_: |
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: api/Dockerfile
+          _targetLabelKey_: _targetLabel_
+
+
+          registryUrl: sevenfoldapiregistry.azurecr.io
+          registryUsername: ${{ secrets.SEVENFOLDAPI_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.SEVENFOLDAPI_REGISTRY_PASSWORD }}
+          containerAppName: sevenfold-api
+          resourceGroup: sevenfold-rg
+          imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
