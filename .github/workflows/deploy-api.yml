@@ -44,3 +44,5 @@ jobs:
           resourceGroup: sevenfold-rg
           imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
           _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
