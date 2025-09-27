@@ -1,24 +1,19 @@
 name: Deploy Sevenfold API to Azure Container Apps
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ prod ]
+    branches: [ prod ]
     paths:
-    - 'api/**'
-    - '.github/workflows/deploy-api.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - 'api/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+    permissions:
+      id-token: write # Required for OIDC login
+      contents: read   # Required to checkout the repo
 
     steps:
       - name: Checkout to the branch
@@ -34,16 +29,15 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: api/Dockerfile
-          _targetLabelKey_: _targetLabel_
-
-
+          # This sets the Docker build context to your repository root
+          appSourcePath: ${{ github.workspace }} 
+          # Correct parameter name for the Dockerfile path
+          dockerfilePath: api/Dockerfile 
+          
+          # --- Registry and App Configuration ---
           registryUrl: sevenfoldapiregistry.azurecr.io
           registryUsername: ${{ secrets.SEVENFOLDAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.SEVENFOLDAPI_REGISTRY_PASSWORD }}
           containerAppName: sevenfold-api
           resourceGroup: sevenfold-rg
           imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
