@@ -17,6 +17,8 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 COPY api/ /code/api/
 COPY schema/ /code/schema/
 
+WORKDIR /code/api
+
 # Expose the port the app runs on
 EXPOSE 8080
 
