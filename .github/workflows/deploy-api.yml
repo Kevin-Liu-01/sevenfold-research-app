@@ -41,5 +41,3 @@ jobs:
           containerAppName: sevenfold-api
           resourceGroup: sevenfold-rg
           imageToBuild: sevenfoldapiregistry.azurecr.io/sevenfold-api:${{ github.sha }}
-
-  workflow_dispatch:

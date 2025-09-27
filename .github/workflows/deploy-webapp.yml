@@ -13,6 +13,7 @@ on:
       - prod
     paths:
       - 'webapp/**'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_job:
@@ -53,5 +54,3 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_SMOKE_0F3F4200F }}
           action: "close"
-
-workflow_dispatch:
