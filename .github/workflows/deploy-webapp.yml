@@ -6,17 +6,18 @@ on:
       - prod
     paths:
       - 'webapp/**'
-      - '.github/workflows/**'
+      - '.github/workflows/deploy-webapp.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - prod
     paths:
       - 'webapp/**'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
@@ -36,7 +37,11 @@ jobs:
           app_location: "./webapp" # App source code path
           api_location: "" # Api source code path - optional
           output_location: "dist" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_MARKETING_URL: ${{ secrets.VITE_MARKETING_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

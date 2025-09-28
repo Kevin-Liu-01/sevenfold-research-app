@@ -6,17 +6,18 @@ on:
       - prod
     paths:
       - 'www/**'
-      - '.github/workflows/**'
+      - '.github/workflows/deploy-www.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - prod
     paths:
       - 'www/**'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
@@ -37,6 +38,8 @@ jobs:
           api_location: "" # Api source code path - optional
           output_location: "" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
+        env: # This block passes your secrets to the build process
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
