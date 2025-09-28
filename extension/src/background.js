@@ -403,6 +403,7 @@ async function handleMetadataLookup(payload) {
   }
 
   const paperId = data?.id ?? null;
+  console.log('[metadata] fetched paper ID', paperId);
   setCachedPaperId(doi, paperId);
   return paperId;
 }
@@ -492,13 +493,19 @@ async function handleUploadRequest(payload, senderTabId) {
     }
 
     const blob = await fetchPdfBlob(payload.url);
-
-    const doi = typeof payload?.metadata?.doi === 'string' ? payload.metadata.doi.trim() : '';
+    const metadataInputRaw = payload?.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
+    const metadataInput = { ...metadataInputRaw };
+    delete metadataInput.projectId;
+    const doi = typeof metadataInput?.doi === 'string' ? metadataInput.doi.trim() : '';
+    if (doi) {
+      metadataInput.doi = doi;
+    }
+    const cachedPaperId = doi ? getCachedPaperId(doi) : null;
     let response;
-    if (doi && getCachedPaperId(doi)) {
+    if (doi && cachedPaperId) {
       // link the paper ID to this project
       const linkPaperUrl = buildLinkPaperUrl();
-      const paperId = getCachedPaperId(doi);
+      const paperId = cachedPaperId;
       console.log('[upload] linking paper by ID to project', linkPaperUrl, paperId, projectId);
       const formData = new FormData();
       formData.append('file', blob);
@@ -519,7 +526,13 @@ async function handleUploadRequest(payload, senderTabId) {
       formData.append('project_id', projectId);
       formData.append('paper_type', payload.paperType || 'source');
 
-      const metadata = normalizeMetadata(payload.metadata);
+      const metadata = await resolveMetadataForUpload({
+        metadataInput,
+        blob,
+        projectId,
+        session,
+        sourceUrl: payload.url
+      });
       formData.append('metadata_json', JSON.stringify(metadata));
 
       response = await fetch(uploadUrl, {
@@ -529,6 +542,11 @@ async function handleUploadRequest(payload, senderTabId) {
         },
         body: formData
       });
+      // update cache with new paper ID
+      const newPaperId = response.ok ? (await response.json())?.paper_id ?? null : null;
+      if (doi && newPaperId) {
+        setCachedPaperId(doi, newPaperId);
+      }
     }
     const responseBody = await parseJsonSafe(response);
     if (!response.ok) {
@@ -606,6 +624,18 @@ function buildLinkPaperUrl() {
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 
+function buildProcessPdfUrl() {
+  if (!apiConfig?.baseUrl) {
+    throw new Error('API base URL not configured');
+  }
+
+  const base = apiConfig.baseUrl.endsWith('/')
+    ? apiConfig.baseUrl.slice(0, -1)
+    : apiConfig.baseUrl;
+  const path = apiConfig.processPdfPath || '/papers/process-pdf';
+  return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
 function deriveFileNameFromUrl(url) {
   try {
     const parsed = new URL(url);
@@ -679,6 +709,64 @@ function sanitizeNullableInteger(value, min, max, errorMessage) {
     throw new Error(errorMessage);
   }
   return parsed;
+}
+
+async function resolveMetadataForUpload({ metadataInput, blob, projectId, session, sourceUrl }) {
+  const safeHints = metadataInput && typeof metadataInput === 'object' ? { ...metadataInput } : {};
+
+  const extracted = await extractMetadataWithProcessor({
+    blob,
+    projectId,
+    accessToken: session.accessToken,
+    metadataHints: safeHints,
+    sourceUrl
+  });
+
+  const merged = { ...extracted };
+  for (const [key, value] of Object.entries(safeHints)) {
+    if (value !== undefined && value !== null && value !== '') {
+      merged[key] = value;
+    }
+  }
+
+  return normalizeMetadata(merged);
+}
+
+async function extractMetadataWithProcessor({ blob, projectId, accessToken, metadataHints, sourceUrl }) {
+  const processUrl = buildProcessPdfUrl();
+  console.log('[upload] requesting metadata extraction from', processUrl, 'for', sourceUrl);
+
+  const formData = new FormData();
+  formData.append('file', blob, deriveFileNameFromUrl(sourceUrl));
+  formData.append('project_id', projectId);
+  if (metadataHints?.pagesSpec) {
+    formData.append('pages_spec', metadataHints.pagesSpec);
+  }
+
+  const response = await fetch(processUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: formData
+  });
+
+  const responseBody = await parseJsonSafe(response);
+  if (!response.ok) {
+    const message = responseBody?.detail || responseBody?.error || response.statusText;
+    throw new Error(message || 'Unable to extract metadata from PDF.');
+  }
+
+  const metadata = responseBody?.metadata;
+  if (!metadata || typeof metadata !== 'object') {
+    throw new Error('Metadata extraction returned no data.');
+  }
+
+  if (metadataHints?.doi && !metadata.doi) {
+    metadata.doi = metadataHints.doi;
+  }
+
+  return metadata;
 }
 
 function notifyUploadResult(tabId, payload) {

@@ -11,6 +11,9 @@ const popupElementIds = {
 
 const shadowElementIds = {
   statusEl: 'status',
+  panelRoot: 'panel-root',
+  panelCloseButton: 'panel-close',
+  panelToggleButton: 'panel-toggle',
   projectsSection: 'projects-section',
   projectsList: 'projects-list',
   projectsEmpty: 'projects-empty',
@@ -21,15 +24,6 @@ const shadowElementIds = {
   pdfStatusPill: 'pdf-status-pill',
   pdfStatusMessage: 'pdf-status-message',
   metadataSection: 'metadata-section',
-  metadataForm: 'metadata-form',
-  metadataTitleInput: 'metadata-title',
-  metadataAbstractInput: 'metadata-abstract',
-  metadataAuthorsInput: 'metadata-authors',
-  metadataYearInput: 'metadata-year',
-  metadataMonthInput: 'metadata-month',
-  metadataDayInput: 'metadata-day',
-  metadataDoiInput: 'metadata-doi',
-  metadataCategoryInput: 'metadata-category',
   metadataStatusEl: 'metadata-status',
   metadataSubmitButton: 'metadata-submit',
   metadataSourceEl: 'metadata-source'

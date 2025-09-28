@@ -4,6 +4,8 @@ const NOTIFY_RETRY_DELAY_MS = 500;
 const ARXIV_HOST = 'arxiv.org';
 const ARXIV_DOI_PREFIX = '10.48550/arXiv.';
 const SHADOW_HOST_ID = 'sevenfold-shadow-root-host';
+const SHADOW_STYLE_PATH = 'content/shadow-root.css';
+const SHADOW_STYLE_ATTR = 'data-sevenfold-shadow-style';
 
 const state = {
   isPdf: false,
@@ -213,6 +215,7 @@ async function mountShadowRoot() {
   try {
     const template = await loadShadowTemplate();
     host.shadowRoot.innerHTML = template;
+    injectShadowStyles(host.shadowRoot);
     shadowAppController?.destroy();
     try {
       const module = await loadShadowAppModule();
@@ -225,6 +228,45 @@ async function mountShadowRoot() {
     shadowMounted = true;
   } catch (error) {
     console.warn('[content] failed to mount shadow root', error);
+  }
+}
+
+function injectShadowStyles(root) {
+  if (!root) {
+    return;
+  }
+
+  const existingLink = root.querySelector(`link[rel="stylesheet"][${SHADOW_STYLE_ATTR}]`);
+  if (existingLink) {
+    return;
+  }
+
+  let styleUrl;
+  try {
+    styleUrl = chrome.runtime.getURL(SHADOW_STYLE_PATH);
+  } catch (error) {
+    console.warn('[content] failed to resolve shadow style URL', error);
+    return;
+  }
+
+  if (!styleUrl) {
+    console.warn('[content] shadow style URL unavailable');
+    return;
+  }
+
+  const linkEl = document.createElement('link');
+  linkEl.rel = 'stylesheet';
+  linkEl.href = styleUrl;
+  linkEl.setAttribute(SHADOW_STYLE_ATTR, 'true');
+
+  try {
+    if (root.firstChild) {
+      root.insertBefore(linkEl, root.firstChild);
+    } else {
+      root.append(linkEl);
+    }
+  } catch (error) {
+    console.warn('[content] failed to inject shadow styles', error);
   }
 }
 

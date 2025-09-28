@@ -20,15 +20,23 @@
       "run_at": "document_idle"
     }
   ],
+  "icons": {
+    "16": "favicon.ico",
+    "32": "favicon.ico",
+    "48": "favicon.ico",
+    "128": "favicon.ico"
+  },
   "action": {
     "default_popup": "popup/index.html",
-    "default_title": "Research Library"
+    "default_title": "Sevenfold Extension"
   },
   "web_accessible_resources": [
     {
       "resources": [
         "content/shadow-root.html",
+        "content/shadow-root.css",
         "content/shadowApp.js",
+        "favicon.ico",
         "popup/dom/*.js",
         "popup/services/*.js",
         "popup/features/*.js",

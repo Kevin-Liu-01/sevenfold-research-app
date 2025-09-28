@@ -13,46 +13,55 @@ function safeHostname(url) {
   }
 }
 
-function parseInteger(value, min, max) {
-  if (!value && value !== 0) {
-    return null;
-  }
-  const parsed = Number.parseInt(String(value), 10);
-  if (Number.isNaN(parsed)) {
-    return null;
-  }
-  if (typeof min === 'number' && parsed < min) {
-    return null;
-  }
-  if (typeof max === 'number' && parsed > max) {
-    return null;
-  }
-  return parsed;
-}
-
 export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
   let syncProjectSelectRef = typeof syncProjectSelect === 'function' ? syncProjectSelect : () => {};
   const {
+    panelRoot,
+    panelCloseButton,
+    panelToggleButton,
     pdfStatusSection,
     pdfStatusPill,
     pdfStatusMessage,
     metadataSection,
-    metadataForm,
-    metadataTitleInput,
-    metadataAbstractInput,
-    metadataAuthorsInput,
-    metadataYearInput,
-    metadataMonthInput,
-    metadataDayInput,
-    metadataDoiInput,
-    metadataCategoryInput,
     metadataStatusEl,
     metadataSubmitButton,
     metadataSourceEl
   } = elements;
 
+  let panelHidden = false;
+
+  function showPanel() {
+    panelHidden = false;
+    if (panelRoot) {
+      panelRoot.classList.remove('panel-hidden');
+    }
+    if (panelToggleButton) {
+      panelToggleButton.classList.add('hidden');
+      panelToggleButton.classList.remove('panel-toggle-attention');
+      panelToggleButton.setAttribute('aria-expanded', 'true');
+      panelToggleButton.setAttribute('aria-hidden', 'true');
+    }
+    updateMetadataUI();
+  }
+
+  function hidePanel() {
+    if (panelHidden) {
+      return;
+    }
+    panelHidden = true;
+    if (panelRoot) {
+      panelRoot.classList.add('panel-hidden');
+    }
+    if (panelToggleButton) {
+      panelToggleButton.classList.remove('hidden');
+      panelToggleButton.setAttribute('aria-expanded', 'false');
+      panelToggleButton.setAttribute('aria-hidden', 'false');
+      panelToggleButton.focus();
+    }
+    updateMetadataUI();
+  }
+
   function resetMetadataForm() {
-    metadataForm.reset();
     setState({
       metadataLoading: false,
       metadataUploading: false,
@@ -60,12 +69,18 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
       metadataError: null,
       metadataAlreadyIndexed: false
     });
-    metadataSourceEl.classList.add('hidden');
-    metadataSourceEl.textContent = '';
-    metadataStatusEl.textContent = '';
-    metadataStatusEl.className = 'status-message';
-    metadataSubmitButton.textContent = 'Upload PDF';
-    metadataSubmitButton.disabled = true;
+    if (metadataSourceEl) {
+      metadataSourceEl.classList.add('hidden');
+      metadataSourceEl.textContent = '';
+    }
+    if (metadataStatusEl) {
+      metadataStatusEl.textContent = '';
+      metadataStatusEl.className = 'status-message';
+    }
+    if (metadataSubmitButton) {
+      metadataSubmitButton.textContent = 'Upload PDF';
+      metadataSubmitButton.disabled = true;
+    }
     updateMetadataUI();
   }
 
@@ -108,46 +123,14 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
     updatePdfStatusUI();
   }
 
-  function collectMetadataFromForm() {
-    const title = metadataTitleInput.value.trim();
-    const abstract = metadataAbstractInput.value.trim();
-    const authors = metadataAuthorsInput.value
-      .split(/\n|,/)
-      .map((author) => author.trim())
-      .filter(Boolean);
-
-    const year = parseInteger(metadataYearInput.value, 0, 5000);
-    if (metadataYearInput.value && year === null) {
-      return { ok: false, error: 'Year must be a positive number.' };
-    }
-
-    const month = parseInteger(metadataMonthInput.value, 1, 12);
-    if (metadataMonthInput.value && month === null) {
-      return { ok: false, error: 'Month must be between 1 and 12.' };
-    }
-
-    const day = parseInteger(metadataDayInput.value, 1, 31);
-    if (metadataDayInput.value && day === null) {
-      return { ok: false, error: 'Day must be between 1 and 31.' };
-    }
-
-    return {
-      ok: true,
-      value: {
-        title,
-        abstract: abstract || null,
-        authors,
-        year,
-        month,
-        day,
-        doi: metadataDoiInput.value.trim() || null,
-        category: metadataCategoryInput.value.trim() || null
-      }
-    };
-  }
-
   async function prefillMetadataForDoi(doi, source) {
     if (!doi) {
+      setState({
+        metadataLoading: false,
+        metadataAlreadyIndexed: false,
+        metadataError: null
+      });
+      updateMetadataUI();
       return;
     }
 
@@ -157,12 +140,14 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
       metadataError: null
     });
 
-    if (source) {
-      metadataSourceEl.classList.remove('hidden');
-      metadataSourceEl.textContent = source === 'arxiv' ? 'arXiv' : source;
-    } else {
-      metadataSourceEl.classList.add('hidden');
-      metadataSourceEl.textContent = '';
+    if (metadataSourceEl) {
+      if (source) {
+        metadataSourceEl.classList.remove('hidden');
+        metadataSourceEl.textContent = source === 'arxiv' ? 'arXiv' : source;
+      } else {
+        metadataSourceEl.classList.add('hidden');
+        metadataSourceEl.textContent = '';
+      }
     }
 
     updateMetadataUI();
@@ -196,9 +181,11 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
     }
   }
 
-  async function handleFormSubmit(event) {
-    event.preventDefault();
-    const { currentSession } = getState();
+  async function handleUploadClick(event) {
+    event?.preventDefault();
+
+    const state = getState();
+    const { currentSession } = state;
     if (!currentSession || !currentSession.accessToken) {
       setState({
         metadataError: 'Sign in to upload PDFs.',
@@ -208,18 +195,7 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
       return;
     }
 
-    const collectResult = collectMetadataFromForm();
-    if (!collectResult.ok) {
-      setState({
-        metadataError: collectResult.error,
-        metadataSuccess: false
-      });
-      updateMetadataUI();
-      return;
-    }
-
-    const { selectedProjectId, defaultProjectId, currentPdfStatus } = getState();
-    const projectId = selectedProjectId || defaultProjectId || null;
+    const projectId = state.selectedProjectId || state.defaultProjectId || null;
     if (!projectId) {
       setState({
         metadataError: 'Select a project before uploading.',
@@ -227,6 +203,11 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
       });
       updateMetadataUI();
       return;
+    }
+
+    const metadataHints = {};
+    if (state.currentPdfStatus?.doi) {
+      metadataHints.doi = state.currentPdfStatus.doi;
     }
 
     setState({
@@ -237,13 +218,19 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
     updateMetadataUI();
 
     try {
+      const messagePayload = {
+        url: state.currentPdfStatus?.url || window.location.href,
+        metadata: metadataHints,
+        projectId
+      };
+
+      if (state.currentPdfStatus?.source === 'arxiv') {
+        messagePayload.paperType = 'source';
+      }
+
       const response = await sendMessage({
         type: 'upload:request',
-        payload: {
-          url: currentPdfStatus?.url || window.location.href,
-          metadata: { ...collectResult.value, projectId },
-          projectId
-        }
+        payload: messagePayload
       });
 
       if (!response?.ok) {
@@ -265,13 +252,36 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
     }
   }
 
-  function handleFormInput() {
-    setState({
-      metadataSuccess: false,
-      metadataError: null,
-      metadataAlreadyIndexed: false
-    });
-    updateMetadataUI();
+  function syncPanelToggle(state, hasPdf) {
+    if (!panelToggleButton) {
+      return;
+    }
+
+    let toggleText = 'Open Research Library';
+    if (state.metadataUploading) {
+      toggleText = 'Uploading… (show panel)';
+    } else if (state.metadataError) {
+      toggleText = 'Open panel to resolve upload';
+    } else if (state.metadataSuccess) {
+      toggleText = 'Upload complete – open panel';
+    } else if (state.metadataLoading) {
+      toggleText = 'Fetching metadata… (show panel)';
+    } else if (state.metadataAlreadyIndexed) {
+      toggleText = 'Open panel to link paper';
+    } else if (!hasPdf) {
+      toggleText = 'Open Research Library';
+    }
+
+    panelToggleButton.setAttribute('aria-label', toggleText);
+
+    if (
+      panelHidden &&
+      (state.metadataUploading || state.metadataError || state.metadataSuccess || state.metadataLoading || hasPdf)
+    ) {
+      panelToggleButton.classList.add('panel-toggle-attention');
+    } else {
+      panelToggleButton.classList.remove('panel-toggle-attention');
+    }
   }
 
   function updatePdfStatusUI() {
@@ -299,21 +309,20 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
       pdfStatusPill.textContent = 'PDF detected';
       pdfStatusPill.className = 'pill pill-active';
       const url = currentPdfStatus.url ? safeHostname(currentPdfStatus.url) : 'current tab';
-      pdfStatusMessage.textContent = `Metadata form is ready for the PDF (${url}).`;
+      pdfStatusMessage.textContent = `Upload is ready. We'll extract metadata automatically for ${url}.`;
 
-      metadataSourceEl.classList.toggle('hidden', !currentPdfStatus.source);
-      if (currentPdfStatus.source) {
-        metadataSourceEl.textContent = currentPdfStatus.source === 'arxiv' ? 'arXiv' : currentPdfStatus.source;
-      } else {
-        metadataSourceEl.textContent = '';
+      if (metadataSourceEl) {
+        metadataSourceEl.classList.toggle('hidden', !currentPdfStatus.source);
+        metadataSourceEl.textContent = currentPdfStatus.source
+          ? currentPdfStatus.source === 'arxiv'
+            ? 'arXiv'
+            : currentPdfStatus.source
+          : '';
       }
 
       if (!metadataContextUrl || metadataContextUrl !== currentPdfStatus.url) {
         setState({ metadataContextUrl: currentPdfStatus.url });
         resetMetadataForm();
-        if (metadataDoiInput) {
-          metadataDoiInput.value = currentPdfStatus.doi || '';
-        }
         if (currentPdfStatus.doi) {
           void prefillMetadataForDoi(currentPdfStatus.doi, currentPdfStatus.source);
         } else {
@@ -338,60 +347,58 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
     const isAuthed = Boolean(state.currentSession && state.currentSession.accessToken);
     const hasPdf = isAuthed && state.currentPdfStatus && state.currentPdfStatus.isPdf;
 
+    syncPanelToggle(state, hasPdf);
+
     if (!hasPdf) {
       metadataSection.classList.add('hidden');
-      metadataSubmitButton.disabled = true;
+      if (metadataSubmitButton) {
+        metadataSubmitButton.disabled = true;
+      }
       return;
     }
 
     metadataSection.classList.remove('hidden');
-    metadataForm.classList.toggle('fields-hidden', state.metadataAlreadyIndexed);
 
     const disableControls = state.metadataUploading || state.metadataLoading;
-    const controls = metadataForm.querySelectorAll('input, textarea');
-    controls.forEach((control) => {
-      control.disabled = disableControls;
-    });
-
     const projectAvailable = Boolean(state.selectedProjectId || state.defaultProjectId);
 
+    let statusText = 'Ready to upload. We will extract the metadata automatically.';
+    let statusClass = 'status-message info';
+
     if (state.metadataLoading) {
-      metadataForm.classList.add('fields-hidden');
-      metadataStatusEl.textContent = 'Checking our records for this paper…';
-      metadataStatusEl.className = 'status-message';
+      statusText = 'Checking our records for this paper…';
+      statusClass = 'status-message';
     } else if (state.metadataUploading) {
-      metadataForm.classList.add('fields-hidden');
-      metadataStatusEl.textContent = 'Uploading PDF to Sevenfold…';
-      metadataStatusEl.className = 'status-message';
+      statusText = 'Uploading PDF to Sevenfold…';
+      statusClass = 'status-message';
     } else if (state.metadataError) {
-      metadataStatusEl.textContent = state.metadataError;
-      metadataStatusEl.className = 'status-message error';
+      statusText = state.metadataError;
+      statusClass = 'status-message error';
     } else if (state.metadataSuccess) {
-      metadataStatusEl.textContent = 'Upload complete! You can close this tab or keep browsing.';
-      metadataStatusEl.className = 'status-message success';
-    } else if (state.metadataAlreadyIndexed) {
-      metadataForm.classList.add('fields-hidden');
-      metadataTitleInput.removeAttribute('required');
-      metadataStatusEl.textContent = "We've already indexed this paper before; no need to fill in the metadata.";
-      metadataStatusEl.className = 'status-message';
+      statusText = 'Upload complete! You can close this tab or keep browsing.';
+      statusClass = 'status-message success';
     } else if (!projectAvailable) {
-      metadataForm.classList.add('fields-hidden');
-      metadataStatusEl.textContent = 'Select a project before uploading.';
-      metadataStatusEl.className = 'status-message';
-    } else {
-      metadataForm.classList.remove('fields-hidden');
-      metadataTitleInput.setAttribute('required', 'required');
-      metadataStatusEl.textContent = 'Fill in metadata and submit to store this PDF.';
-      metadataStatusEl.className = 'status-message';
+      statusText = 'Select a project before uploading.';
+      statusClass = 'status-message';
+    } else if (state.metadataAlreadyIndexed) {
+      statusText = 'We already have metadata for this DOI. We will link it to your project when you upload.';
+      statusClass = 'status-message info';
     }
 
-    const idleButtonLabel = 'Upload PDF';
-    metadataSubmitButton.textContent = state.metadataUploading
-      ? 'Uploading…'
-      : state.metadataSuccess
-        ? 'Uploaded'
-        : idleButtonLabel;
-    metadataSubmitButton.disabled = disableControls || !projectAvailable || state.metadataSuccess;
+    if (metadataStatusEl) {
+      metadataStatusEl.textContent = statusText;
+      metadataStatusEl.className = statusClass;
+    }
+
+    if (metadataSubmitButton) {
+      const idleButtonLabel = 'Upload PDF';
+      metadataSubmitButton.textContent = state.metadataUploading
+        ? 'Uploading…'
+        : state.metadataSuccess
+          ? 'Uploaded'
+          : idleButtonLabel;
+      metadataSubmitButton.disabled = disableControls || !projectAvailable || state.metadataSuccess;
+    }
   }
 
   function handlePdfStatusChange(status, tabId) {
@@ -410,13 +417,31 @@ export function createPdfMetadataFeature({ elements, syncProjectSelect }) {
   }
 
   function init() {
-    metadataForm.addEventListener('submit', (event) => {
-      void handleFormSubmit(event);
-    });
+    showPanel();
 
-    metadataForm.addEventListener('input', () => {
-      handleFormInput();
-    });
+    if (panelCloseButton) {
+      panelCloseButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        hidePanel();
+      });
+    }
+
+    if (panelToggleButton) {
+      panelToggleButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        showPanel();
+      });
+    }
+
+    if (metadataSubmitButton) {
+      metadataSubmitButton.addEventListener('click', (event) => {
+        if (metadataSubmitButton.disabled) {
+          event.preventDefault();
+          return;
+        }
+        void handleUploadClick(event);
+      });
+    }
   }
 
   return {

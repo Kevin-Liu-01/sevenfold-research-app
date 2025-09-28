@@ -1,228 +1,16 @@
-<style>
-  :host {
-    all: initial;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #0f172a;
-  }
-
-  body {
-    margin: 0;
-    font-family: inherit;
-    color: inherit;
-  }
-
-  main {
-    position: fixed;
-    inset: auto 16px 16px auto;
-    width: 340px;
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
-    background: rgba(248, 250, 252, 0.96);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.24);
-    border: 1px solid #dbeafe;
-    backdrop-filter: blur(6px);
-  }
-
-  h1 {
-    margin: 0 0 8px;
-    font-size: 18px;
-  }
-
-  .hint {
-    margin: 0 0 12px;
-    font-size: 14px;
-    color: #475569;
-  }
-
-  .panel {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 10px;
-    background: #ffffff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-    border: 1px solid #dbeafe;
-    display: grid;
-    gap: 10px;
-  }
-
-  .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .panel-header h2 {
-    font-size: 16px;
-    margin: 0;
-  }
-
-  .muted {
-    font-size: 13px;
-    color: #64748b;
-  }
-
-  .error {
-    font-size: 13px;
-    color: #b91c1c;
-    margin: 0;
-  }
-
-  .project-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 6px;
-  }
-
-  .project-list li {
-    padding: 8px;
-    border-radius: 6px;
-    background: #f1f5f9;
-    color: #0f172a;
-    font-size: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .project-list li .project-meta {
-    font-size: 12px;
-    color: #64748b;
-  }
-
-  #project-select {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #cbd5f5;
-    background: #ffffff;
-    font-size: 14px;
-    color: #0f172a;
-  }
-
-  .metadata-form {
-    display: grid;
-    gap: 10px;
-  }
-
-  .metadata-form textarea {
-    min-height: 60px;
-    resize: vertical;
-  }
-
-  .metadata-form input,
-  .metadata-form textarea,
-  select {
-    font-family: inherit;
-    font-size: 14px;
-    border-radius: 6px;
-    border: 1px solid #cbd5f5;
-    background: #ffffff;
-    color: #0f172a;
-    padding: 8px 10px;
-  }
-
-  .metadata-form input:disabled,
-  .metadata-form textarea:disabled,
-  select:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-  }
-
-  .field {
-    display: grid;
-    gap: 4px;
-    font-size: 14px;
-  }
-
-  .metadata-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .metadata-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .metadata-form.fields-hidden > .field,
-  .metadata-form.fields-hidden > .metadata-row {
-    display: none;
-  }
-
-  #metadata-status {
-    font-size: 13px;
-    margin: 0;
-    color: #475569;
-  }
-
-  #metadata-status.success {
-    color: #16a34a;
-  }
-
-  #metadata-status.error {
-    color: #dc2626;
-  }
-
-  #metadata-submit {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: none;
-    background: #2563eb;
-    color: #ffffff;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  #metadata-submit:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 10px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .pill-idle {
-    background: #e2e8f0;
-    color: #475569;
-  }
-
-  .pill-active {
-    background: #4ade80;
-    color: #064e3b;
-  }
-
-  .status {
-    font-size: 13px;
-    margin: 12px 0 0;
-    color: #475569;
-  }
-
-  .hidden {
-    display: none !important;
-  }
-</style>
 <body>
-  <main>
-    <h1>Research Library</h1>
-    <p class="hint">
-      Sign in from the Sevenfold popup, then open a PDF to review metadata before uploading.
-    </p>
+  <button
+    id="panel-toggle"
+    class="panel-toggle hidden"
+    type="button"
+    aria-label="Show Research Library"
+    aria-controls="panel-root"
+    aria-expanded="false"
+  ></button>
+  <main id="panel-root">
+    <button id="panel-close" class="panel-close" type="button" aria-label="Hide Research Library">×</button>
+    <h1>Sevenfold Extension</h1>
+    <p class="hint">Sign in from the Sevenfold popup, then open a PDF to upload it to your library.</p>
     <section id="pdf-status-section" class="panel hidden">
       <div class="panel-header">
         <h2>Current tab</h2>
@@ -232,51 +20,13 @@
     </section>
     <section id="metadata-section" class="panel hidden">
       <div class="panel-header">
-        <h2>PDF metadata</h2>
+        <h2>PDF upload</h2>
         <span id="metadata-source" class="muted hidden"></span>
       </div>
-      <form id="metadata-form" class="metadata-form">
-        <label class="field">
-          <span>Title <span aria-hidden="true">*</span></span>
-          <input id="metadata-title" type="text" required autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Abstract</span>
-          <textarea id="metadata-abstract"></textarea>
-        </label>
-        <label class="field">
-          <span>Authors</span>
-          <textarea id="metadata-authors" placeholder="One author per line"></textarea>
-        </label>
-        <div class="metadata-row">
-          <label class="field">
-            <span>Year</span>
-            <input id="metadata-year" type="number" inputmode="numeric" min="0" />
-          </label>
-          <label class="field">
-            <span>Month</span>
-            <input id="metadata-month" type="number" inputmode="numeric" min="1" max="12" />
-          </label>
-          <label class="field">
-            <span>Day</span>
-            <input id="metadata-day" type="number" inputmode="numeric" min="1" max="31" />
-          </label>
-        </div>
-        <label class="field">
-          <span>DOI</span>
-          <input id="metadata-doi" type="text" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Category</span>
-          <input id="metadata-category" type="text" autocomplete="off" />
-        </label>
-        <div class="metadata-actions">
-          <p id="metadata-status" class="status-message"></p>
-          <button type="submit" id="metadata-submit">Upload PDF</button>
-        </div>
-      </form>
+      <p id="metadata-status" class="status-message"></p>
+      <button type="button" id="metadata-submit">Upload PDF</button>
     </section>
-    <section id="projects-section" class="panel hidden">
+    <section id="projects-section" class="panel">
       <div class="panel-header">
         <h2>Your projects</h2>
         <span id="projects-loading" class="muted hidden">Loading…</span>

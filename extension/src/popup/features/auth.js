@@ -58,7 +58,7 @@ export function createAuthFeature({
         projectsLoaded: false
       });
 
-      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      setStatus('Ready to capture PDFs.');
       if (loadProjectsFn) {
         await loadProjectsFn();
       }
@@ -103,7 +103,7 @@ export function createAuthFeature({
         projectsLoaded: false
       });
 
-      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      setStatus('Ready to capture PDFs.');
       if (loadProjectsFn) {
         await loadProjectsFn();
       }
@@ -153,7 +153,7 @@ export function createAuthFeature({
       if (response?.ok) {
         setState({ currentSession: response.session || null });
         if (response.session) {
-          setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+          setStatus('Ready to capture PDFs.');
           if (loadProjectsFn) {
             await loadProjectsFn();
           }
@@ -181,7 +181,7 @@ export function createAuthFeature({
     const isAuthed = Boolean(session && session.accessToken);
 
     if (isAuthed) {
-      setStatus('Ready to capture PDFs. Open a .pdf link to begin.');
+      setStatus('Ready to capture PDFs.');
       if (loadProjectsFn) {
         void loadProjectsFn();
       }

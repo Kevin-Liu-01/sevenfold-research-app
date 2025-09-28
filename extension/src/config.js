@@ -11,7 +11,8 @@ export const apiConfig = {
    */
   baseUrl: 'http://127.0.0.1:8000',
   uploadPath: '/papers/upload-pdf',
-  linkPaperPath: '/papers/link-paper'
+  linkPaperPath: '/papers/link-paper',
+  processPdfPath: '/papers/process-pdf'
 };
 
 /**
