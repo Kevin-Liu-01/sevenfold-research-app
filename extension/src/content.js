@@ -298,7 +298,7 @@ function ensureShadowHost() {
     return shadowRootHost;
   }
 
-  const target = document.body || document.documentElement;
+  const target = document.documentElement || document.body;
   if (!target) {
     return null;
   }
@@ -306,7 +306,6 @@ function ensureShadowHost() {
   const host = document.createElement('div');
   host.id = SHADOW_HOST_ID;
   host.dataset.sevenfoldShadowHost = 'true';
-  host.style.all = 'initial';
   target.append(host);
   shadowRootHost = host;
   return shadowRootHost;
