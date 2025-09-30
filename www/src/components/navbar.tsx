@@ -21,10 +21,10 @@ export const Navbar: React.FC = () => {
     return (
         <nav
             aria-label="Primary"
-            className="sticky top-0 bg-white w-full z-50 shadow-sm"
+            className="sticky top-0 z-50 w-full bg-gradient-to-b from-white/70 via-white/50 to-white/20 backdrop-blur-sm"
         >
             {/* Container */}
-            <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-3 h-16 items-center">
                     {/* Logo */}
                     <div className="col-span-1 flex items-center">
@@ -44,35 +44,7 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Desktop navigation links */}
-                    <ul
-                        className="hidden md:flex col-span-1 justify-center gap-10 text-md font-medium"
-                        role="list"
-                    >
-                        <li>
-                            <Link
-                                href="#features"
-                                className="text-gray-800 hover:text-gray-900"
-                            >
-                                Features
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/pricing"
-                                className="text-gray-800 hover:text-gray-900"
-                            >
-                                Pricing
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/company"
-                                className="text-gray-800 hover:text-gray-900"
-                            >
-                                Company
-                            </Link>
-                        </li>
-                    </ul>
+                    <div className="hidden md:block col-span-1" />
 
                     {/* CTA + Mobile toggle */}
                     <div className="col-span-1 flex justify-end items-center">
@@ -106,9 +78,9 @@ export const Navbar: React.FC = () => {
             {/* Mobile navigation panel */}
             <div
                 id="mobile-nav"
-                className={`md:hidden fixed inset-x-0 top-0 bg-white border-b shadow-lg transition-transform duration-300 ${
-                    isOpen ? "translate-y-0" : "-translate-y-full"
-                }`}
+                        className={`md:hidden fixed inset-x-0 top-0 bg-gradient-to-b from-white/85 via-white/65 to-white/35 backdrop-blur-sm transition-transform duration-300 ${
+                            isOpen ? "translate-y-0" : "-translate-y-full"
+                        }`}
             >
                 <div className="px-4 pt-6 pb-8 space-y-6">
                     {/* Close button */}
@@ -121,35 +93,7 @@ export const Navbar: React.FC = () => {
                         <XIcon className="h-6 w-6" />
                     </button>
 
-                    <ul role="list" className="space-y-4 text-lg font-medium">
-                        <li>
-                            <Link
-                                href="#features"
-                                onClick={() => setIsOpen(false)}
-                                className="block text-gray-700 hover:text-gray-900"
-                            >
-                                Features
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/pricing"
-                                onClick={() => setIsOpen(false)}
-                                className="block text-gray-700 hover:text-gray-900"
-                            >
-                                Pricing
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/company"
-                                onClick={() => setIsOpen(false)}
-                                className="block text-gray-700 hover:text-gray-900"
-                            >
-                                Company
-                            </Link>
-                        </li>
-                    </ul>
+                    <ul role="list" className="space-y-4 text-lg font-medium" />
 
                     {/* CTA buttons */}
                     <div className="pt-4 space-y-3">

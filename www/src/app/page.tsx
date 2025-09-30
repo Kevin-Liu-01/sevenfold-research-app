@@ -51,7 +51,7 @@ const Hero = () => {
 
     return (
         <>
-            <section className="w-full max-w-6xl mt-10 mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
+            <section className="w-full max-w-7xl mt-10 mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
                 <div className="text-left">
                     <motion.h1
                         className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5"
@@ -175,7 +175,7 @@ const Carousel = () => {
             <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
                 Trusted by Researchers at
             </p>
-            <div className="relative overflow-hidden max-w-6xl mx-auto h-[100px] slider-mask">
+            <div className="relative overflow-hidden max-w-7xl mx-auto h-[100px] slider-mask">
                 <div
                     className="flex animate-scroll"
                     style={{ width: `${allLogos.length * 250}px` }}
@@ -209,7 +209,7 @@ const Carousel = () => {
 const placeholderImage = "/images/mockup.webp";
 
 const Features = () => (
-    <section className="max-w-6xl mx-auto px-4 py-12 font-dmsans">
+    <section className="max-w-7xl mx-auto px-4 py-12 font-dmsans">
         {/* HEADER */}
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-4">
             The Research Stack, Rebuilt

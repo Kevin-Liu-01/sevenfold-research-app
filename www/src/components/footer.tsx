@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
             role="contentinfo"
             aria-label="Site footer"
         >
-            <div className="max-w-6xl mx-auto flex flex-col gap-6 px-4 py-10 text-gray-700 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-7xl mx-auto flex flex-col gap-6 px-4 py-10 text-gray-700 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
                 <nav aria-label="Footer navigation">
                     <ul className="flex flex-wrap gap-4 text-sm" role="list">
                         <li>

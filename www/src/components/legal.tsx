@@ -33,7 +33,7 @@ const LegalLayout: React.FC<LegalLayoutProps> = ({
     return (
         <>
             {/* Main content */}
-            <section className="font-dmsans max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-4 gap-x-12">
+            <section className="font-dmsans max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-4 gap-x-12">
                 {/* Sidebar */}
                 <nav className="hidden lg:block lg:col-span-1">
                     <div className="sticky top-32">
