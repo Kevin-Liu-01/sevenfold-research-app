@@ -24,54 +24,51 @@ export const Navbar: React.FC = () => {
             className="sticky top-0 z-50 w-full bg-gradient-to-b from-white/70 via-white/50 to-white/20 backdrop-blur-sm"
         >
             {/* Container */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-3 h-16 items-center">
-                    {/* Logo */}
-                    <div className="col-span-1 flex items-center">
-                        <Link
-                            href="/"
-                            className="inline-flex items-center"
-                            aria-label="Sevenfold home"
-                        >
-                            <Image
-                                src="/branding/logo-long.png"
-                                alt="Sevenfold logo"
-                                width={120}
-                                height={36}
-                                priority
-                            />
-                        </Link>
-                    </div>
+            <div className="mx-auto flex h-16 items-center px-4 sm:px-6 lg:px-8 max-w-7xl">
+                {/* Logo */}
+                <div className="flex items-center">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center"
+                        aria-label="Sevenfold home"
+                    >
+                        <Image
+                            src="/branding/logo-long.svg"
+                            alt="Sevenfold logo"
+                            width={156}
+                            height={46}
+                            priority
+                        />
+                    </Link>
+                </div>
 
-                    {/* Desktop navigation links */}
-                    <div className="hidden md:block col-span-1" />
+                <div className="flex-1" />
 
-                    {/* CTA + Mobile toggle */}
-                    <div className="col-span-1 flex justify-end items-center">
-                        <Link
-                            href={appBaseUrl}
-                            className="hidden md:inline-flex items-center gap-1 rounded-lg bg-black px-4 py-2 text-white font-semibold hover:bg-gray-800 transition"
-                        >
-                            Open&nbsp;App
-                            <ArrowUpRightIcon size={18} />
-                        </Link>
+                {/* CTA + Mobile toggle */}
+                <div className="flex items-center">
+                    <Link
+                        href={appBaseUrl}
+                        className="hidden md:inline-flex items-center gap-1 rounded-lg bg-black px-4 py-2 text-white font-semibold hover:bg-gray-800 transition"
+                    >
+                        Open&nbsp;App
+                        <ArrowUpRightIcon size={18} />
+                    </Link>
 
-                        {/* Mobile hamburger */}
-                        <button
-                            type="button"
-                            onClick={() => setIsOpen((v) => !v)}
-                            aria-label={isOpen ? "Close menu" : "Open menu"}
-                            aria-controls="mobile-nav"
-                            aria-expanded={isOpen}
-                            className="md:hidden ml-2 text-gray-700 hover:text-gray-900 focus:outline-none"
-                        >
-                            {isOpen ? (
-                                <XIcon className="h-6 w-6" />
-                            ) : (
-                                <MenuIcon className="h-6 w-6" />
-                            )}
-                        </button>
-                    </div>
+                    {/* Mobile hamburger */}
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen((v) => !v)}
+                        aria-label={isOpen ? "Close menu" : "Open menu"}
+                        aria-controls="mobile-nav"
+                        aria-expanded={isOpen}
+                        className="md:hidden ml-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+                    >
+                        {isOpen ? (
+                            <XIcon className="h-6 w-6" />
+                        ) : (
+                            <MenuIcon className="h-6 w-6" />
+                        )}
+                    </button>
                 </div>
             </div>
 

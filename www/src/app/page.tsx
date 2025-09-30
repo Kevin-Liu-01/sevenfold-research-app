@@ -34,24 +34,24 @@ const Hero = () => {
     const cards = [
         {
             id: 1,
-            image: "/images/chatbot-mockup.png",
+            image: "/images/mockups/chatbot-mockup.png",
             title: "Chatbot Mockup",
         },
         {
             id: 2,
-            image: "/images/search-mockup.png",
+            image: "/images/mockups/search-mockup.png",
             title: "Search Mockup",
         },
         {
             id: 3,
-            image: "/images/pdfviewer-mockup.png",
+            image: "/images/mockups/pdfviewer-mockup.png",
             title: "PDF Viewer Mockup",
         },
     ];
 
     return (
         <>
-            <section className="w-full max-w-7xl mt-10 mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
+            <section className="w-full max-w-7xl mt-6 mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
                 <div className="text-left">
                     <motion.h1
                         className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5"
@@ -161,11 +161,11 @@ const Hero = () => {
 
 const Carousel = () => {
     const logos = [
-        { src: "/images/princeton.png", href: "https://www.princeton.edu" },
-        { src: "/images/caltech.png", href: "https://www.caltech.edu" },
-        { src: "/images/harvard.png", href: "https://www.harvard.edu" },
-        { src: "/images/losalamos.png", href: "https://www.lanl.gov" },
-        { src: "/images/at&t.svg", href: "https://www.att.com" },
+        { src: "/images/logos/princeton.png", href: "https://www.princeton.edu" },
+        { src: "/images/logos/caltech.png", href: "https://www.caltech.edu" },
+        { src: "/images/logos/harvard.png", href: "https://www.harvard.edu" },
+        { src: "/images/logos/losalamos.png", href: "https://www.lanl.gov" },
+        { src: "/images/logos/at&t.svg", href: "https://www.att.com" },
     ];
 
     const allLogos = [...logos, ...logos]; // Duplicate for seamless scroll
@@ -206,7 +206,7 @@ const Carousel = () => {
     );
 };
 
-const placeholderImage = "/images/mockup.webp";
+const placeholderImage = "/images/mockups/mockup.webp";
 
 const Features = () => (
     <section className="max-w-7xl mx-auto px-4 py-12 font-dmsans">
