@@ -21,7 +21,7 @@ export const Navbar: React.FC = () => {
     return (
         <nav
             aria-label="Primary"
-            className="sticky top-0 z-50 w-full bg-gradient-to-b from-white/70 via-white/50 to-white/20 backdrop-blur-sm"
+            className="sticky top-0 z-50 w-full bg-gradient-to-b from-background/80 via-background/60 to-background/30 backdrop-blur-sm"
         >
             {/* Container */}
             <div className="mx-auto flex h-16 items-center px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
             {/* Mobile navigation panel */}
             <div
                 id="mobile-nav"
-                        className={`md:hidden fixed inset-x-0 top-0 bg-gradient-to-b from-white/85 via-white/65 to-white/35 backdrop-blur-sm transition-transform duration-300 ${
+                        className={`md:hidden fixed inset-x-0 top-0 bg-gradient-to-b from-background/90 via-background/70 to-background/40 backdrop-blur-sm transition-transform duration-300 ${
                             isOpen ? "translate-y-0" : "-translate-y-full"
                         }`}
             >

@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import Image from "next/image";
+import { ProductShowcase } from "@/components/ProductShowcase";
 
 const Hero = () => {
     const animationSpeed = 0.11;
@@ -29,25 +30,6 @@ const Hero = () => {
 
     const subtitleDelay = titleWords.length * animationSpeed + 0.3;
     const buttonDelay = subtitleDelay + 0.3;
-    const imageDelay = buttonDelay + 0.3;
-
-    const cards = [
-        {
-            id: 1,
-            image: "/images/mockups/chatbot-mockup.png",
-            title: "Chatbot Mockup",
-        },
-        {
-            id: 2,
-            image: "/images/mockups/search-mockup.png",
-            title: "Search Mockup",
-        },
-        {
-            id: 3,
-            image: "/images/mockups/pdfviewer-mockup.png",
-            title: "PDF Viewer Mockup",
-        },
-    ];
 
     return (
         <>
@@ -106,55 +88,13 @@ const Hero = () => {
                             Get Started Now
                         </a>
                     </motion.div>
+
+                </div>
+                <div className="mt-16">
+                    <ProductShowcase />
                 </div>
             </section>
 
-            <section className="w-screen bg-linear-to-b from-white via-kets-yellow to-white">
-                <motion.div
-                    className="flex justify-center -space-x-[25vw] py-16"
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                        hidden: {},
-                        show: {
-                            transition: {
-                                delayChildren: imageDelay,
-                                staggerChildren: 0.3,
-                            },
-                        },
-                    }}
-                >
-                    {cards.slice(0, 3).map((card, i) => (
-                        <div
-                            key={i}
-                            className="w-3/5 rotate-x-45 rotate-y-15 -rotate-z-30 flex-shrink-0"
-                        >
-                            <motion.div
-                                className="w-full h-auto shadow-2xl"
-                                variants={{
-                                    hidden: { opacity: 0, y: 20 },
-                                    show: {
-                                        opacity: 1,
-                                        y: 0,
-                                        transition: {
-                                            duration: 0.6,
-                                            ease: "easeOut",
-                                        },
-                                    },
-                                }}
-                            >
-                                <Image
-                                    src={card.image}
-                                    alt={card.title}
-                                    width={500}
-                                    height={300}
-                                    className="w-full h-auto"
-                                />
-                            </motion.div>
-                        </div>
-                    ))}
-                </motion.div>
-            </section>
         </>
     );
 };
@@ -171,7 +111,7 @@ const Carousel = () => {
     const allLogos = [...logos, ...logos]; // Duplicate for seamless scroll
 
     return (
-        <section className="bg-white py-8">
+        <section className="bg-background py-8">
             <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
                 Trusted by Researchers at
             </p>

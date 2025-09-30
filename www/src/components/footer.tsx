@@ -4,7 +4,7 @@ import Link from "next/link";
 export const Footer: React.FC = () => {
     return (
         <footer
-            className="mt-8 border-t border-gray-200 bg-white"
+            className="mt-8 border-t border-gray-200 bg-background"
             role="contentinfo"
             aria-label="Site footer"
         >
