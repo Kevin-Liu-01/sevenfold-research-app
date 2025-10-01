@@ -1,6 +1,5 @@
 const popupElementIds = {
   statusEl: 'status',
-  loginButton: 'login-button',
   logoutButton: 'logout-button',
   emailInput: 'email-input',
   passwordInput: 'password-input',

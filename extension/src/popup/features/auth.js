@@ -11,7 +11,6 @@ export function createAuthFeature({
   refreshUI
 }) {
   const {
-    loginButton,
     logoutButton,
     emailInput,
     passwordInput,
@@ -25,7 +24,6 @@ export function createAuthFeature({
   const refreshUIFn = typeof refreshUI === 'function' ? refreshUI : null;
 
   function disableAuthControls() {
-    loginButton.disabled = true;
     logoutButton.disabled = true;
     emailLoginButton.disabled = true;
     emailInput.disabled = true;
@@ -35,44 +33,10 @@ export function createAuthFeature({
   function enableAuthInputs() {
     const { currentSession } = getState();
     const isAuthed = Boolean(currentSession && currentSession.accessToken);
-    loginButton.disabled = isAuthed;
     emailLoginButton.disabled = isAuthed;
     emailInput.disabled = isAuthed;
     passwordInput.disabled = isAuthed;
     logoutButton.disabled = !isAuthed;
-  }
-
-  async function handleSupabaseLogin() {
-    disableAuthControls();
-    setStatus('Opening Supabase login…');
-
-    try {
-      const response = await sendMessage({ type: 'auth:login' });
-      if (!response?.ok) {
-        throw new Error(response?.error || 'Login failed');
-      }
-
-      setState({
-        currentSession: response.session,
-        hasResolvedSession: true,
-        projectsLoaded: false
-      });
-
-      setStatus('Ready to capture PDFs.');
-      if (loadProjectsFn) {
-        await loadProjectsFn();
-      }
-      if (loadPdfStatusFn) {
-        await loadPdfStatusFn();
-      }
-    } catch (error) {
-      console.error('[popup] login error', error);
-      setStatus(`Login error: ${error.message}`);
-    } finally {
-      passwordInput.value = '';
-      enableAuthInputs();
-      refreshUIFn?.();
-    }
   }
 
   async function handleEmailLogin() {
@@ -199,7 +163,6 @@ export function createAuthFeature({
   }
 
   function init() {
-    loginButton.addEventListener('click', handleSupabaseLogin);
     emailLoginButton.addEventListener('click', handleEmailLogin);
     logoutButton.addEventListener('click', handleLogout);
   }

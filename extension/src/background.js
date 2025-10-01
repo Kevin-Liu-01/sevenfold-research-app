@@ -22,7 +22,6 @@ const EMPTY_PDF_STATUS = {
 const metadataLookupCache = new Map();
 
 const pdfStatusByTab = new Map();
-const popupOpenedForTabs = new Set();
 
 const SESSION_PRIME_DELAY_MS = 50; // Allow auth event to fire before getSession fallback.
 
@@ -43,7 +42,6 @@ supabase.auth.onAuthStateChange((_event, session) => {
 if (chrome.tabs && chrome.tabs.onRemoved) {
   chrome.tabs.onRemoved.addListener((tabId) => {
     pdfStatusByTab.delete(tabId);
-    popupOpenedForTabs.delete(tabId);
   });
 }
 
@@ -426,8 +424,6 @@ function handlePdfStatus(payload, sender) {
     return;
   }
 
-  const previousStatus = pdfStatusByTab.get(tabId);
-
   const status = {
     isPdf: Boolean(payload?.isPdf),
     url: typeof payload?.url === 'string' ? payload.url : null,
@@ -444,21 +440,6 @@ function handlePdfStatus(payload, sender) {
     { type: PDF_STATUS_CHANGED_MESSAGE, tabId, status },
     () => void chrome.runtime.lastError
   );
-
-  if (status.isPdf) {
-    if (previousStatus?.url !== status.url) {
-      popupOpenedForTabs.delete(tabId);
-    }
-    if (!popupOpenedForTabs.has(tabId) && chrome.action?.openPopup) {
-      popupOpenedForTabs.add(tabId);
-      chrome.action.openPopup().catch((error) => {
-        popupOpenedForTabs.delete(tabId);
-        console.warn('[pdf] failed to open popup', error);
-      });
-    }
-  } else {
-    popupOpenedForTabs.delete(tabId);
-  }
 }
 
 async function handleGetPdfStatus(requestedTabId) {

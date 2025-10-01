@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Research PDF Library",
+  "name": "Sevenfold Extension",
   "version": "0.1.0",
-  "description": "Collect and upload research PDFs to Supabase-backed library.",
+  "description": "Collect and upload research PDFs to your Sevenfold library.",
   "permissions": ["identity", "storage", "scripting", "alarms"],
   "host_permissions": [
     "https://arxiv.org/*",
@@ -21,10 +21,11 @@
     }
   ],
   "icons": {
-    "16": "favicon.ico",
-    "32": "favicon.ico",
-    "48": "favicon.ico",
-    "128": "favicon.ico"
+    "16": "icons/favicon16.png",
+    "32": "icons/favicon32.png",
+    "48": "icons/favicon48.png",
+    "128": "icons/favicon128.png",
+    "256": "icons/favicon256.png"
   },
   "action": {
     "default_popup": "popup/index.html",

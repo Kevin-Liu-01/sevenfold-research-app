@@ -41,6 +41,7 @@ export default defineConfig({
         { src: resolve(root, 'content/shadow-root.css'), dest: 'content' },
         { src: resolve(root, 'content/shadowApp.js'), dest: 'content' },
         { src: resolve(root, 'favicon.ico'), dest: '.' },
+        { src: resolve(root, 'icons/*'), dest: 'icons' },
         { src: resolve(root, 'popup/dom/*.js'), dest: 'popup/dom' },
         { src: resolve(root, 'popup/services/*.js'), dest: 'popup/services' },
         { src: resolve(root, 'popup/features/*.js'), dest: 'popup/features' },

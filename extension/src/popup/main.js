@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const {
     statusEl,
-    loginButton,
     logoutButton,
     emailLoginButton,
     emailInput,
@@ -36,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signedOutView.classList.toggle('hidden', isAuthed);
     signedInView.classList.toggle('hidden', !isAuthed);
 
-    loginButton.disabled = isAuthed;
     emailLoginButton.disabled = isAuthed;
     emailInput.disabled = isAuthed;
     passwordInput.disabled = isAuthed;
@@ -44,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setStatus('Checking session…');
-  loginButton.disabled = true;
   logoutButton.disabled = true;
   emailLoginButton.disabled = true;
   emailInput.disabled = true;
