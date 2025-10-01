@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ProductShowcase } from "@/components/ProductShowcase";
 import { TrustedByCarousel } from "@/components/TrustedByCarousel";
 import { ProblemSolution } from "@/components/ProblemSolution";
+import { CTA } from "@/components/CTA";
 
 const Hero = () => {
     const animationSpeed = 0.11;
@@ -35,7 +36,7 @@ const Hero = () => {
 
     return (
         <>
-            <section className="w-full max-w-7xl mt-6 mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
+            <section className="w-full max-w-7xl mt-6 mx-auto px-8 pt-4 pb-4">
                 <div className="text-left">
                     <motion.h1
                         className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5"
@@ -246,6 +247,7 @@ const LandingPage = () => (
         <Hero />
         <TrustedByCarousel />
         <ProblemSolution />
+        <CTA />
     </main>
 );
 
