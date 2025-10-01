@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export const ProductShowcase = () => {
     return (
-        <div className="relative mx-auto max-w-7xl rounded-md bg-stone-800 px-2 py-2 sm:px-4 sm:py-6">
+        <div className="relative mx-auto max-w-7xl rounded-lg bg-stone-800 p-3">
             <div className="pointer-events-none absolute inset-0 bg-gradient-radial from-orange-500/12 via-transparent to-transparent blur-sm" />
             <div className="relative aspect-[16/10] w-full overflow-hidden">
                 <Image

@@ -1,47 +1,82 @@
-import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
-export const Footer: React.FC = () => {
+const FOOTER_LINKS = {
+    legal: [
+        { href: "/terms", label: "Terms" },
+        { href: "/privacy", label: "Privacy" },
+    ],
+    social: [
+        { href: "https://www.linkedin.com/company/sevenfoldinc", label: "LinkedIn", external: true },
+        { href: "#", label: "Twitter" },
+    ],
+    support: [
+        { href: "#", label: "Discord" },
+        { href: "mailto:athan@sevenfold.so", label: "Email Founder", highlight: true },
+    ],
+};
+
+export const Footer = () => {
     return (
-        <footer
-            className="mt-8 border-t border-gray-200 bg-background"
-            role="contentinfo"
-            aria-label="Site footer"
-        >
-            <div className="max-w-7xl mx-auto flex flex-col gap-6 px-4 py-10 text-gray-700 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
-                <nav aria-label="Footer navigation">
-                    <ul className="flex flex-wrap gap-4 text-sm" role="list">
-                        <li>
-                            <Link
-                                href="/terms"
-                                className="transition-colors hover:text-gray-900"
-                            >
-                                Terms
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/privacy"
-                                className="transition-colors hover:text-gray-900"
-                            >
-                                Privacy
-                            </Link>
-                        </li>
-                        <li>
-                            <a
-                                href="https://www.linkedin.com/company/sevenfoldinc"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-colors hover:text-gray-900"
-                                aria-label="Follow Sevenfold on LinkedIn"
-                            >
-                                LinkedIn
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+        <footer className="border-t border-gray-200 bg-background py-12" role="contentinfo" aria-label="Site footer">
+            <div className="mx-auto max-w-7xl px-8">
+                <div className="mb-8 flex flex-col gap-12 lg:flex-row lg:justify-between">
+                    <div className="flex-shrink-0">
+                        <Image src="/branding/logo-sq.svg" alt="Sevenfold" width={60} height={60} />
+                    </div>
 
-                <p className="text-sm text-gray-500">© 2025 Sevenfold Inc.</p>
+                    <div className="grid grid-cols-1 gap-8 text-right sm:grid-cols-3 sm:gap-12">
+                        <div>
+                            <h3 className="mb-4 font-dmsans text-sm font-semibold text-gray-900">Legal</h3>
+                            <ul className="space-y-3 text-sm" role="list">
+                                {FOOTER_LINKS.legal.map((link) => (
+                                    <li key={link.href}>
+                                        <Link href={link.href} className="text-gray-600 transition-colors hover:text-gray-900">
+                                            {link.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="mb-4 font-dmsans text-sm font-semibold text-gray-900">Social</h3>
+                            <ul className="space-y-3 text-sm" role="list">
+                                {FOOTER_LINKS.social.map((link) => (
+                                    <li key={link.href}>
+                                        <a
+                                            href={link.href}
+                                            className="text-gray-600 transition-colors hover:text-gray-900"
+                                            {...(link.external && { target: "_blank", rel: "noopener noreferrer" })}
+                                        >
+                                            {link.label}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="mb-4 font-dmsans text-sm font-semibold text-gray-900">Support</h3>
+                            <ul className="space-y-3 text-sm" role="list">
+                                {FOOTER_LINKS.support.map((link) => (
+                                    <li key={link.href}>
+                                        <a
+                                            href={link.href}
+                                            className={link.highlight ? "text-kets-orange transition-colors hover:text-kets-orange/80" : "text-gray-600 transition-colors hover:text-gray-900"}
+                                        >
+                                            {link.label}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-8">
+                    <p className="text-sm text-gray-500">© 2025 Sevenfold Inc.</p>
+                </div>
             </div>
         </footer>
     );
