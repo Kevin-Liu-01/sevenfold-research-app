@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import Image from "next/image";
 import { ProductShowcase } from "@/components/ProductShowcase";
+import { TrustedByCarousel } from "@/components/TrustedByCarousel";
+import { ProblemSolution } from "@/components/ProblemSolution";
 
 const Hero = () => {
     const animationSpeed = 0.11;
@@ -98,54 +100,6 @@ const Hero = () => {
         </>
     );
 };
-
-const Carousel = () => {
-    const logos = [
-        { src: "/images/logos/princeton.png", href: "https://www.princeton.edu" },
-        { src: "/images/logos/caltech.png", href: "https://www.caltech.edu" },
-        { src: "/images/logos/harvard.png", href: "https://www.harvard.edu" },
-        { src: "/images/logos/losalamos.png", href: "https://www.lanl.gov" },
-        { src: "/images/logos/at&t.svg", href: "https://www.att.com" },
-    ];
-
-    const allLogos = [...logos, ...logos]; // Duplicate for seamless scroll
-
-    return (
-        <section className="bg-background py-8">
-            <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
-                Trusted by Researchers at
-            </p>
-            <div className="relative overflow-hidden max-w-7xl mx-auto h-[100px] slider-mask">
-                <div
-                    className="flex animate-scroll"
-                    style={{ width: `${allLogos.length * 250}px` }}
-                >
-                    {allLogos.map(({ src, href }, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center justify-center h-[100px] w-[250px]"
-                        >
-                            <a
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <Image
-                                    src={src}
-                                    alt={`Logo ${index}`}
-                                    width={250}
-                                    height={60}
-                                    className="h-[60px] object-contain mx-auto transition-opacity hover:opacity-80"
-                                />
-                            </a>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
-};
-
 const placeholderImage = "/images/mockups/mockup.webp";
 
 const Features = () => (
@@ -290,8 +244,8 @@ const Features = () => (
 const LandingPage = () => (
     <main className="overflow-x-hidden">
         <Hero />
-        <Carousel />
-        <Features />
+        <TrustedByCarousel />
+        <ProblemSolution />
     </main>
 );
 
