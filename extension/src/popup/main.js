@@ -3,8 +3,6 @@ import { getState } from './state/store.js';
 import { addTypedMessageListener } from './services/runtimeMessaging.js';
 import { createAuthFeature } from './features/auth.js';
 
-console.log('[popup] loaded');
-
 document.addEventListener('DOMContentLoaded', () => {
   const elements = queryPopupElements();
   if (!elements) {

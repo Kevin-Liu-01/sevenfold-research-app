@@ -47,8 +47,6 @@ function loadShadowAppModule() {
   return shadowAppModulePromise;
 }
 
-console.log('[content] script injected on', window.location.href);
-
 init();
 
 function init() {
@@ -71,7 +69,6 @@ function setupObservers() {
   urlCheckInterval = window.setInterval(() => {
     if (window.location.href !== lastKnownUrl) {
       lastKnownUrl = window.location.href;
-      console.log('[content] URL change detected to', lastKnownUrl);
       detectPdf();
     }
   }, 1000);
@@ -91,7 +88,6 @@ function scheduleDetection() {
 function detectPdf() {
   const url = new URL(window.location.href);
   const pathname = url.pathname.toLowerCase();
-  console.log('[content] checking for PDF at', url.href);
 
   const endsWithPdf = pathname.endsWith('.pdf') || pathname.endsWith('.pdf/');
   const contentTypePdf = (document.contentType || '').toLowerCase() === 'application/pdf';
@@ -103,7 +99,6 @@ function detectPdf() {
   if (isPdf !== state.isPdf || window.location.href !== state.lastUrlNotified) {
     state.isPdf = isPdf;
 
-    console.log('[content] PDF detected, displaying shadow root');
     handleShadowRootForPdf(isPdf);
 
     let doi = null;
@@ -120,7 +115,6 @@ function detectPdf() {
       }
     }
 
-    console.log('[content] notify background: isPdf=', isPdf, 'doi=', doi, 'arxivId=', arxivId);
     notifyBackground({
       isPdf,
       url: window.location.href,
@@ -360,7 +354,6 @@ function sendMessageToBackground(message) {
 }
 
 function extractArxivInfo(pathname) {
-  console.log('[content] extracting arXiv info from', pathname);
   const segments = pathname.split('/').filter(Boolean);
   if (!segments.length) {
     return null;

@@ -113,7 +113,6 @@ export function createAuthFeature({
     try {
       console.log('fetching session');
       const response = await sendMessage({ type: 'auth:getSession' });
-      console.log('[popup] got session', response);
       if (response?.ok) {
         setState({ currentSession: response.session || null });
         if (response.session) {
