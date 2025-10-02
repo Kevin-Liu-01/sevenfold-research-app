@@ -1,221 +1,105 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRightIcon } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShaderGradientCanvas, ShaderGradient } from "@shadergradient/react";
+import * as reactSpring from "@react-spring/three";
 
-const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "";
-const appBaseUrl = rawAppUrl.replace(/\/$/, "");
+const footerLinks = {
+  Product: [
+    { name: "Features", href: "#features" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "Testimonials", href: "#" },
+    { name: "Changelog", href: "#" },
+  ],
+  Resources: [
+    { name: "User Guide", href: "#" },
+    { name: "Community", href: "#" },
+    { name: "FAQs", href: "#" },
+  ],
+  Company: [
+    { name: "About Us", href: "/company" },
+    { name: "Careers", href: "#" },
+    { name: "Contact", href: "#" },
+  ],
+  Legal: [
+    { name: "Terms of Service", href: "/terms" },
+    { name: "Privacy Policy", href: "/privacy" },
+  ],
+};
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="mt-8" role="contentinfo" aria-label="Site footer">
-      <div
-        className="text-gray-800"
-        style={{
-          background: "linear-gradient(to bottom, white 50%, #caffbf)",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="p-6 rounded-lg text-center">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">
-              Ready to start your research journey?
-            </h2>
-            <Link
-              href={`${appBaseUrl}/signup`}
-              className="inline-block bg-black text-white font-bold px-6 py-2 rounded-lg text-base hover:bg-blue-700 transition"
-              aria-label="Sign up for Sevenfold research platform"
-            >
-              Sign up now{" "}
-              <ArrowRightIcon
-                size={16}
-                className="inline-block ml-2"
-                aria-hidden="true"
-              />
-            </Link>
+    <footer
+      role="contentinfo"
+      aria-label="Site footer"
+      className="relative w-full text-stone-300 overflow-hidden"
+    >
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+        <ShaderGradientCanvas style={{ position: "absolute", inset: 0 }}>
+          <ShaderGradient
+            control="props"
+            type="waterPlane"
+            cDistance={20}
+            color1="#ffffff"
+            color2="#f0f0f0"
+            color3="#e5e5e5"
+          />
+        </ShaderGradientCanvas>
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+          <div className="lg:col-span-1 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <h2 className="font-timesnow text-5xl text-black">Sevenfold</h2>
+            <p className="mt-4 max-w-xs text-stone-400">
+              The unified environment for modern, agentic research workflows.
+            </p>
+            <div className="mt-8 flex gap-4">
+              <a
+                href="#"
+                className="text-stone-400 hover:text-black transition-colors"
+              >
+                X / Twitter
+              </a>
+              <a
+                href="#"
+                className="text-stone-400 hover:text-black transition-colors"
+              >
+                LinkedIn
+              </a>
+            </div>
           </div>
+
+          <nav className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-8 font-inter">
+            {Object.entries(footerLinks).map(([category, links]) => (
+              <div key={category}>
+                <h3 className="uppercase tracking-wider text-sm font-semibold text-black mb-4">
+                  {category}
+                </h3>
+                <ul className="space-y-3" role="list">
+                  {links.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        href={link.href}
+                        className="text-stone-400 hover:text-black transition-colors"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <nav
-            className="grid grid-cols-2 md:grid-cols-6 gap-2 max-w-4xl"
-            aria-label="Footer navigation"
-          >
-            {/* Column 1: RESOURCES */}
-            <div className="col-span-1">
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-4">
-                RESOURCES
-              </h3>
-              <ul className="" role="list">
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    User Guide
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Changelog
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    FAQs
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Community
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 2: LEGAL */}
-            <div className="col-span-1">
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-4">
-                LEGAL
-              </h3>
-              <ul className="" role="list">
-                <li>
-                  <Link
-                    href="/terms"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/privacy"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Privacy
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 3: PRODUCT */}
-            <div className="col-span-2 md:col-span-1">
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-4">
-                PRODUCT
-              </h3>
-              <ul className="" role="list">
-                <li>
-                  <a
-                    href="#features"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Testimonials
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    href="/pricing"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href={`${appBaseUrl}/signup`}
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Sign Up
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href={appBaseUrl}
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Web App
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Mobile App
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                  >
-                    Desktop App
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 5: SOCIALS */}
-            <div className="col-span-1">
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-4">
-                SOCIALS
-              </h3>
-              <ul className="" role="list">
-                <li>
-                  <a
-                    href="https://linkedin.com/company/sevenfold"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                    aria-label="Follow Sevenfold on LinkedIn"
-                  >
-                    LinkedIn
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://twitter.com/sevenfold"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900 text-sm transition"
-                    aria-label="Follow Sevenfold on X (Twitter)"
-                  >
-                    X (Twitter)
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 6: LOGO & COPYRIGHT - Right Aligned and Slightly Wider */}
-          </nav>
-          <div className="col-span-2 md:col-span-1 md:text-right flex flex-col justify-between">
-            <div className="mb-4">
-              <Image
-                src="/branding/logo-long.png"
-                alt="Sevenfold company logo"
-                width={128}
-                height={32}
-                className="h-8 md:ml-auto"
-              />
-            </div>
-            <div className="text-gray-600 text-sm">© 2025 Sevenfold Inc.</div>
-          </div>
+        <div className="mt-24 pt-8 border-t border-white/10 text-center text-sm text-stone-500">
+          <p>
+            &copy; {new Date().getFullYear()} Sevenfold, Inc. All rights
+            reserved.
+          </p>
         </div>
       </div>
     </footer>
