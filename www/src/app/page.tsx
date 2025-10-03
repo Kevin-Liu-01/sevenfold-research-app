@@ -1,104 +1,69 @@
 "use client";
 
-import { Fragment } from "react";
-import { motion } from "framer-motion";
-import type { Variants } from "framer-motion";
-import { ProductShowcase } from "@/components/ProductShowcase";
-import { TrustedByCarousel } from "@/components/TrustedByCarousel";
-import { ProblemSolution } from "@/components/ProblemSolution";
-import { CTA } from "@/components/CTA";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { CTA } from "../components/CTA";
+import { TrustedByCarousel } from "../components/TrustedByCarousel";
+import { Hero } from "../components/Hero";
+import { Problem } from "../components/Problem";
+import { Solution } from "../components/Solution";
 
-const ANIMATION_SPEED = 0.11;
-const TITLE_TEXT = "Every Part Of Your Research Workflow, In One Agentic Environment.";
+const LandingPage = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: scrollRef,
+    offset: ["start start", "end end"],
+  });
 
-const Hero = () => {
-    const titleWords = TITLE_TEXT.split(" ");
+  const useFoldTransform = (index: number, totalFolds: number) => {
+    const start = index / totalFolds;
+    const end = (index + 1) / totalFolds;
+    const scale = useTransform(scrollYProgress, [start, end], [1, 0.9]);
+    const opacity = useTransform(scrollYProgress, [end - 0.05, end], [1, 0]);
+    return { scale, opacity };
+  };
 
-    const containerVariants: Variants = {
-        hidden: {},
-        visible: { transition: { staggerChildren: ANIMATION_SPEED } },
-    };
+  const totalFolds = 5;
+  const foldTransforms = Array.from({ length: totalFolds }, (_, i) =>
+    useFoldTransform(i, totalFolds)
+  );
 
-    const wordVariants: Variants = {
-        hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
-        visible: {
-            opacity: 1,
-            y: 0,
-            filter: "blur(0px)",
-            transition: { duration: 0.5, ease: "easeOut" },
-        },
-    };
-
-    const subtitleDelay = titleWords.length * ANIMATION_SPEED + 0.3;
-    const buttonDelay = subtitleDelay + 0.3;
-
-    return (
-        <section className="w-full max-w-7xl mt-6 mx-auto px-8 pt-4 pb-4 relative z-10">
-            <div className="text-left">
-                <motion.h1
-                    className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                >
-                    {titleWords.map((word, idx) => (
-                        <Fragment key={idx}>
-                            <motion.span className="inline-block" variants={wordVariants}>
-                                {word}
-                            </motion.span>
-                            {word === "Workflow," && <span className="w-full" />}
-                        </Fragment>
-                    ))}
-                </motion.h1>
-
-                <motion.p
-                    className="text-2xl tracking-tight leading-7 font-inter max-w-2xl text-gray-700 mt-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                        delay: subtitleDelay,
-                        duration: 0.6,
-                        ease: "easeOut",
-                    }}
-                >
-                    Sevenfold helps you find, digest, and produce research in one centralized workplace, using project-aware intelligence to eliminate paper-chasing.
-                </motion.p>
-
-                <motion.div
-                    className="mt-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                        delay: buttonDelay,
-                        duration: 0.6,
-                        ease: "easeOut",
-                    }}
-                >
-                    <a
-                        href="#"
-                        className="inline-block bg-black text-white font-light px-3 py-2 rounded-lg text-lg hover:bg-gray-800 transition"
-                    >
-                        Get Started Now
-                    </a>
-                </motion.div>
-            </div>
-
-            <div className="mt-16">
-                <ProductShowcase />
-            </div>
-        </section>
-    );
-};
-
-const LandingPage = () => (
-    <main className="overflow-x-hidden">
-        <div className="relative bg-background overflow-hidden w-full">
-            <Hero />
-            <TrustedByCarousel />
-        </div>
-        <ProblemSolution />
-        <CTA />
+  return (
+    <main className="bg-white" ref={scrollRef}>
+      <div className="h-[560vh] relative">
+        <motion.div
+          style={foldTransforms[0]}
+          className="sticky top-0 h-[160vh] will-change-transform will-change-opacity"
+        >
+          <Hero />
+        </motion.div>
+        <motion.div
+          style={foldTransforms[1]}
+          className="sticky top-0 h-screen will-change-transform will-change-opacity"
+        >
+          <TrustedByCarousel />
+        </motion.div>
+        <motion.div
+          style={foldTransforms[2]}
+          className="sticky top-0 h-screen will-change-transform will-change-opacity"
+        >
+          <Problem />
+        </motion.div>
+        <motion.div
+          style={foldTransforms[3]}
+          className="sticky top-0 h-screen will-change-transform will-change-opacity"
+        >
+          <Solution />
+        </motion.div>
+        <motion.div
+          style={foldTransforms[4]}
+          className="sticky top-0 h-screen will-change-transform will-change-opacity"
+        >
+          <CTA />
+        </motion.div>
+      </div>
     </main>
-);
+  );
+};
 
 export default LandingPage;
