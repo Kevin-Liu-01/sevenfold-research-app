@@ -30,21 +30,21 @@ export const Hero = () => {
   const buttonDelay = subtitleDelay + 0.3;
 
   return (
-    <section className="relative h-full w-full text-stone-50 overflow-hidden">
-      <div className="absolute inset-0 z-0 pointer-events-none">
+    <section className="relative h-full w-full text-stone-90 overflow-hidden">
+      <div className="absolute inset-0 z-0 opacity-70 pointer-events-none">
         <ShaderGradientCanvas style={{ position: "absolute", inset: 0 }}>
           <ShaderGradient
             control="props"
             type="waterPlane"
-            cDistance={8}
-            cPolarAngle={80}
-            color1="#F97316"
-            color2="#16A34A"
-            color3="#FBBF24"
-            uSpeed={0.4}
-            uStrength={2.5}
-            uDensity={1.5}
-            uFrequency={2.0}
+            cDistance={7}
+            cPolarAngle={160}
+            color1="#B9E0A5" // Prominent white
+            color2="#F8BA7B" // darker green
+            color3="#f7f7f4" // Orange/yellow from the image
+            uSpeed={0.2}
+            uStrength={0.8}
+            uDensity={1.4}
+            uFrequency={1.5}
           />
         </ShaderGradientCanvas>
       </div>
