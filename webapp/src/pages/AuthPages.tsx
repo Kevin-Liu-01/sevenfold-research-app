@@ -5,6 +5,9 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Eye, EyeOff, Github } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
+const rawMarketingUrl = import.meta.env.VITE_MARKETING_URL?.trim();
+const marketingBaseUrl = rawMarketingUrl ? rawMarketingUrl.replace(/\/$/, "") : "";
+
 const AuthHeader: React.FC<{ title: string; description?: string }> = ({ title, description }) => (
     <div className="text-center">
         <h1 className="text-4xl font-inter font-medium text-gray-900 dark:text-gray-100 mb-3">
@@ -31,14 +34,14 @@ const AuthFooter: React.FC = () => (
     <div className="text-center text-xs text-gray-500 dark:text-gray-400">
         By continuing, you agree to Sevenfold's{" "}
         <a
-            href={import.meta.env.VITE_HOMEPAGE_URL + "/terms"}
+            href={`${marketingBaseUrl}/terms`}
             className="underline hover:text-gray-700 dark:hover:text-gray-300"
         >
             Terms of Service
         </a>{" "}
         and{" "}
         <a
-            href={import.meta.env.VITE_HOMEPAGE_URL + "/privacy"}
+            href={`${marketingBaseUrl}/privacy`}
             className="underline hover:text-gray-700 dark:hover:text-gray-300"
         >
             Privacy Policy
@@ -146,8 +149,8 @@ export const SigninPage: React.FC = () => {
         try {
             await signIn(email, password);
             navigate("/");
-        } catch (err: any) {
-            setError(err.message || "Error signing in");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Error signing in");
         } finally {
             setLoading(false);
         }
@@ -270,8 +273,8 @@ export const SignupPage: React.FC = () => {
                     message: "Please check your email to verify your account",
                 },
             });
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -379,8 +382,8 @@ export const ForgotPasswordPage: React.FC = () => {
             await resetPassword(email);
             setSent(true);
             navigate("/signin");
-        } catch (err: any) {
-            setError(err.message || "Something went wrong");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setLoading(false);
         }

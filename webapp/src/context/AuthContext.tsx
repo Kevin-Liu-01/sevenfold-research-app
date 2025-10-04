@@ -1,6 +1,6 @@
 // src/context/AuthContext.tsx
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import supabase from "../auth/supabaseClient";
 
@@ -131,7 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
 
-        const updateData: any = {};
+        const updateData: Partial<{
+            first_name: string;
+            last_name: string;
+            institution: string | null;
+            pfp_path: string | null;
+            settings: Record<string, unknown> | null;
+        }> = {};
         if (data.first_name !== undefined) updateData.first_name = data.first_name.trim();
         if (data.last_name !== undefined) updateData.last_name = data.last_name.trim();
         if (data.institution !== undefined) updateData.institution = data.institution;

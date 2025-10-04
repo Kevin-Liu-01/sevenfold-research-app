@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect, type DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { UploadedPaperPayload } from "../../../schema/db-types";
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
+interface ProcessedPdfResult {
+    existing_paper_info?: {
+        has_existing_paper: boolean;
+        existing_paper?: Paper;
+    };
+    metadata?: Record<string, unknown>;
+}
 
 interface UploadPaperModalProps {
     onClose: () => void;
@@ -14,7 +19,7 @@ interface UploadPaperModalProps {
         file: File;
         titlePage: number | null;
         abstractPages: number[];
-    }) => Promise<any>;
+    }) => Promise<ProcessedPdfResult>;
     onLinkPaper?: (data: { paperId: string; file: File }) => Promise<void>;
     isUploading?: boolean;
 }
@@ -28,8 +33,12 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 }) => {
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [extractedMetadata, setExtractedMetadata] = useState<any>(null);
-    const [existingPaperInfo, setExistingPaperInfo] = useState<any>(null);
+    const [extractedMetadata, setExtractedMetadata] = useState<Record<string, unknown> | null>(
+        null
+    );
+    const [existingPaperInfo, setExistingPaperInfo] = useState<
+        ProcessedPdfResult["existing_paper_info"] | null
+    >(null);
 
     const [file, setFile] = useState<File | null>(null);
     const [dragOver, setDragOver] = useState(false);
@@ -50,19 +59,19 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
 
     useEffect(() => {
         if (extractedMetadata) {
-            setTitle(extractedMetadata.title || "");
+            setTitle(typeof extractedMetadata.title === "string" ? extractedMetadata.title : "");
             const authorList = extractedMetadata.authors || [];
             if (Array.isArray(authorList)) {
                 setAuthors(authorList.join(", "));
             }
             const { year, month, day } = extractedMetadata;
-            if (year && month && day) {
+            if (typeof year === "number" && typeof month === "number" && typeof day === "number") {
                 const date = new Date(year, month - 1, day);
                 setPubDate(date.toISOString().split("T")[0]);
             } else {
                 setPubDate("");
             }
-            setDoi(extractedMetadata.doi || "");
+            setDoi(typeof extractedMetadata.doi === "string" ? extractedMetadata.doi : "");
         }
     }, [extractedMetadata]);
 
@@ -76,7 +85,11 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
         } else {
             setAbstractPages((current) => {
                 const pages = new Set(current);
-                pages.has(pageNumber) ? pages.delete(pageNumber) : pages.add(pageNumber);
+                if (pages.has(pageNumber)) {
+                    pages.delete(pageNumber);
+                } else {
+                    pages.add(pageNumber);
+                }
                 return Array.from(pages).sort((a, b) => a - b);
             });
         }
@@ -150,7 +163,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                     const processedData = await onProcessPdf({ file, titlePage, abstractPages });
                     if (processedData?.existing_paper_info?.has_existing_paper) {
                         setExistingPaperInfo(processedData.existing_paper_info);
-                        setExtractedMetadata(processedData.metadata);
+                        setExtractedMetadata(processedData.metadata || null);
                         setStep(3);
                     } else {
                         setExtractedMetadata(processedData.metadata || {});

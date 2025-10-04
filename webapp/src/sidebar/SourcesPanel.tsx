@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useWorkbench } from "../context/WorkbenchContext";
+import { useState, useMemo } from "react";
+import { useWorkbench, ViewType } from "../context/WorkbenchContext";
 import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 import UploadPaperModal from "./UploadPaperModal";
@@ -79,8 +79,8 @@ const PaperBox: React.FC<{
 const PapersList: React.FC<{
     papers: Paper[];
     selectedPaper: Paper | null;
-    setSelectedPaper: (paper: Paper | null) => void;
-}> = ({ papers, selectedPaper, setSelectedPaper }) => {
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ papers, selectedPaper, onSelectPaper }) => {
     if (!papers || papers.length === 0) {
         return <div className="text-gray-500 text-sm text-center py-4">No papers found</div>;
     } else {
@@ -91,7 +91,7 @@ const PapersList: React.FC<{
                         key={paper.id}
                         paper={paper}
                         isSelected={selectedPaper?.id === paper.id}
-                        onClick={() => setSelectedPaper(paper)}
+                        onClick={() => onSelectPaper(paper)}
                     />
                 ))}
             </div>
@@ -107,10 +107,17 @@ const SourcesPanel: React.FC = () => {
         refreshPapers,
         openModal,
         closeModal,
+        setCurrentView,
     } = useWorkbench();
     const [searchQuery, setSearchQuery] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Handle paper selection
+    const handleSelectPaper = (paper: Paper) => {
+        setSelectedPaper(paper);
+        setCurrentView(ViewType.Sources);
+    };
 
     const filtered = useMemo(() => {
         if (!searchQuery.trim()) return papers;
@@ -194,8 +201,8 @@ const SourcesPanel: React.FC = () => {
 
             await refreshPapers();
             closeModal();
-        } catch (error: any) {
-            setError(error.message);
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An unknown error occurred");
         } finally {
             setIsUploading(false);
         }
@@ -215,9 +222,9 @@ const SourcesPanel: React.FC = () => {
                 title: payload.title?.trim() || payload.file.name.replace(".pdf", ""),
                 authors: payload.authors || [],
                 doi: payload.doi?.trim() || null,
-                year: null,
-                month: null,
-                day: null,
+                year: null as number | null,
+                month: null as number | null,
+                day: null as number | null,
             };
 
             if (payload.publicationDate) {
@@ -249,8 +256,8 @@ const SourcesPanel: React.FC = () => {
 
             await refreshPapers();
             return true;
-        } catch (error: any) {
-            setError(error.message || "Failed to upload paper");
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Failed to upload paper");
             return false;
         } finally {
             setIsUploading(false);
@@ -304,10 +311,10 @@ const SourcesPanel: React.FC = () => {
             <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             <div className="flex-1 min-h-0">
                 <PapersList
-                    papers={filtered}
-                    selectedPaper={selectedPaper}
-                    setSelectedPaper={setSelectedPaper}
-                />
+                papers={filtered}
+                selectedPaper={selectedPaper}
+                onSelectPaper={handleSelectPaper}
+            />
             </div>
         </div>
     );

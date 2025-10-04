@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
@@ -6,7 +6,7 @@ import WebViewer from "@pdftron/pdfjs-express";
 
 const SourcesViewer: React.FC = () => {
     const viewerRef = useRef<HTMLDivElement>(null);
-    const [instance, setInstance] = useState<any>(null);
+    const [instance, setInstance] = useState<WebViewer["Instance"] | null>(null);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,8 +43,8 @@ const SourcesViewer: React.FC = () => {
                 }
                 const { signed_url } = await res.json();
                 setSignedUrl(signed_url);
-            } catch (e: any) {
-                setError(e.message);
+            } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "An unknown error occurred");
             } finally {
                 setLoading(false);
             }
@@ -54,29 +54,27 @@ const SourcesViewer: React.FC = () => {
     // Init WebViewer
     useEffect(() => {
         if (viewerRef.current) {
-            WebViewer({ path: "/webviewer", licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY }, viewerRef.current).then(async (inst: any) => {
+            WebViewer(
+                { path: "/webviewer", licenseKey: import.meta.env.VITE_PDFTRON_LICENSE_KEY },
+                viewerRef.current
+            ).then(async (inst: WebViewer["Instance"]) => {
                 setInstance(inst);
                 const { documentViewer, annotationManager } = inst.Core;
 
-                inst.UI.setHeaderItems(function(header: any) {
-                    header.getHeader('toolbarGroup-Annotate').delete('toolsOverlay');
-                    const toolItems = header.getHeader('toolbarGroup-Annotate').getItems();
-                    const items = header.getHeader('default').getItems().slice(0, -4);
-                    const lastItems = header.getHeader('default').getItems().slice(-4);
-                    const combined = [
-                        ...items,
-                        ...toolItems,
-                        ...lastItems
-                    ];
-                    header.getHeader('default').update(combined);
+                inst.UI.setHeaderItems(function (header: any) {
+                    header.getHeader("toolbarGroup-Annotate").delete("toolsOverlay");
+                    const toolItems = header.getHeader("toolbarGroup-Annotate").getItems();
+                    const items = header.getHeader("default").getItems().slice(0, -4);
+                    const lastItems = header.getHeader("default").getItems().slice(-4);
+                    const combined = [...items, ...toolItems, ...lastItems];
+                    header.getHeader("default").update(combined);
                 });
 
                 // hide all ribbon tabs and tools header
-                inst.UI.disableElements(['ribbons', 'toolsHeader']);
+                inst.UI.disableElements(["ribbons", "toolsHeader"]);
 
-                inst.Core.documentViewer.addEventListener(
-                    'documentLoadFailed',
-                    (evt: any) => console.error('PDF failed to load:', evt),
+                inst.Core.documentViewer.addEventListener("documentLoadFailed", (evt: any) =>
+                    console.error("PDF failed to load:", evt)
                 );
                 inst.UI.setZoomStepFactors([
                     { step: 2, startZoom: 0 },
@@ -112,22 +110,26 @@ const SourcesViewer: React.FC = () => {
                     setCurrentPage(pageNumber);
                 });
 
-                annotationManager.addEventListener("annotationChanged", async (_annotations: any, action: any) => {
-                    if (["add", "modify", "delete"].includes(action)) {
-                        const xfdf = await annotationManager.exportAnnotations();
-                        try {
-                            const { error } = await supabase
-                                .from("project_paper_links")
-                                .update({ annotations: xfdf })
-                                .eq("project_id", projectId)
-                                .eq("paper_id", selectedPaper!.id);
+                annotationManager.addEventListener(
+                    "annotationChanged",
+                    async (_annotations: unknown, action: unknown) => {
+                        const actionType = typeof action === "string" ? action : "";
+                        if (["add", "modify", "delete"].includes(actionType)) {
+                            const xfdf = await annotationManager.exportAnnotations();
+                            try {
+                                const { error } = await supabase
+                                    .from("project_paper_links")
+                                    .update({ annotations: xfdf })
+                                    .eq("project_id", projectId)
+                                    .eq("paper_id", selectedPaper!.id);
 
-                            if (error) throw error;
-                        } catch (err) {
-                            console.error("Error saving annotation:", err);
+                                if (error) throw error;
+                            } catch (err) {
+                                console.error("Error saving annotation:", err);
+                            }
                         }
                     }
-                });
+                );
             });
         }
         return () => {
@@ -146,14 +148,6 @@ const SourcesViewer: React.FC = () => {
     }, [instance, signedUrl, selectedPaper]);
 
     // Handlers
-    const goToPage = useCallback(
-        (delta: number) => {
-            if (!instance) return;
-            const next = Math.min(Math.max(1, currentPage + delta), pageCount);
-            instance.UI.setCurrentPage(next);
-        },
-        [instance, currentPage, pageCount]
-    );
 
     const retry = () => {
         setError(null);
@@ -194,10 +188,12 @@ const SourcesViewer: React.FC = () => {
                 <div className="flex items-center space-x-3">
                     <a
                         href={signedUrl || "#"}
-                        download={selectedPaper.title}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open paper in new tab"
                         className="p-2 rounded hover:bg-gray-100"
                     >
-                        <span className="material-icons text-gray-600">download</span>
+                        <span className="material-icons text-gray-600">open_in_new</span>
                     </a>
                 </div>
             </header>

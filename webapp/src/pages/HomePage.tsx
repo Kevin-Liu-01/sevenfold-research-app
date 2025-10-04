@@ -61,7 +61,7 @@ const HomePage: React.FC = () => {
         (project) =>
             project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             project.research_question?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.keywords?.some((keyword) =>
+            project.keywords?.some((keyword: string) =>
                 keyword.toLowerCase().includes(searchTerm.toLowerCase())
             )
     );
@@ -249,12 +249,6 @@ const HomePage: React.FC = () => {
                                                         project.created_at
                                                     ).toLocaleDateString()}
                                                 </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-sm text-gray-400">
-                                                <span className="material-icons-outlined text-sm">
-                                                    visibility
-                                                </span>
-                                                <span>View</span>
                                             </div>
                                         </div>
                                     </div>

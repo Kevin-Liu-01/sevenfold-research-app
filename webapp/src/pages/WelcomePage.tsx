@@ -39,8 +39,15 @@ const WelcomePage: React.FC = () => {
             navigate(params.get("redirect") || "/", { replace: true });
             return;
         }
-        const meta: any = user.user_metadata ?? {};
-        const full = meta.full_name || meta.name || meta.user_name || "";
+        const meta: Record<string, unknown> = user.user_metadata ?? {};
+        const full =
+            typeof meta.full_name === "string"
+                ? meta.full_name
+                : typeof meta.name === "string"
+                  ? meta.name
+                  : typeof meta.user_name === "string"
+                    ? meta.user_name
+                    : "";
         const [f = "", l = ""] = full.split(" ");
         setForm((prev) => ({
             ...prev,
@@ -147,9 +154,11 @@ const WelcomePage: React.FC = () => {
             if (avatarFile) {
                 try {
                     pfp_path = await uploadAvatarIfAny();
-                } catch (uploadErr: any) {
+                } catch (uploadErr: unknown) {
                     setError(
-                        uploadErr?.message ?? "Avatar upload failed. Please try another image."
+                        uploadErr instanceof Error
+                            ? uploadErr.message
+                            : "Avatar upload failed. Please try another image."
                     );
                     setSubmitting(false);
                     return;
@@ -165,8 +174,8 @@ const WelcomePage: React.FC = () => {
             });
 
             navigate(params.get("redirect") || "/", { replace: true });
-        } catch (err: any) {
-            setError(err?.message ?? "Something went wrong");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Something went wrong");
             setSubmitting(false);
         }
     };

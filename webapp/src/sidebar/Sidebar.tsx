@@ -104,12 +104,14 @@ const AvatarButton: React.FC = () => {
                         : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
                 } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
             >
+                {/* Account button commented out - non-functional
                 <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-50"
                     onClick={() => setAvatarMenuOpen(false)}
                 >
                     Account
                 </button>
+                */}
                 <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-50"
                     onClick={() => {
@@ -164,7 +166,7 @@ const FeedbackButton: React.FC = () => {
 };
 
 export default function Sidebar() {
-    const { setHoveredView } = useWorkbench();
+    const { setHoveredView, notification } = useWorkbench();
 
     return (
         <div
@@ -174,12 +176,17 @@ export default function Sidebar() {
             <HomeButton />
             <nav className="flex flex-1 flex-col justify-top space-y-6">
                 {navItems.map((item) => (
-                    <SidebarButton
-                        key={item.view}
-                        targetView={item.view}
-                        icon={item.icon}
-                        label={item.label}
-                    />
+                    <div key={item.view} className="relative flex justify-center">
+                        <SidebarButton targetView={item.view} icon={item.icon} label={item.label} />
+                        {item.view === ViewType.Sources && notification && notification[0] && (
+                            <div className="source-notification-bubble absolute left-full ml-2 top-1/2 z-20 bg-kets-orange-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap flex items-center">
+                                <span className="material-icons-outlined text-base mr-2">
+                                    check_circle
+                                </span>
+                                <span className="text-xs font-medium">{notification}</span>
+                            </div>
+                        )}
+                    </div>
                 ))}
             </nav>
             <FeedbackButton />

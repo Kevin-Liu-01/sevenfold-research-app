@@ -11,6 +11,7 @@ import json
 import uuid
 from io import BytesIO
 from typing import Literal
+from pathlib import Path
 
 import requests
 from fastapi import APIRouter, UploadFile, Form, Header, HTTPException
@@ -38,38 +39,18 @@ def _verify_project(project_id: str, user_id: str) -> None:
     )
     if not project_check.data:
         raise HTTPException(status_code=404, detail="Project not found or access denied")
+    
 
-SYSTEM_INSTRUCTIONS = (
-    "You are an expert PDF paper metadata extractor. "
-    "Return STRICT JSON ONLY. No prose. No markdown. No backticks. "
-    "If a field is unknown, return null (or [] for arrays). "
-    "For 'authors', return an array of author names as strings in normal order. "
-    "For 'category', return ONE broad, human-readable research category (e.g., "
-    "Computer Science, Mathematics, Physics, Biology, Medicine, Engineering, Statistics, "
-    "Economics & Finance, Psychology, Chemistry, Earth & Environmental Science, "
-    "Materials Science, Linguistics, Education, Social Sciences, Philosophy, Law). "
-    "Do not invent DOIs. If multiple candidate dates are present, prefer the publication date."
-)
+PROMPTS_ROOT = Path(__file__).resolve().parent.parent / "prompts"
 
-PROMPT_TEXT = (
-    "From the attached PDF pages, extract a single JSON object with the following schema:\n"
-    "{\n"
-    '  "title": "TEXT NOT NULL",\n'
-    '  "abstract": "TEXT or null",\n'
-    '  "authors": ["TEXT", ...],\n'
-    '  "year": INT or null,\n'
-    '  "month": INT or null,\n'
-    '  "day": INT or null,\n'
-    '  "doi": "TEXT or null",\n'
-    '  "category": "TEXT or null"\n'
-    "}\n"
-    "Rules:\n"
-    "- Output MUST be valid JSON only (no comments/markdown).\n"
-    "- 'authors' must be an array of strings (names).\n"
-    "- If you cannot find a field, use null (or [] for authors).\n"
-    "- 'category' should be a broad, human-readable discipline (e.g., Computer Science).\n"
-    "- If a date is present, split into year, month, day integers (use null if missing)."
-)
+
+def _load_prompt(*relative_parts: str) -> str:
+    """Load a prompt text file from the prompts directory."""
+    return (PROMPTS_ROOT.joinpath(*relative_parts)).read_text(encoding="utf-8")
+
+
+SYSTEM_INSTRUCTIONS = _load_prompt("papers", "metadata_system_prompt.xml")
+PROMPT_TEXT = _load_prompt("papers", "metadata_user_prompt.xml")
 
 @router.post("/process-pdf")
 async def process_pdf(
@@ -289,7 +270,6 @@ async def process_pdf(
 async def upload_pdf(
     file: UploadFile,
     project_id: str = Form(...),
-    paper_type: Literal["source", "candidate"] = Form(...),  # accepted for UX; schema doesn't store it
     metadata_json: str = Form(...),
     authorization: str = Header(...),
 ):
@@ -564,6 +544,3 @@ async def link_paper_to_project(
         "project_id": project_id,
         "paper_title": paper_details.data.get("title") if paper_details.data else None
     }
-
-
-
