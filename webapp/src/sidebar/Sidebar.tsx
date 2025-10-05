@@ -145,12 +145,10 @@ const FeedbackButton: React.FC = () => {
                 onClick={() => setFeedbackOpen(true)}
                 title="Send Feedback"
             >
-                <div className="flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-gray-500 group-hover:bg-gray-100 group-hover:shadow-sm">
-                    <span className="material-icons-outlined transition-all duration-200 text-base group-hover:scale-110">
-                        feedback
-                    </span>
-                </div>
-                <span className="text-xs mt-0.5 transition-all duration-200 font-normal group-hover:font-medium">
+                <span className="material-icons-outlined transition-transform duration-200 text-base text-[var(--color-off-black)] group-hover:scale-[1.18]">
+                    feedback
+                </span>
+                <span className="text-xs mt-0.5 transition-all duration-200 font-normal text-[var(--color-off-black)] group-hover:font-medium">
                     Feedback
                 </span>
             </button>

@@ -27,7 +27,7 @@
     font-family: "Times Now";
     font-style: normal;
     font-weight: 400;
-    src: url("/fonts/times-now-semi-light.otf") format("opentype");
+    src: url("/fonts/ties-now-semi-light.otf") format("opentype");
 }
 
 @font-face {
@@ -56,6 +56,7 @@
     --color-kets-orange-900: #74280d;
     --color-app-outer: #f3f3f3;
     --color-app-inner: #f7fcfe;
+    --color-off-black: #1e2938;
 }
 
 /* Custom Utility: no-scrollbar */

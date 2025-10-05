@@ -42,9 +42,11 @@ const UploadPaperButton: React.FC<{
     return (
         <button
             onClick={onClick}
-            className="flex items-center justify-center space-x-1 bg-kets-orange hover:bg-kets-orange-500 hover:cursor-pointer text-white text-sm font-medium px-2 py-1 rounded-md transition"
+            className="group flex w-full items-center justify-start space-x-2 bg-[var(--color-off-black)] hover:opacity-90 hover:cursor-pointer text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition"
         >
-            <span className="material-icons text-base">upload_file</span>
+            <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                upload_file
+            </span>
             <span>Upload Paper</span>
         </button>
     );
