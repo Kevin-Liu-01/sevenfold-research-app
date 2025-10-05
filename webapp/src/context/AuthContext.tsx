@@ -168,7 +168,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signUp = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              emailRedirectTo: import.meta.env.MODE === 'development' 
+                ? 'http://localhost:5173'
+                : 'https://app.sevenfold.so'
+            }
+          });
         if (error) throw error;
         setProfile(null);
     };
