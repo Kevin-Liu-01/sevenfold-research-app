@@ -115,9 +115,26 @@ const WeightTabs: React.FC<{
     label: string;
     preset: Preset;
     onChange: (p: Preset) => void;
-}> = ({ label, preset, onChange }) => (
+    tooltip?: string;
+}> = ({ label, preset, onChange, tooltip }) => (
     <div className="flex flex-col space-y-1">
-        <span className="text-sm font-medium text-gray-500">{label} Weight</span>
+        <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">{label}</span>
+            {tooltip && (
+                <span className="relative inline-flex group">
+                    <button
+                        type="button"
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-kets-yellow"
+                        aria-label={`About ${label.toLowerCase()} search`}
+                    >
+                        ?
+                    </button>
+                    <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-52 -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white shadow-lg group-hover:block group-focus-within:block">
+                        {tooltip}
+                    </span>
+                </span>
+            )}
+        </div>
         <div className="flex space-x-2">
             {(["OFF", "L", "M", "H"] as Preset[]).map((p) => (
                 <button
@@ -273,9 +290,24 @@ const SearchViewer: React.FC = () => {
                 />
 
                 <div className="flex flex-col justify-between p-1">
-                    <WeightTabs label="Keyword" preset={kwPreset} onChange={setKwPreset} />
-                    <WeightTabs label="Semantic" preset={semPreset} onChange={setSemPreset} />
-                    <WeightTabs label="Context" preset={ctxPreset} onChange={setCtxPreset} />
+                    <WeightTabs
+                        label="Keyword Match"
+                        preset={kwPreset}
+                        onChange={setKwPreset}
+                        tooltip="Prioritize results that include the exact words from your query."
+                    />
+                    <WeightTabs
+                        label="Semantic Meaning"
+                        preset={semPreset}
+                        onChange={setSemPreset}
+                        tooltip="Find papers with similar ideas, even when they use different wording."
+                    />
+                    <WeightTabs
+                        label="Project Context"
+                        preset={ctxPreset}
+                        onChange={setCtxPreset}
+                        tooltip="Let your current project context influence which papers appear first."
+                    />
                 </div>
                 <div className="flex flex-col justify-between p-1">
                     <YearFilter year={yearFilter} onYearChange={setYearFilter} />
