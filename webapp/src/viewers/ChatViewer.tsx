@@ -20,15 +20,47 @@ marked.setOptions({
     breaks: true,
 });
 
-function ConvoHeader({ convo }: { convo: ChatConvo }) {
+function ConvoHeader({
+    convo,
+    onPrev,
+    onNext,
+    canGoPrev,
+    canGoNext
+}: {
+    convo: ChatConvo;
+    onPrev?: () => void;
+    onNext?: () => void;
+    canGoPrev?: boolean;
+    canGoNext?: boolean;
+}) {
     return (
         <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur border-b border-gray-200 px-4 py-3">
             <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-800">
+                <div className="flex items-center gap-2">
+                    {onPrev && onNext && (
+                        <div className="flex gap-1">
+                            <button
+                                onClick={onPrev}
+                                disabled={!canGoPrev}
+                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                                ↑
+                            </button>
+                            <button
+                                onClick={onNext}
+                                disabled={!canGoNext}
+                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                                ↓
+                            </button>
+                        </div>
+                    )}
+                </div>
+                <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-semibold text-gray-800">
                     {convo?.name || "Conversation"}
                 </h2>
                 <div className="text-xs text-gray-500">
-                    Papers:{" "}
+                    Sources:{" "}
                     <span className="font-medium">
                         {Array.isArray(convo?.paper_ids) ? convo.paper_ids.length : 0}
                     </span>
@@ -55,7 +87,7 @@ const QueryResultTabs: React.FC<{
                             : "text-gray-500"
                     }`}
                 >
-                    {tab === "papers" ? `Papers (${papersCount})` : "Response"}
+                    {tab === "papers" ? `Sources (${papersCount})` : "Response"}
                 </button>
             ))}
         </div>
@@ -128,7 +160,7 @@ const QueryResultBody: React.FC<{
         if (relevantPapers.length === 0) {
             return (
                 <p className="text-sm text-gray-500">
-                    No papers were associated with this response.
+                    No sources were associated with this response.
                 </p>
             );
         }
@@ -227,7 +259,13 @@ const QueryResultsPager: React.FC<{
     papers: Paper[];
     selectedPaperIds: string[];
     onSelectPaper: (paper: Paper) => void;
-}> = ({ items, papers, selectedPaperIds, onSelectPaper }) => {
+    onNavigationChange?: (handlers: {
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    }) => void;
+}> = ({ items, papers, selectedPaperIds, onSelectPaper, onNavigationChange }) => {
     const [tabs, setTabs] = useState<Record<number, "response" | "papers">>({});
     useEffect(() => {
         setTabs((old) => {
@@ -273,6 +311,18 @@ const QueryResultsPager: React.FC<{
 
     const handlePrev = useCallback(() => goToIndex((prev) => prev - 1), [goToIndex]);
     const handleNext = useCallback(() => goToIndex((prev) => prev + 1), [goToIndex]);
+
+    // Expose navigation handlers to parent
+    useEffect(() => {
+        if (onNavigationChange) {
+            onNavigationChange({
+                handlePrev,
+                handleNext,
+                canGoPrev: items.length > 0 && currentIndex > 0,
+                canGoNext: items.length > 0 && currentIndex < items.length - 1
+            });
+        }
+    }, [onNavigationChange, handlePrev, handleNext, currentIndex, items.length]);
 
     useEffect(() => {
         const onKey = (ev: KeyboardEvent) => {
@@ -361,23 +411,6 @@ const QueryResultsPager: React.FC<{
                     ))}
                 </div>
             </div>
-
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-                <button
-                    onClick={handlePrev}
-                    disabled={items.length === 0 || currentIndex === 0}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                    ↑
-                </button>
-                <button
-                    onClick={handleNext}
-                    disabled={items.length === 0 || currentIndex === items.length - 1}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                    ↓
-                </button>
-            </div>
         </div>
     );
 };
@@ -385,7 +418,13 @@ const QueryResultsPager: React.FC<{
 export const MessageList: React.FC<{
     messages: ChatMessage[];
     onSelectPaper: (paper: Paper) => void;
-}> = ({ messages, onSelectPaper }) => {
+    onNavigationChange?: (handlers: {
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    }) => void;
+}> = ({ messages, onSelectPaper, onNavigationChange }) => {
     const { papers, selectedConvo } = useWorkbench();
     const items = useMemo(() => {
         const out: { query: string; response?: string; isPending: boolean }[] = [];
@@ -418,7 +457,38 @@ export const MessageList: React.FC<{
             papers={papers}
             selectedPaperIds={selectedPaperIds}
             onSelectPaper={onSelectPaper}
+            onNavigationChange={onNavigationChange}
         />
+    );
+};
+
+const ConvoHeaderWithNavigation: React.FC<{
+    convo: ChatConvo;
+    messages: ChatMessage[];
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ convo, messages, onSelectPaper }) => {
+    const [navHandlers, setNavHandlers] = useState<{
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    } | null>(null);
+
+    return (
+        <>
+            <ConvoHeader
+                convo={convo}
+                onPrev={navHandlers?.handlePrev}
+                onNext={navHandlers?.handleNext}
+                canGoPrev={navHandlers?.canGoPrev}
+                canGoNext={navHandlers?.canGoNext}
+            />
+            <MessageList
+                messages={messages}
+                onSelectPaper={onSelectPaper}
+                onNavigationChange={setNavHandlers}
+            />
+        </>
     );
 };
 
@@ -434,7 +504,7 @@ const ChatInput: React.FC<{
                 <textarea
                     placeholder="Ask another question..."
                     className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
-                    rows={2}
+                    rows={1}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -490,10 +560,11 @@ const NewChatPage: React.FC<{
                 alt="Logo"
                 className="text-4xl h-12 font-bold text-gray-900 mb-6"
             />
-            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 min-h-32 rounded-xl p-4 shadow-sm">
+            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 rounded-xl p-4 shadow-sm">
                 <textarea
                     placeholder="What are you researching today?"
                     className="w-full resize-none bg-transparent text-lg text-gray-800 placeholder-gray-400 focus:outline-none"
+                    rows={2}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -502,13 +573,12 @@ const NewChatPage: React.FC<{
                             onSend();
                         }
                     }}
-                    rows={2}
                     disabled={disabled}
                 />
             </div>
 
             <div className="mt-6 text-left w-full max-w-3xl">
-                <p className="text-sm font-medium text-gray-600 mb-2">Ingested Papers</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Ingested Sources</p>
                 <div className="flex flex-wrap gap-2">
                     {papers.map((paper) => (
                         <button
@@ -688,7 +758,7 @@ const ChatViewer: React.FC = () => {
             const paperUris = await getPaperUris(selectedPaperIds);
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
                 body: JSON.stringify({
                     convo_id: convoId,
                     message: trimmed,
@@ -705,7 +775,7 @@ const ChatViewer: React.FC = () => {
                         id: `local-assistant-error-${Date.now()}`,
                         convo_id: convoId!,
                         role: "assistant",
-                        data: "Sorry — I couldn’t process that request.",
+                        data: "Sorry — I couldn't process that request.",
                         created_at: new Date().toISOString(),
                         metadata: {},
                     },
@@ -713,16 +783,95 @@ const ChatViewer: React.FC = () => {
                 return;
             }
 
-            const data = await res.json();
-            const assistantMsg: ChatMessage = {
-                id: `local-assistant-${Date.now()}`,
-                convo_id: convoId!,
-                role: "assistant",
-                data: data?.message ?? "…",
-                created_at: new Date().toISOString(),
-                metadata: {},
-            };
-            setMessages((prev) => [...prev, assistantMsg]);
+            // Handle streaming response
+            const reader = res.body?.getReader();
+            const decoder = new TextDecoder();
+            let assistantContent = "";
+            const assistantMsgId = `local-assistant-${Date.now()}`;
+
+            // Don't create assistant message yet - wait for first chunk
+            let hasCreatedMessage = false;
+
+            if (reader) {
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split("\n");
+
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                try {
+                                    const eventData = JSON.parse(line.slice(6));
+
+                                    if (eventData.type === "content") {
+                                        assistantContent += eventData.text;
+
+                                        // Create message on first content chunk
+                                        if (!hasCreatedMessage) {
+                                            const assistantMsg: ChatMessage = {
+                                                id: assistantMsgId,
+                                                convo_id: convoId!,
+                                                role: "assistant",
+                                                data: assistantContent,
+                                                created_at: new Date().toISOString(),
+                                                metadata: {},
+                                            };
+                                            setMessages((prev) => [...prev, assistantMsg]);
+                                            hasCreatedMessage = true;
+                                        } else {
+                                            // Update the message in real-time
+                                            setMessages((prev) =>
+                                                prev.map((msg) =>
+                                                    msg.id === assistantMsgId
+                                                        ? { ...msg, data: assistantContent }
+                                                        : msg
+                                                )
+                                            );
+                                        }
+                                    } else if (eventData.type === "done") {
+                                        // Handle completion metadata if needed
+                                        if (eventData.tab_name_generated) {
+                                            await refreshConvos();
+                                        }
+                                    } else if (eventData.type === "error") {
+                                        console.error("Streaming error:", eventData.message);
+                                        if (!hasCreatedMessage) {
+                                            const errorMsg: ChatMessage = {
+                                                id: assistantMsgId,
+                                                convo_id: convoId!,
+                                                role: "assistant",
+                                                data: "Sorry — I couldn't process that request.",
+                                                created_at: new Date().toISOString(),
+                                                metadata: {},
+                                            };
+                                            setMessages((prev) => [...prev, errorMsg]);
+                                            hasCreatedMessage = true;
+                                        } else {
+                                            setMessages((prev) =>
+                                                prev.map((msg) =>
+                                                    msg.id === assistantMsgId
+                                                        ? {
+                                                              ...msg,
+                                                              data: "Sorry — I couldn't process that request.",
+                                                          }
+                                                        : msg
+                                                )
+                                            );
+                                        }
+                                    }
+                                } catch (parseError) {
+                                    console.error("Error parsing SSE data:", parseError);
+                                }
+                            }
+                        }
+                    }
+                } catch (streamError) {
+                    console.error("Stream reading error:", streamError);
+                }
+            }
         } catch (e) {
             console.error("Send error:", e);
         } finally {
@@ -755,8 +904,7 @@ const ChatViewer: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <ConvoHeader convo={selectedConvo} />
-                    <MessageList messages={messages} onSelectPaper={handleSelectPaper} />
+                    <ConvoHeaderWithNavigation convo={selectedConvo} messages={messages} onSelectPaper={handleSelectPaper} />
                     <ChatInput
                         value={input}
                         setValue={setInput}

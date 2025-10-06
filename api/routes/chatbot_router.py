@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header, Body, File, UploadFile
+from fastapi.responses import StreamingResponse
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -351,76 +352,84 @@ async def send_chat_message(
         
         max_tokens = 1000
     
-    # Get response from Claude
-    try:
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514", # Best for balancing performance and cost
-            system=system_message,
-            messages=claude_messages,
-            max_tokens=max_tokens,
-            temperature=0.7
-        )
-        
-        assistant_content = response.content[0].text
-        tokens_used = response.usage.input_tokens + response.usage.output_tokens
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
-    
-    # Save assistant response
-    assistant_metadata = {
-        "model": "claude-sonnet-4-20250514", # Best for balancing performance and cost
-        "tokens_used": tokens_used
-    }
-    if paper_ids:
-        assistant_metadata["papers_referenced"] = paper_ids
-    
-    assistant_message_result = (
-        supabase
-        .table("chat_messages")
-        .insert({
-            "convo_id": convo_id,
-            "role": "assistant",
-            "data": assistant_content,
-            "metadata": assistant_metadata
-        })
-        .execute()
-    )
-    
-    if not assistant_message_result.data:
-        raise HTTPException(status_code=500, detail="Failed to save assistant response")
-    
-    # Generate and update tab name if this is the first message
-    tab_name_generated = None
-    if should_generate_name:
-        # Use paper filenames for name generation
-        filenames_str = ", ".join(paper_filenames) if paper_filenames else None
-        tab_name_generated = await _generate_tab_name(message, filenames_str)
-        
-        supabase.table("chat_convos") \
-            .update({
-                "name": tab_name_generated,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }) \
-            .eq("id", convo_id) \
-            .execute()
-    else:
-        # Just update timestamp
-        supabase.table("chat_convos") \
-            .update({"updated_at": datetime.now(timezone.utc).isoformat()}) \
-            .eq("id", convo_id) \
-            .execute()
-    
-    response_data = {
-        "message": assistant_content,
-        # "paper_context": paper_context, - Not being used as of now
-        # "similar_papers": similar_papers - Not being used as of now
-    }
-    
-    if paper_ids:
-        response_data["papers_referenced"] = paper_ids
+    # Stream response from Claude
+    async def generate():
+        try:
+            assistant_content = ""
+            tokens_used = 0
 
-    if tab_name_generated:
-        response_data["tab_name_generated"] = tab_name_generated
-    
-    return response_data
+            with client.messages.stream(
+                model="claude-sonnet-4-20250514",
+                system=system_message,
+                messages=claude_messages,
+                max_tokens=max_tokens,
+                temperature=0.7
+            ) as stream:
+                for text in stream.text_stream:
+                    assistant_content += text
+                    # Send the chunk as SSE
+                    yield f"data: {json.dumps({'type': 'content', 'text': text})}\n\n"
+
+                # Get final message for usage stats
+                final_message = stream.get_final_message()
+                tokens_used = final_message.usage.input_tokens + final_message.usage.output_tokens
+
+            # Save assistant response to database
+            assistant_metadata = {
+                "model": "claude-sonnet-4-20250514",
+                "tokens_used": tokens_used
+            }
+            if paper_ids:
+                assistant_metadata["papers_referenced"] = paper_ids
+
+            assistant_message_result = (
+                supabase
+                .table("chat_messages")
+                .insert({
+                    "convo_id": convo_id,
+                    "role": "assistant",
+                    "data": assistant_content,
+                    "metadata": assistant_metadata
+                })
+                .execute()
+            )
+
+            if not assistant_message_result.data:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Failed to save assistant response'})}\n\n"
+                return
+
+            # Generate and update tab name if this is the first message
+            tab_name_generated = None
+            if should_generate_name:
+                filenames_str = ", ".join(paper_filenames) if paper_filenames else None
+                tab_name_generated = await _generate_tab_name(message, filenames_str)
+
+                supabase.table("chat_convos") \
+                    .update({
+                        "name": tab_name_generated,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }) \
+                    .eq("id", convo_id) \
+                    .execute()
+            else:
+                supabase.table("chat_convos") \
+                    .update({"updated_at": datetime.now(timezone.utc).isoformat()}) \
+                    .eq("id", convo_id) \
+                    .execute()
+
+            # Send final metadata
+            final_data = {
+                "type": "done",
+                "tokens_used": tokens_used
+            }
+            if paper_ids:
+                final_data["papers_referenced"] = paper_ids
+            if tab_name_generated:
+                final_data["tab_name_generated"] = tab_name_generated
+
+            yield f"data: {json.dumps(final_data)}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'Error generating response: {str(e)}'})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
