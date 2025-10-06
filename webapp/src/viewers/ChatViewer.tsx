@@ -190,7 +190,7 @@ const QueryResultCard: React.FC<{
             </div>
 
             {/* Scrollable content area */}
-            <div className="flex-grow overflow-y-auto -mr-6 pr-6" data-scrollable-content>
+            <div className="flex-grow">
                 {/* Wrapper adds padding to prevent last line of text from being hidden by the sticky footer */}
                 <div className="pb-20">
                     <QueryResultBody
@@ -238,91 +238,144 @@ const QueryResultsPager: React.FC<{
     }, [items.length]);
 
     const [currentIndex, setCurrentIndex] = useState(Math.max(items.length - 1, 0));
+    const containerRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const scrollRaf = useRef<number | null>(null);
+
     useEffect(() => {
-        setCurrentIndex(Math.max(items.length - 1, 0));
+        itemRefs.current = itemRefs.current.slice(0, items.length);
     }, [items.length]);
 
-    const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
-    const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
-
-    const lastScrollRef = useRef(0);
-    const handleWheel = useCallback(
-        (e: React.WheelEvent<HTMLDivElement>) => {
-            const scrollableContent = (e.target as HTMLElement).closest(
-                "[data-scrollable-content]"
-            );
-
-            if (scrollableContent) {
-                const { scrollTop, scrollHeight, clientHeight } = scrollableContent;
-                const isAtTop = scrollTop === 0;
-                const isAtBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight - 1;
-
-                if (e.deltaY < 0 && !isAtTop) return;
-                if (e.deltaY > 0 && !isAtBottom) return;
-            }
-
-            const now = Date.now();
-            if (now - lastScrollRef.current < 600) return;
-            if (Math.abs(e.deltaY) < 15) return;
-
-            if (e.deltaY > 0) handleNext();
-            else handlePrev();
-
-            lastScrollRef.current = now;
+    const scrollToIndex = useCallback(
+        (index: number, behavior: ScrollBehavior = "smooth") => {
+            const node = itemRefs.current[index];
+            const container = containerRef.current;
+            if (!node || !container) return;
+            const marginTop =
+                typeof window !== "undefined" ? parseFloat(window.getComputedStyle(node).marginTop) || 0 : 0;
+            const targetTop = Math.max(node.offsetTop - marginTop, 0);
+            container.scrollTo({ top: targetTop, behavior });
         },
-        [items.length]
+        []
     );
+
+    const goToIndex = useCallback(
+        (updater: number | ((prev: number) => number), behavior: ScrollBehavior = "smooth") => {
+            setCurrentIndex((prev) => {
+                const raw = typeof updater === "function" ? updater(prev) : updater;
+                const clamped = Math.max(0, Math.min(raw, items.length - 1));
+                requestAnimationFrame(() => scrollToIndex(clamped, behavior));
+                return clamped;
+            });
+        },
+        [items.length, scrollToIndex]
+    );
+
+    const handlePrev = useCallback(() => goToIndex((prev) => prev - 1), [goToIndex]);
+    const handleNext = useCallback(() => goToIndex((prev) => prev + 1), [goToIndex]);
 
     useEffect(() => {
         const onKey = (ev: KeyboardEvent) => {
-            if (ev.key === "ArrowDown") handleNext();
-            else if (ev.key === "ArrowUp") handlePrev();
+            if (ev.key === "ArrowDown") {
+                ev.preventDefault();
+                handleNext();
+            } else if (ev.key === "ArrowUp") {
+                ev.preventDefault();
+                handlePrev();
+            }
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [items.length]);
+    }, [handleNext, handlePrev]);
+
+    const prevLengthRef = useRef(0);
+    useEffect(() => {
+        const prevLength = prevLengthRef.current;
+        if (items.length === 0) {
+            setCurrentIndex(0);
+            if (containerRef.current) containerRef.current.scrollTo({ top: 0 });
+            prevLengthRef.current = items.length;
+            return;
+        }
+        if (items.length !== prevLength) {
+            goToIndex(items.length - 1, prevLength === 0 ? "auto" : "smooth");
+            prevLengthRef.current = items.length;
+        }
+    }, [items.length, goToIndex]);
+
+    const handleScroll = useCallback(() => {
+        if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+        scrollRaf.current = requestAnimationFrame(() => {
+            const container = containerRef.current;
+            if (!container) return;
+            const scrollTop = container.scrollTop;
+            let closestIndex = 0;
+            let minDistance = Number.POSITIVE_INFINITY;
+            itemRefs.current.forEach((node, index) => {
+                if (!node) return;
+                const distance = Math.abs(node.offsetTop - scrollTop);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIndex = index;
+                }
+            });
+            setCurrentIndex((prev) => (prev === closestIndex ? prev : closestIndex));
+            scrollRaf.current = null;
+        });
+    }, []);
+
+    useEffect(
+        () => () => {
+            if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+        },
+        []
+    );
 
     return (
-        <div
-            className="relative w-full h-[calc(100vh-12rem)] overflow-hidden"
-            onWheel={handleWheel}
-        >
+        <div className="relative w-full h-[calc(100vh-12rem)]">
             <div
-                className="h-full transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateY(-${currentIndex * 100}%)` }}
+                ref={containerRef}
+                className="h-full overflow-y-auto pr-2 no-scrollbar scroll-smooth"
+                onScroll={handleScroll}
             >
-                {items.map((it, i) => (
-                    <div className="w-full h-full" key={i}>
-                        <QueryResultCard
-                            query={it.query}
-                            response={it.response}
-                            isPending={it.isPending}
-                            papers={papers}
-                            selectedPaperIds={selectedPaperIds}
-                            tab={tabs[i] ?? "response"}
-                            onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
-                            onSelectPaper={onSelectPaper}
-                        />
-                    </div>
-                ))}
+                <div className="flex flex-col space-y-8">
+                    {items.map((it, i) => (
+                        <div
+                            key={i}
+                            ref={(el) => {
+                                itemRefs.current[i] = el;
+                            }}
+                            className={`scroll-mt-4 ${i === items.length - 1 ? "min-h-[90vh]" : ""}`}
+                        >
+                            <QueryResultCard
+                                query={it.query}
+                                response={it.response}
+                                isPending={it.isPending}
+                                papers={papers}
+                                selectedPaperIds={selectedPaperIds}
+                                tab={tabs[i] ?? "response"}
+                                onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
+                                onSelectPaper={onSelectPaper}
+                            />
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <div className="absolute top-4 right-4 flex gap-2 z-10">
                 <button
                     onClick={handlePrev}
-                    disabled={currentIndex === 0}
+                    disabled={items.length === 0 || currentIndex === 0}
                     className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                 >
-                    {" "}
-                    ↑{" "}
+                    ↑
                 </button>
                 <button
                     onClick={handleNext}
-                    disabled={currentIndex === items.length - 1}
+                    disabled={items.length === 0 || currentIndex === items.length - 1}
                     className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
                 >
-                    {" "}
-                    ↓{" "}
+                    ↓
                 </button>
             </div>
         </div>
