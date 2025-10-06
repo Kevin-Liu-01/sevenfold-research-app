@@ -135,13 +135,13 @@
         transform: translate(-10px, -50%);
     }
 }
-.source-notification-bubble {
+.library-notification-bubble {
     transform: translate(-10px, -50%); /* Initial state */
     animation:
         fade-in-sidebar 0.3s ease-out forwards,
         fade-out-sidebar 0.3s ease-in 4.7s forwards;
 }
-.source-notification-bubble::before {
+.library-notification-bubble::before {
     content: "";
     position: absolute;
     top: 50%;

@@ -11,7 +11,7 @@ import Modal from "../components/ui/Modal";
 const navItems = [
     { view: ViewType.Search, label: "Search", icon: "search" },
     { view: ViewType.Chat, label: "Chat", icon: "3p" },
-    { view: ViewType.Sources, label: "Sources", icon: "source" },
+    { view: ViewType.Library, label: "Library", icon: "source" },
     { view: ViewType.Compose, label: "Compose", icon: "edit" },
     { view: ViewType.Settings, label: "Settings", icon: "settings" },
 ];
@@ -176,8 +176,8 @@ export default function Sidebar() {
                 {navItems.map((item) => (
                     <div key={item.view} className="relative flex justify-center">
                         <SidebarButton targetView={item.view} icon={item.icon} label={item.label} />
-                        {item.view === ViewType.Sources && notification && notification[0] && (
-                            <div className="source-notification-bubble absolute left-full ml-2 top-1/2 z-20 bg-kets-orange-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap flex items-center">
+                        {item.view === ViewType.Library && notification && notification[0] && (
+                            <div className="library-notification-bubble absolute left-full ml-2 top-1/2 z-20 bg-kets-orange-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap flex items-center">
                                 <span className="material-icons-outlined text-base mr-2">
                                     check_circle
                                 </span>

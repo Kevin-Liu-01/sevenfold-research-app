@@ -631,7 +631,7 @@ const ChatViewer: React.FC = () => {
 
     const handleSelectPaper = (paper: Paper) => {
         setSelectedPaper(paper);
-        setCurrentView(ViewType.Sources);
+        setCurrentView(ViewType.Library);
     };
 
     const sendMessage = useCallback(async () => {

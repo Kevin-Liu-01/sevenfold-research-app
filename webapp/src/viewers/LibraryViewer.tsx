@@ -1,26 +1,28 @@
-import React, { useEffect, useState, useRef } from "react";
-
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import type { Paper } from "../../../schema/db-types";
 import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
 import WebViewer from "@pdftron/pdfjs-express";
 
-const SourcesViewer: React.FC = () => {
+// PDF Viewer Component - displays a single paper
+const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, projectId }) => {
+    const { setSelectedPaper } = useWorkbench();
     const viewerRef = useRef<HTMLDivElement>(null);
     const [instance, setInstance] = useState<WebViewer["Instance"] | null>(null);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    const { selectedPaper, projectId } = useWorkbench();
-
-    // PDF state
     const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [retryCounter, setRetryCounter] = useState(0);
 
+    const handleBackToLibrary = () => {
+        setSelectedPaper(null);
+    };
+
     // Fetch signed URL
     useEffect(() => {
-        if (!selectedPaper || !projectId) return;
+        if (!paper || !projectId) return;
         setError(null);
         setSignedUrl(null);
         (async () => {
@@ -30,7 +32,7 @@ const SourcesViewer: React.FC = () => {
                 if (authErr || !data?.session?.access_token) throw new Error("Not authenticated");
 
                 const res = await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/papers/${selectedPaper.id}/signed-url?project_id=${encodeURIComponent(projectId)}`,
+                    `${import.meta.env.VITE_API_BASE_URL}/papers/${paper.id}/signed-url?project_id=${encodeURIComponent(projectId)}`,
                     {
                         headers: {
                             Authorization: `Bearer ${data.session.access_token}`,
@@ -49,7 +51,7 @@ const SourcesViewer: React.FC = () => {
                 setLoading(false);
             }
         })();
-    }, [selectedPaper, projectId, retryCounter]);
+    }, [paper, projectId, retryCounter]);
 
     // Init WebViewer
     useEffect(() => {
@@ -93,7 +95,7 @@ const SourcesViewer: React.FC = () => {
                             .from("project_paper_links")
                             .select("annotations")
                             .eq("project_id", projectId)
-                            .eq("paper_id", selectedPaper!.id)
+                            .eq("paper_id", paper.id)
                             .single();
 
                         if (error) throw error;
@@ -121,7 +123,7 @@ const SourcesViewer: React.FC = () => {
                                     .from("project_paper_links")
                                     .update({ annotations: xfdf })
                                     .eq("project_id", projectId)
-                                    .eq("paper_id", selectedPaper!.id);
+                                    .eq("paper_id", paper.id);
 
                                 if (error) throw error;
                             } catch (err) {
@@ -136,50 +138,38 @@ const SourcesViewer: React.FC = () => {
             instance?.dispose();
             setInstance(null);
         };
-    }, [projectId, selectedPaper]);
+    }, [projectId, paper]);
 
     // Load document when URL ready
     useEffect(() => {
-        if (instance && signedUrl && selectedPaper) {
+        if (instance && signedUrl && paper) {
             instance.UI.loadDocument(signedUrl, {
-                filename: selectedPaper.title,
+                filename: paper.title,
             });
         }
-    }, [instance, signedUrl, selectedPaper]);
-
-    // Handlers
+    }, [instance, signedUrl, paper]);
 
     const retry = () => {
         setError(null);
         setRetryCounter((c) => c + 1);
     };
 
-    if (!selectedPaper) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-app-inner">
-                <span className="material-icons text-8xl text-orange-300 mb-4 animate-pulse">
-                    description
-                </span>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">No Paper Selected</h2>
-                <p className="text-gray-600 text-sm">
-                    Please select a paper from the list to begin.
-                </p>
-            </div>
-        );
-    }
-
     return (
         <div className="flex flex-col h-full bg-gray-50">
             {/* Top Bar with Details + Controls */}
             <header className="flex items-center border-b border-gray-200 justify-between bg-white shadow-sm flex-none px-6 py-4">
-                {/* Left: Paper Details */}
-                <div className="flex items-start space-x-4">
-                    <span className="material-icons text-3xl text-orange-600 mt-1">
-                        insert_drive_file
-                    </span>
-                    <div>
+                {/* Left: Back Button + Paper Details */}
+                <div className="flex items-center space-x-4">
+                    <button
+                        onClick={handleBackToLibrary}
+                        className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 transition"
+                        title="Back to library"
+                    >
+                        <span className="material-icons text-2xl text-gray-700">arrow_back</span>
+                    </button>
+                    <div className="flex items-center">
                         <h3 className="text-lg font-semibold text-gray-800 truncate">
-                            {selectedPaper.title}
+                            {paper.title}
                         </h3>
                     </div>
                 </div>
@@ -191,7 +181,7 @@ const SourcesViewer: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Open paper in new tab"
-                        className="p-2 rounded hover:bg-gray-100"
+                        className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100"
                     >
                         <span className="material-icons text-gray-600">open_in_new</span>
                     </a>
@@ -241,4 +231,137 @@ const SourcesViewer: React.FC = () => {
     );
 };
 
-export default SourcesViewer;
+// Library Home View Component - displays all papers in a table
+const LibraryHomeView: React.FC = () => {
+    const { papers, setSelectedPaper, projectId } = useWorkbench();
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredPapers = useMemo(() => {
+        if (!searchQuery.trim()) return papers;
+        const q = searchQuery.toLowerCase();
+        return papers.filter(
+            (p) =>
+                p.title?.toLowerCase().includes(q) ||
+                p.authors?.some((a) => a.toLowerCase().includes(q)) ||
+                p.doi?.toLowerCase().includes(q)
+        );
+    }, [papers, searchQuery]);
+
+    const handlePaperClick = (paper: Paper) => {
+        // Track last access time in localStorage
+        const accessKey = `paper_access_${projectId}_${paper.id}`;
+        localStorage.setItem(accessKey, Date.now().toString());
+
+        setSelectedPaper(paper);
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-app-inner px-8 py-6">
+            {/* Header */}
+            <div className="flex-none mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                        <span className="material-icons text-4xl text-orange-600">
+                            local_library
+                        </span>
+                        <h1 className="text-3xl font-semibold text-gray-900">My Library</h1>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                        {papers.length} {papers.length === 1 ? "paper" : "papers"}
+                    </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative max-w-xl">
+                    <span className="material-icons text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2">
+                        search
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Search by title, author, or year..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                            <span className="material-icons text-xl">close</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Papers Table */}
+            <div className="flex-1 overflow-y-auto">
+                {filteredPapers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <span className="material-icons text-6xl mb-4">article</span>
+                        <p className="text-lg">
+                            {searchQuery ? "No papers match your search" : "No papers in your library"}
+                        </p>
+                        {!searchQuery && (
+                            <p className="text-sm mt-2">
+                                Upload papers from the sidebar to get started
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-gray-300">
+                                <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">
+                                    Title
+                                </th>
+                                <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">
+                                    Authors
+                                </th>
+                                <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">
+                                    Year
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredPapers.map((paper) => (
+                                <tr
+                                    key={paper.id}
+                                    onClick={() => handlePaperClick(paper)}
+                                    className="border-b border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
+                                >
+                                    <td className="py-2 px-3 text-sm text-gray-900">
+                                        {paper.title || "Untitled Paper"}
+                                    </td>
+                                    <td className="py-2 px-3 text-sm text-gray-600">
+                                        {paper.authors && paper.authors.length > 0
+                                            ? paper.authors.join(", ")
+                                            : "—"}
+                                    </td>
+                                    <td className="py-2 px-3 text-sm text-gray-600">
+                                        {paper.year || "—"}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Main LibraryViewer Component
+const LibraryViewer: React.FC = () => {
+    const { selectedPaper, projectId } = useWorkbench();
+
+    // If a paper is selected, show the PDF viewer
+    // Otherwise, show the library home view
+    if (selectedPaper) {
+        return <PdfViewer paper={selectedPaper} projectId={projectId} />;
+    }
+
+    return <LibraryHomeView />;
+};
+
+export default LibraryViewer;

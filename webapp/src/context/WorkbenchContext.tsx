@@ -6,7 +6,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 export enum ViewType {
     Search = "search",
     Chat = "chat",
-    Sources = "sources",
+    Library = "library",
     Compose = "compose",
     Settings = "settings",
 }
@@ -26,7 +26,7 @@ interface WorkbenchContextType {
     refreshConvos: () => Promise<void>;
     setSelectedConvo: (convo: ChatConvo | null) => void;
 
-    // Sources
+    // Library
     papers: Paper[];
     selectedPaper: Paper | null;
     refreshPapers: () => Promise<void>;
@@ -63,7 +63,7 @@ export const WorkbenchProvider: React.FC<{
 
     // We lock the hovered view if modal is open
     const [lockedView, setLockedView] = useState<ViewType | null>(null);
-    // Sources
+    // Library
     const [papers, setPapers] = useState<Paper[]>([]);
     const [selectedPaper, setSelectedPaper] = usePersistentState<Paper | null>(
         `workbench:${projectId}:selectedPaper`,
