@@ -17,7 +17,7 @@ const staggerContainer = {
 
 export const Problem = () => {
   return (
-    <section className="h-screen w-full bg-gray-950 flex items-center justify-center overflow-y-auto px-8 py-24">
+    <section className="w-full h-full bg-gray-950 flex items-center justify-center overflow-y-auto px-8 pb-24">
       <motion.div
         className="mx-auto max-w-7xl"
         initial={{ opacity: 0, y: 20 }}

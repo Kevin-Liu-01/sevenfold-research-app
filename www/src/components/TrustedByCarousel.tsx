@@ -78,7 +78,7 @@ export const TrustedByCarousel = () => {
   }, [slotCount]);
 
   return (
-    <section className="h-screen w-full bg-white flex flex-col items-center justify-center px-8">
+    <section className="pb-24 sm:pb-48 w-full flex flex-col items-center justify-center px-8">
       <div className="mx-auto max-w-7xl">
         <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
           Trusted by Researchers at
