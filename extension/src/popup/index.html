@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sevenfold Extension</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Sevenfold Extension</h1>
+      <section id="signed-out-view">
+        <p class="hint">Connect your Sevenfold account to start saving PDFs.</p>
+        <section class="email-auth">
+          <h2>Email login</h2>
+          <label class="field">
+            <span>Email</span>
+            <input id="email-input" type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password-input" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </label>
+          <button id="email-login-button" class="primary">Sign in with email</button>
+        </section>
+      </section>
+
+      <section id="signed-in-view" class="hidden">
+        <p class="hint">You're signed in. Open PDFs to collect them via the in-page toolbar.</p>
+        <div class="actions">
+          <button id="logout-button" class="secondary">Sign out</button>
+        </div>
+      </section>
+
+      <p id="status" class="status">Checking session…</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

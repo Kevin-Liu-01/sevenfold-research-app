@@ -1,0 +1,21 @@
+# dependency directories
+node_modules/
+
+# build output
+/dist/
+
+# editor and OS files
+.DS_Store
+*.swp
+*.log
+.idea/
+.vscode/
+
+# local environment overrides
+.env
+.env.local
+.supabase
+
+# Chrome extension temp artifacts
+*.zip
+*.crx

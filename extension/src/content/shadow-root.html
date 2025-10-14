@@ -1,0 +1,44 @@
+<body>
+  <button
+    id="panel-toggle"
+    class="panel-toggle hidden"
+    type="button"
+    aria-label="Show Research Library"
+    aria-controls="panel-root"
+    aria-expanded="false"
+  ></button>
+  <main id="panel-root">
+    <button id="panel-close" class="panel-close" type="button" aria-label="Hide Research Library">×</button>
+    <h1>Sevenfold Extension</h1>
+    <p class="hint">Sign in from the Sevenfold popup, then open a PDF to upload it to your library.</p>
+    <section id="pdf-status-section" class="panel hidden">
+      <div class="panel-header">
+        <h2>Current tab</h2>
+        <span id="pdf-status-pill" class="pill pill-idle">No PDF detected</span>
+      </div>
+      <p id="pdf-status-message" class="hint">Navigate to a PDF page to start the upload flow.</p>
+    </section>
+    <section id="metadata-section" class="panel hidden">
+      <div class="panel-header">
+        <h2>PDF upload</h2>
+        <span id="metadata-source" class="muted hidden"></span>
+      </div>
+      <p id="metadata-status" class="status-message"></p>
+      <button type="button" id="metadata-submit">Upload PDF</button>
+    </section>
+    <section id="projects-section" class="panel">
+      <div class="panel-header">
+        <h2>Your projects</h2>
+        <span id="projects-loading" class="muted hidden">Loading…</span>
+      </div>
+      <p id="projects-error" class="error hidden"></p>
+      <p id="projects-empty" class="hint hidden">No projects yet. Create one in the Sevenfold web app.</p>
+      <label class="field">
+        <span>Select project</span>
+        <select id="project-select"></select>
+      </label>
+      <ul id="projects-list" class="project-list hidden"></ul>
+    </section>
+    <p id="status" class="status">Checking session…</p>
+  </main>
+</body>

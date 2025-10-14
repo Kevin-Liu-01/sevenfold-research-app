@@ -1,0 +1,38 @@
+{
+  "name": "chrome-extension",
+  "version": "0.1.0",
+  "description": "Chrome extension for collecting research PDFs and uploading to Supabase.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch --mode development",
+    "lint": "eslint \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.js,css,html}\" vite.config.mjs",
+    "zip": "npm run build && node scripts/zip-extension.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SevenfoldLabs/chrome-extension.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "pdf",
+    "supabase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "bugs": {
+    "url": "https://github.com/SevenfoldLabs/chrome-extension/issues"
+  },
+  "homepage": "https://github.com/SevenfoldLabs/chrome-extension#readme",
+  "devDependencies": {
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "prettier": "^3.6.2",
+    "vite": "^5.4.11",
+    "vite-plugin-static-copy": "^0.17.0"
+  }
+}

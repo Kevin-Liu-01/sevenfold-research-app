@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Sevenfold Extension",
+  "version": "0.1.0",
+  "description": "Collect and upload research PDFs to your Sevenfold library.",
+  "permissions": ["identity", "storage", "scripting", "alarms"],
+  "host_permissions": [
+    "https://arxiv.org/*",
+    "https://*.acm.org/*",
+    "https://*.ieee.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/favicon16.png",
+    "32": "icons/favicon32.png",
+    "48": "icons/favicon48.png",
+    "128": "icons/favicon128.png",
+    "256": "icons/favicon256.png"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "Sevenfold Extension"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/shadow-root.html",
+        "content/shadow-root.css",
+        "content/shadowApp.js",
+        "favicon.ico",
+        "popup/dom/*.js",
+        "popup/services/*.js",
+        "popup/features/*.js",
+        "popup/state/*.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
