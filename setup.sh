@@ -200,6 +200,7 @@ main() {
     print_section "Setting Up Environment Files"
     setup_env_file "www" "www"
     setup_env_file "webapp" "webapp"
+    setup_env_file "extension" "extension"
     setup_env_file "api" "api"
 
     # Install dependencies for all Node.js apps
