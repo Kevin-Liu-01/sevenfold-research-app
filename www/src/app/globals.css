@@ -38,6 +38,7 @@
   --color-kets-yellow: #ffbd59;
   --color-kets-green: #7ed957;
   --color-background: #f7f7f4;
+  --max-width-screen: 1440px;
 }
 
 /* Custom Utility: no-scrollbar */

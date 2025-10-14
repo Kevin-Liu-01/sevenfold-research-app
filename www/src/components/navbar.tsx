@@ -27,9 +27,9 @@ export const Navbar = () => {
   return (
     <nav
       aria-label="Primary"
-      className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm"
+      className="sticky top-0 z-50 w-full bg-background/20 backdrop-blur-sm"
     >
-      <div className="mx-auto flex h-16 items-center px-8 max-w-7xl">
+      <div className="mx-auto flex h-16 items-center px-12" style={{ maxWidth: 'var(--max-width-screen)' }}>
         <Link
           href="/"
           className="inline-flex items-center"

@@ -78,12 +78,12 @@ export const TrustedByCarousel = () => {
   }, [slotCount]);
 
   return (
-    <section className="h-screen w-full bg-white flex flex-col items-center justify-center px-8">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-6">
+    <section className="py-12 sm:py-16 w-full flex flex-col items-center justify-center px-12 bg-[#f7f7f4]">
+      <div className="mx-auto" style={{ maxWidth: 'var(--max-width-screen)' }}>
+        <p className="text-gray-800 text-center text-sm uppercase tracking-wide font-bold mb-8">
           Trusted by Researchers at
         </p>
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-12 sm:grid-cols-3">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-12 sm:grid-cols-3 items-center">
           {visibleIndices.map((logoIndex, slotIndex) => {
             const logo = logos[logoIndex];
             return (

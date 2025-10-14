@@ -1,108 +1,47 @@
+"use client";
+
 import { ShaderGradientCanvas, ShaderGradient } from "@shadergradient/react";
-import { Variants, motion } from "framer-motion";
 import { Fragment } from "react";
 import { ProductShowcase } from "./ProductShowcase";
 
 export const Hero = () => {
-  const ANIMATION_SPEED = 0.11;
   const TITLE_TEXT =
     "Every Part Of Your Research Workflow, In One Agentic Environment.";
   const titleWords = TITLE_TEXT.split(" ");
 
-  const containerVariants: Variants = {
-    hidden: {},
-    visible: {
-      transition: { staggerChildren: ANIMATION_SPEED },
-    },
-  };
-
-  const wordVariants: Variants = {
-    hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
-    visible: {
-      opacity: 1,
-      y: 0,
-      filter: "blur(0px)",
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-  };
-
-  const subtitleDelay = titleWords.length * ANIMATION_SPEED + 0.3;
-  const buttonDelay = subtitleDelay + 0.3;
-
   return (
-    <section className="relative h-full w-full text-stone-90 overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-70 pointer-events-none">
-        <ShaderGradientCanvas style={{ position: "absolute", inset: 0 }}>
-          <ShaderGradient
-            control="props"
-            type="waterPlane"
-            cDistance={7}
-            cPolarAngle={160}
-            color1="#B9E0A5" // Prominent white
-            color2="#F8BA7B" // darker green
-            color3="#f7f7f4" // Orange/yellow from the image
-            uSpeed={0.2}
-            uStrength={0.8}
-            uDensity={1.4}
-            uFrequency={1.5}
-          />
-        </ShaderGradientCanvas>
-      </div>
-
-      <div className="relative z-10 flex h-full w-full max-w-7xl flex-col justify-center mx-auto px-8 py-10">
-        <div className="text-left">
-          <motion.h1
-            className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
+    <section className="relative h-full w-full overflow-hidden text-stone-90 bg-[#f7f7f4]">
+      <div className="relative pt-12 h-full w-full">
+        <div className="relative z-10 flex w-full flex-col mx-auto px-12 text-center" style={{ maxWidth: 'var(--max-width-screen)' }}>
+          <h1 className="font-timesnow tracking-tighter text-6xl flex flex-wrap gap-x-2 gap-y-0.5 justify-center">
             {titleWords.map((word, idx) => (
               <Fragment key={idx}>
-                <motion.span className="inline-block" variants={wordVariants}>
+                <span className="inline-block">
                   {word}
-                </motion.span>
+                </span>
                 {word === "Workflow," && <span className="w-full" />}
               </Fragment>
             ))}
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            className="text-2xl tracking-tight leading-7 font-inter max-w-2xl text-stone-300 mt-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: subtitleDelay,
-              duration: 0.6,
-              ease: "easeOut",
-            }}
-          >
+          <p className="text-xl tracking-tight leading-7 font-inter text-stone-600 mt-6 mx-auto" style={{ width: '75%' }}>
             Sevenfold helps you find, digest, and produce research in one
-            centralized workplace, using project-aware intelligence to eliminate
-            paper-chasing.
-          </motion.p>
+            centralized workplace, using project-aware intelligence to
+            eliminate paper-chasing.
+          </p>
 
-          <motion.div
-            className="mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: buttonDelay,
-              duration: 0.6,
-              ease: "easeOut",
-            }}
-          >
+          <div className="mt-8">
             <a
               href="#"
-              className="inline-block bg-stone-50 text-neutral-900 font-semibold px-6 py-3 rounded-lg text-lg hover:bg-stone-200 transition-colors"
+              className="inline-block bg-kets-orange text-white font-semibold px-6 py-3 rounded-lg text-lg hover:bg-kets-yellow transition-colors"
             >
               Get Started Now
             </a>
-          </motion.div>
-        </div>
+          </div>
 
-        <div className="mt-12">
-          <ProductShowcase />
+          <div className="mt-12">
+            <ProductShowcase />
+          </div>
         </div>
       </div>
     </section>
