@@ -4,15 +4,16 @@ import { motion } from "framer-motion";
 
 export const CTA = () => {
   return (
-    <section className="w-full h-full bg-teal-900 px-8 py-24 sm:py-32">
+    <section className="w-full bg-teal-900 py-20 sm:py-32">
       <motion.div
-        className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 lg:grid-cols-2"
+        className="mx-auto flex flex-col lg:flex-row items-center gap-10 px-12"
+        style={{ maxWidth: 'var(--max-width-screen)' }}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.6 }}
       >
-        <div className="text-left">
+        <div className="text-left w-full lg:w-2/3">
           <h2 className="mb-4 font-timesnow text-5xl tracking-tight text-white sm:text-6xl">
             Spend Less Time Paper-Chasing & More Time Experimenting.
           </h2>
@@ -21,10 +22,10 @@ export const CTA = () => {
             future of research workflows.
           </p>
         </div>
-        <div className="lg:text-right">
+        <div className="w-full lg:w-1/3 flex items-center justify-center">
           <a
             href="#"
-            className="inline-block rounded-lg bg-green-300 px-8 py-4 font-dmsans text-lg font-bold text-black transition hover:bg-green-400"
+            className="inline-block rounded-lg bg-white px-8 py-4 font-dmsans text-lg font-bold text-black transition hover:bg-gray-100"
           >
             Try Sevenfold Now
           </a>

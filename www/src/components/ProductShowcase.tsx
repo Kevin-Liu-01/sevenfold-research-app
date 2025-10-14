@@ -3,7 +3,7 @@
 import Image from "next/image";
 export const ProductShowcase = () => {
   return (
-    <div className="relative mx-auto max-w-7xl rounded-lg bg-stone-800 p-3">
+    <div className="relative mx-auto p-3" style={{ backgroundImage: "url('/images/bob.jpg')", backgroundSize: "cover", backgroundPosition: "center", maxWidth: 'var(--max-width-screen)' }}>
       <div className="pointer-events-none absolute inset-0 bg-gradient-radial from-orange-500/12 via-transparent to-transparent blur-sm" />
       <div className="relative aspect-[16/10] w-full overflow-hidden">
         <Image

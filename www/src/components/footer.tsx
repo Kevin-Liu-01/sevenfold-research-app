@@ -31,7 +31,7 @@ export const Footer = () => {
       role="contentinfo"
       aria-label="Site footer"
     >
-      <div className="mx-auto max-w-7xl px-8">
+      <div className="mx-auto px-12" style={{ maxWidth: 'var(--max-width-screen)' }}>
         <div className="mb-8 flex flex-col gap-12 lg:flex-row lg:justify-between">
           <div className="flex-shrink-0">
             <Link href="/" aria-label="Homepage">
