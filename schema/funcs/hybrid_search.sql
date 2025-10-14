@@ -14,20 +14,26 @@ LANGUAGE SQL
 AS $$
 WITH 
 
--- 1. Lexical search (FTS index)
-lexical AS (
-    SELECT paper_id,
-           ROW_NUMBER() OVER (
-               ORDER BY ts_rank(
-                   ARRAY[0.1, 0.2, 0.4, 1.0]::real[],  -- [D,C,B,A] → A (title+authors) dominates C (abstract)
-                   fts,
-                   websearch_to_tsquery('english', query_text)
-               ) DESC
-           ) AS rank_ix
+-- 1. Lexical search (FTS index, 2-step for speed)
+lexical_candidates AS (
+    SELECT paper_id
     FROM publ_corpus
     WHERE "year" >= min_year
       AND fts @@ websearch_to_tsquery('english', query_text)
-    LIMIT LEAST(match_count, 30) * 2
+    LIMIT LEAST(match_count, 30) * 10   -- pull a larger pool quickly via GIN
+),
+lexical AS (
+    SELECT lc.paper_id,
+           ROW_NUMBER() OVER (
+               ORDER BY ts_rank(
+                   ARRAY[0.1, 0.2, 0.4, 1.0]::real[],
+                   pc.fts,
+                   websearch_to_tsquery('english', query_text)
+               ) DESC
+           ) AS rank_ix
+    FROM lexical_candidates lc
+    JOIN publ_corpus pc ON pc.paper_id = lc.paper_id
+    LIMIT LEAST(match_count, 30) * 2   -- final cap after ranking
 ),
 
 -- 2. Semantic ANN search

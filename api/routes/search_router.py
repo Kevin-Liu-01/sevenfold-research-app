@@ -96,7 +96,7 @@ class SearchRequest(BaseModel):
     rrf_k: int = 50
     min_year: int = 2005
     fuzzy_title_first: bool = True
-    fuzzy_min_sim: float = 0.5
+    fuzzy_min_sim: float = 0.6
     fuzzy_limit: int = 5
     
 @router.post("/", response_model=List[dict])
