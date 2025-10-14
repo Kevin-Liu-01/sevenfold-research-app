@@ -20,15 +20,47 @@ marked.setOptions({
     breaks: true,
 });
 
-function ConvoHeader({ convo }: { convo: ChatConvo }) {
+function ConvoHeader({
+    convo,
+    onPrev,
+    onNext,
+    canGoPrev,
+    canGoNext
+}: {
+    convo: ChatConvo;
+    onPrev?: () => void;
+    onNext?: () => void;
+    canGoPrev?: boolean;
+    canGoNext?: boolean;
+}) {
     return (
         <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur border-b border-gray-200 px-4 py-3">
             <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-800">
+                <div className="flex items-center gap-2">
+                    {onPrev && onNext && (
+                        <div className="flex gap-1">
+                            <button
+                                onClick={onPrev}
+                                disabled={!canGoPrev}
+                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                                ↑
+                            </button>
+                            <button
+                                onClick={onNext}
+                                disabled={!canGoNext}
+                                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                                ↓
+                            </button>
+                        </div>
+                    )}
+                </div>
+                <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-semibold text-gray-800">
                     {convo?.name || "Conversation"}
                 </h2>
                 <div className="text-xs text-gray-500">
-                    Papers:{" "}
+                    Sources:{" "}
                     <span className="font-medium">
                         {Array.isArray(convo?.paper_ids) ? convo.paper_ids.length : 0}
                     </span>
@@ -55,7 +87,7 @@ const QueryResultTabs: React.FC<{
                             : "text-gray-500"
                     }`}
                 >
-                    {tab === "papers" ? `Papers (${papersCount})` : "Response"}
+                    {tab === "papers" ? `Sources (${papersCount})` : "Response"}
                 </button>
             ))}
         </div>
@@ -128,7 +160,7 @@ const QueryResultBody: React.FC<{
         if (relevantPapers.length === 0) {
             return (
                 <p className="text-sm text-gray-500">
-                    No papers were associated with this response.
+                    No sources were associated with this response.
                 </p>
             );
         }
@@ -190,7 +222,7 @@ const QueryResultCard: React.FC<{
             </div>
 
             {/* Scrollable content area */}
-            <div className="flex-grow overflow-y-auto -mr-6 pr-6" data-scrollable-content>
+            <div className="flex-grow">
                 {/* Wrapper adds padding to prevent last line of text from being hidden by the sticky footer */}
                 <div className="pb-20">
                     <QueryResultBody
@@ -227,7 +259,13 @@ const QueryResultsPager: React.FC<{
     papers: Paper[];
     selectedPaperIds: string[];
     onSelectPaper: (paper: Paper) => void;
-}> = ({ items, papers, selectedPaperIds, onSelectPaper }) => {
+    onNavigationChange?: (handlers: {
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    }) => void;
+}> = ({ items, papers, selectedPaperIds, onSelectPaper, onNavigationChange }) => {
     const [tabs, setTabs] = useState<Record<number, "response" | "papers">>({});
     useEffect(() => {
         setTabs((old) => {
@@ -238,92 +276,140 @@ const QueryResultsPager: React.FC<{
     }, [items.length]);
 
     const [currentIndex, setCurrentIndex] = useState(Math.max(items.length - 1, 0));
+    const containerRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const scrollRaf = useRef<number | null>(null);
+
     useEffect(() => {
-        setCurrentIndex(Math.max(items.length - 1, 0));
+        itemRefs.current = itemRefs.current.slice(0, items.length);
     }, [items.length]);
 
-    const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
-    const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, items.length - 1));
-
-    const lastScrollRef = useRef(0);
-    const handleWheel = useCallback(
-        (e: React.WheelEvent<HTMLDivElement>) => {
-            const scrollableContent = (e.target as HTMLElement).closest(
-                "[data-scrollable-content]"
-            );
-
-            if (scrollableContent) {
-                const { scrollTop, scrollHeight, clientHeight } = scrollableContent;
-                const isAtTop = scrollTop === 0;
-                const isAtBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight - 1;
-
-                if (e.deltaY < 0 && !isAtTop) return;
-                if (e.deltaY > 0 && !isAtBottom) return;
-            }
-
-            const now = Date.now();
-            if (now - lastScrollRef.current < 600) return;
-            if (Math.abs(e.deltaY) < 15) return;
-
-            if (e.deltaY > 0) handleNext();
-            else handlePrev();
-
-            lastScrollRef.current = now;
+    const scrollToIndex = useCallback(
+        (index: number, behavior: ScrollBehavior = "smooth") => {
+            const node = itemRefs.current[index];
+            const container = containerRef.current;
+            if (!node || !container) return;
+            const marginTop =
+                typeof window !== "undefined" ? parseFloat(window.getComputedStyle(node).marginTop) || 0 : 0;
+            const targetTop = Math.max(node.offsetTop - marginTop, 0);
+            container.scrollTo({ top: targetTop, behavior });
         },
-        [items.length]
+        []
     );
+
+    const goToIndex = useCallback(
+        (updater: number | ((prev: number) => number), behavior: ScrollBehavior = "smooth") => {
+            setCurrentIndex((prev) => {
+                const raw = typeof updater === "function" ? updater(prev) : updater;
+                const clamped = Math.max(0, Math.min(raw, items.length - 1));
+                requestAnimationFrame(() => scrollToIndex(clamped, behavior));
+                return clamped;
+            });
+        },
+        [items.length, scrollToIndex]
+    );
+
+    const handlePrev = useCallback(() => goToIndex((prev) => prev - 1), [goToIndex]);
+    const handleNext = useCallback(() => goToIndex((prev) => prev + 1), [goToIndex]);
+
+    // Expose navigation handlers to parent
+    useEffect(() => {
+        if (onNavigationChange) {
+            onNavigationChange({
+                handlePrev,
+                handleNext,
+                canGoPrev: items.length > 0 && currentIndex > 0,
+                canGoNext: items.length > 0 && currentIndex < items.length - 1
+            });
+        }
+    }, [onNavigationChange, handlePrev, handleNext, currentIndex, items.length]);
 
     useEffect(() => {
         const onKey = (ev: KeyboardEvent) => {
-            if (ev.key === "ArrowDown") handleNext();
-            else if (ev.key === "ArrowUp") handlePrev();
+            if (ev.key === "ArrowDown") {
+                ev.preventDefault();
+                handleNext();
+            } else if (ev.key === "ArrowUp") {
+                ev.preventDefault();
+                handlePrev();
+            }
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [items.length]);
+    }, [handleNext, handlePrev]);
+
+    const prevLengthRef = useRef(0);
+    useEffect(() => {
+        const prevLength = prevLengthRef.current;
+        if (items.length === 0) {
+            setCurrentIndex(0);
+            if (containerRef.current) containerRef.current.scrollTo({ top: 0 });
+            prevLengthRef.current = items.length;
+            return;
+        }
+        if (items.length !== prevLength) {
+            goToIndex(items.length - 1, prevLength === 0 ? "auto" : "smooth");
+            prevLengthRef.current = items.length;
+        }
+    }, [items.length, goToIndex]);
+
+    const handleScroll = useCallback(() => {
+        if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+        scrollRaf.current = requestAnimationFrame(() => {
+            const container = containerRef.current;
+            if (!container) return;
+            const scrollTop = container.scrollTop;
+            let closestIndex = 0;
+            let minDistance = Number.POSITIVE_INFINITY;
+            itemRefs.current.forEach((node, index) => {
+                if (!node) return;
+                const distance = Math.abs(node.offsetTop - scrollTop);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIndex = index;
+                }
+            });
+            setCurrentIndex((prev) => (prev === closestIndex ? prev : closestIndex));
+            scrollRaf.current = null;
+        });
+    }, []);
+
+    useEffect(
+        () => () => {
+            if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+        },
+        []
+    );
 
     return (
-        <div
-            className="relative w-full h-[calc(100vh-12rem)] overflow-hidden"
-            onWheel={handleWheel}
-        >
+        <div className="relative w-full h-[calc(100vh-12rem)]">
             <div
-                className="h-full transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateY(-${currentIndex * 100}%)` }}
+                ref={containerRef}
+                className="h-full overflow-y-auto pr-2 no-scrollbar scroll-smooth"
+                onScroll={handleScroll}
             >
-                {items.map((it, i) => (
-                    <div className="w-full h-full" key={i}>
-                        <QueryResultCard
-                            query={it.query}
-                            response={it.response}
-                            isPending={it.isPending}
-                            papers={papers}
-                            selectedPaperIds={selectedPaperIds}
-                            tab={tabs[i] ?? "response"}
-                            onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
-                            onSelectPaper={onSelectPaper}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-                <button
-                    onClick={handlePrev}
-                    disabled={currentIndex === 0}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                    {" "}
-                    ↑{" "}
-                </button>
-                <button
-                    onClick={handleNext}
-                    disabled={currentIndex === items.length - 1}
-                    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                    {" "}
-                    ↓{" "}
-                </button>
+                <div className="flex flex-col space-y-8">
+                    {items.map((it, i) => (
+                        <div
+                            key={i}
+                            ref={(el) => {
+                                itemRefs.current[i] = el;
+                            }}
+                            className={`scroll-mt-4 ${i === items.length - 1 ? "min-h-[90vh]" : ""}`}
+                        >
+                            <QueryResultCard
+                                query={it.query}
+                                response={it.response}
+                                isPending={it.isPending}
+                                papers={papers}
+                                selectedPaperIds={selectedPaperIds}
+                                tab={tabs[i] ?? "response"}
+                                onTabChange={(tab) => setTabs((t) => ({ ...t, [i]: tab }))}
+                                onSelectPaper={onSelectPaper}
+                            />
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -332,7 +418,13 @@ const QueryResultsPager: React.FC<{
 export const MessageList: React.FC<{
     messages: ChatMessage[];
     onSelectPaper: (paper: Paper) => void;
-}> = ({ messages, onSelectPaper }) => {
+    onNavigationChange?: (handlers: {
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    }) => void;
+}> = ({ messages, onSelectPaper, onNavigationChange }) => {
     const { papers, selectedConvo } = useWorkbench();
     const items = useMemo(() => {
         const out: { query: string; response?: string; isPending: boolean }[] = [];
@@ -365,7 +457,38 @@ export const MessageList: React.FC<{
             papers={papers}
             selectedPaperIds={selectedPaperIds}
             onSelectPaper={onSelectPaper}
+            onNavigationChange={onNavigationChange}
         />
+    );
+};
+
+const ConvoHeaderWithNavigation: React.FC<{
+    convo: ChatConvo;
+    messages: ChatMessage[];
+    onSelectPaper: (paper: Paper) => void;
+}> = ({ convo, messages, onSelectPaper }) => {
+    const [navHandlers, setNavHandlers] = useState<{
+        handlePrev: () => void;
+        handleNext: () => void;
+        canGoPrev: boolean;
+        canGoNext: boolean;
+    } | null>(null);
+
+    return (
+        <>
+            <ConvoHeader
+                convo={convo}
+                onPrev={navHandlers?.handlePrev}
+                onNext={navHandlers?.handleNext}
+                canGoPrev={navHandlers?.canGoPrev}
+                canGoNext={navHandlers?.canGoNext}
+            />
+            <MessageList
+                messages={messages}
+                onSelectPaper={onSelectPaper}
+                onNavigationChange={setNavHandlers}
+            />
+        </>
     );
 };
 
@@ -381,7 +504,7 @@ const ChatInput: React.FC<{
                 <textarea
                     placeholder="Ask another question..."
                     className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
-                    rows={2}
+                    rows={1}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -437,10 +560,11 @@ const NewChatPage: React.FC<{
                 alt="Logo"
                 className="text-4xl h-12 font-bold text-gray-900 mb-6"
             />
-            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 min-h-32 rounded-xl p-4 shadow-sm">
+            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 rounded-xl p-4 shadow-sm">
                 <textarea
                     placeholder="What are you researching today?"
                     className="w-full resize-none bg-transparent text-lg text-gray-800 placeholder-gray-400 focus:outline-none"
+                    rows={2}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -449,13 +573,12 @@ const NewChatPage: React.FC<{
                             onSend();
                         }
                     }}
-                    rows={2}
                     disabled={disabled}
                 />
             </div>
 
             <div className="mt-6 text-left w-full max-w-3xl">
-                <p className="text-sm font-medium text-gray-600 mb-2">Ingested Papers</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Ingested Sources</p>
                 <div className="flex flex-wrap gap-2">
                     {papers.map((paper) => (
                         <button
@@ -578,7 +701,7 @@ const ChatViewer: React.FC = () => {
 
     const handleSelectPaper = (paper: Paper) => {
         setSelectedPaper(paper);
-        setCurrentView(ViewType.Sources);
+        setCurrentView(ViewType.Library);
     };
 
     const sendMessage = useCallback(async () => {
@@ -635,7 +758,7 @@ const ChatViewer: React.FC = () => {
             const paperUris = await getPaperUris(selectedPaperIds);
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/new_message`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
                 body: JSON.stringify({
                     convo_id: convoId,
                     message: trimmed,
@@ -652,7 +775,7 @@ const ChatViewer: React.FC = () => {
                         id: `local-assistant-error-${Date.now()}`,
                         convo_id: convoId!,
                         role: "assistant",
-                        data: "Sorry — I couldn’t process that request.",
+                        data: "Sorry — I couldn't process that request.",
                         created_at: new Date().toISOString(),
                         metadata: {},
                     },
@@ -660,16 +783,95 @@ const ChatViewer: React.FC = () => {
                 return;
             }
 
-            const data = await res.json();
-            const assistantMsg: ChatMessage = {
-                id: `local-assistant-${Date.now()}`,
-                convo_id: convoId!,
-                role: "assistant",
-                data: data?.message ?? "…",
-                created_at: new Date().toISOString(),
-                metadata: {},
-            };
-            setMessages((prev) => [...prev, assistantMsg]);
+            // Handle streaming response
+            const reader = res.body?.getReader();
+            const decoder = new TextDecoder();
+            let assistantContent = "";
+            const assistantMsgId = `local-assistant-${Date.now()}`;
+
+            // Don't create assistant message yet - wait for first chunk
+            let hasCreatedMessage = false;
+
+            if (reader) {
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split("\n");
+
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                try {
+                                    const eventData = JSON.parse(line.slice(6));
+
+                                    if (eventData.type === "content") {
+                                        assistantContent += eventData.text;
+
+                                        // Create message on first content chunk
+                                        if (!hasCreatedMessage) {
+                                            const assistantMsg: ChatMessage = {
+                                                id: assistantMsgId,
+                                                convo_id: convoId!,
+                                                role: "assistant",
+                                                data: assistantContent,
+                                                created_at: new Date().toISOString(),
+                                                metadata: {},
+                                            };
+                                            setMessages((prev) => [...prev, assistantMsg]);
+                                            hasCreatedMessage = true;
+                                        } else {
+                                            // Update the message in real-time
+                                            setMessages((prev) =>
+                                                prev.map((msg) =>
+                                                    msg.id === assistantMsgId
+                                                        ? { ...msg, data: assistantContent }
+                                                        : msg
+                                                )
+                                            );
+                                        }
+                                    } else if (eventData.type === "done") {
+                                        // Handle completion metadata if needed
+                                        if (eventData.tab_name_generated) {
+                                            await refreshConvos();
+                                        }
+                                    } else if (eventData.type === "error") {
+                                        console.error("Streaming error:", eventData.message);
+                                        if (!hasCreatedMessage) {
+                                            const errorMsg: ChatMessage = {
+                                                id: assistantMsgId,
+                                                convo_id: convoId!,
+                                                role: "assistant",
+                                                data: "Sorry — I couldn't process that request.",
+                                                created_at: new Date().toISOString(),
+                                                metadata: {},
+                                            };
+                                            setMessages((prev) => [...prev, errorMsg]);
+                                            hasCreatedMessage = true;
+                                        } else {
+                                            setMessages((prev) =>
+                                                prev.map((msg) =>
+                                                    msg.id === assistantMsgId
+                                                        ? {
+                                                              ...msg,
+                                                              data: "Sorry — I couldn't process that request.",
+                                                          }
+                                                        : msg
+                                                )
+                                            );
+                                        }
+                                    }
+                                } catch (parseError) {
+                                    console.error("Error parsing SSE data:", parseError);
+                                }
+                            }
+                        }
+                    }
+                } catch (streamError) {
+                    console.error("Stream reading error:", streamError);
+                }
+            }
         } catch (e) {
             console.error("Send error:", e);
         } finally {
@@ -702,8 +904,7 @@ const ChatViewer: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <ConvoHeader convo={selectedConvo} />
-                    <MessageList messages={messages} onSelectPaper={handleSelectPaper} />
+                    <ConvoHeaderWithNavigation convo={selectedConvo} messages={messages} onSelectPaper={handleSelectPaper} />
                     <ChatInput
                         value={input}
                         setValue={setInput}

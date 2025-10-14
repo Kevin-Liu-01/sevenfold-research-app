@@ -8,9 +8,10 @@ export type SidebarButtonProps = {
 
 export default function SidebarButton({ targetView, icon, label }: SidebarButtonProps) {
     const wrapper = "group flex flex-col items-center justify-center focus:outline-none";
-    const boxBase = "flex items-center justify-center p-2 rounded-xl transition-all duration-200";
-    const iconBase = "material-icons-outlined transition-all duration-200";
-    const labelBase = "text-xs mt-0.5 transition-all duration-200";
+    const boxBase =
+        "flex items-center justify-center p-2 rounded-xl transition-all duration-200 text-[var(--color-off-black)]";
+    const iconBase = "material-icons-outlined transition-transform duration-200";
+    const labelBase = "text-xs mt-0.5 transition-all duration-200 text-[var(--color-off-black)]";
 
     const { currentView, setCurrentView, setHoveredView } = useWorkbench();
 
@@ -18,10 +19,14 @@ export default function SidebarButton({ targetView, icon, label }: SidebarButton
 
     // conditional classes
     const boxState = active
-        ? "bg-lime-500 text-black shadow-sm"
-        : "text-gray-700 group-hover:text-lime-500";
-    const iconState = active ? "text-lg scale-110 text-white" : "text-base group-hover:scale-110";
-    const labelState = active ? "font-medium" : "font-normal group-hover:font-medium";
+        ? "bg-[var(--color-off-black)] text-[var(--color-app-inner)] shadow-sm"
+        : "group-hover:bg-gray-100";
+    const iconState = active
+        ? "text-lg scale-[1.18] text-[var(--color-app-inner)]"
+        : "text-base group-hover:scale-[1.15] text-[var(--color-off-black)]";
+    const labelState = active
+        ? "font-medium text-[var(--color-off-black)]"
+        : "font-normal group-hover:font-medium";
 
     return (
         <button

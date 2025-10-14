@@ -7,9 +7,11 @@ const NewChatButton: React.FC<{
     return (
         <button
             onClick={onClick}
-            className="inline-flex items-center space-x-1 bg-kets-orange text-white text-sm font-medium px-2 py-1 rounded-md transition"
+            className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90"
         >
-            <span className="material-icons text-base">chat</span>
+            <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                chat
+            </span>
             <span>New Chat</span>
         </button>
     );

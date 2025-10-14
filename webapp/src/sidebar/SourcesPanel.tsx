@@ -42,9 +42,11 @@ const UploadPaperButton: React.FC<{
     return (
         <button
             onClick={onClick}
-            className="flex items-center justify-center space-x-1 bg-kets-orange hover:bg-kets-orange-500 hover:cursor-pointer text-white text-sm font-medium px-2 py-1 rounded-md transition"
+            className="group flex w-full items-center justify-start space-x-2 bg-[var(--color-off-black)] hover:opacity-90 hover:cursor-pointer text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition"
         >
-            <span className="material-icons text-base">upload_file</span>
+            <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                upload_file
+            </span>
             <span>Upload Paper</span>
         </button>
     );
@@ -115,19 +117,35 @@ const SourcesPanel: React.FC = () => {
 
     // Handle paper selection
     const handleSelectPaper = (paper: Paper) => {
+        // Track last access time in localStorage
+        const accessKey = `paper_access_${projectId}_${paper.id}`;
+        localStorage.setItem(accessKey, Date.now().toString());
+
         setSelectedPaper(paper);
-        setCurrentView(ViewType.Sources);
+        setCurrentView(ViewType.Library);
     };
 
     const filtered = useMemo(() => {
-        if (!searchQuery.trim()) return papers;
-        const q = searchQuery.toLowerCase();
-        return papers.filter(
-            (p) =>
-                p.title.toLowerCase().includes(q) ||
-                p.authors?.some((a) => a.toLowerCase().includes(q))
-        );
-    }, [papers, searchQuery]);
+        // Get papers (filtered by search if applicable)
+        let result = papers;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = papers.filter(
+                (p) =>
+                    p.title.toLowerCase().includes(q) ||
+                    p.authors?.some((a) => a.toLowerCase().includes(q))
+            );
+        }
+
+        // Sort by most recently accessed
+        return result.sort((a, b) => {
+            const accessKeyA = `paper_access_${projectId}_${a.id}`;
+            const accessKeyB = `paper_access_${projectId}_${b.id}`;
+            const timeA = parseInt(localStorage.getItem(accessKeyA) || "0");
+            const timeB = parseInt(localStorage.getItem(accessKeyB) || "0");
+            return timeB - timeA; // Most recent first
+        });
+    }, [papers, searchQuery, projectId]);
 
     const processPdf = async (payload: {
         file: File;
@@ -282,10 +300,26 @@ const SourcesPanel: React.FC = () => {
         );
     };
 
+    const handleMySourcesClick = () => {
+        setSelectedPaper(null);
+        setCurrentView(ViewType.Library);
+    };
+
     return (
         <div className="flex flex-col h-full space-y-3">
-            <h1 className="text-lg font-semibold">Sources</h1>
-            <UploadPaperButton onClick={handleOpenUploadModal} />
+            <h1 className="text-lg font-semibold">Library</h1>
+            <div className="flex flex-col space-y-1">
+                <button
+                    onClick={handleMySourcesClick}
+                    className="group flex w-full items-center justify-start space-x-2 bg-[var(--color-off-black)] hover:opacity-90 hover:cursor-pointer text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition"
+                >
+                    <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                        local_library
+                    </span>
+                    <span>My Sources</span>
+                </button>
+                <UploadPaperButton onClick={handleOpenUploadModal} />
+            </div>
 
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-3">

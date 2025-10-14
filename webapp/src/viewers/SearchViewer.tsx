@@ -1,8 +1,7 @@
-import React, { useState, useEffect, type FormEvent } from "react";
+import React, { useState, useEffect, useMemo, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWorkbench } from "../context/WorkbenchContext";
 
-import PaperDetailsModal from "./PaperDetailsModal";
 import type { Paper } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
 
@@ -115,9 +114,26 @@ const WeightTabs: React.FC<{
     label: string;
     preset: Preset;
     onChange: (p: Preset) => void;
-}> = ({ label, preset, onChange }) => (
+    tooltip?: string;
+}> = ({ label, preset, onChange, tooltip }) => (
     <div className="flex flex-col space-y-1">
-        <span className="text-sm font-medium text-gray-500">{label} Weight</span>
+        <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">{label}</span>
+            {tooltip && (
+                <span className="relative inline-flex group">
+                    <button
+                        type="button"
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-kets-yellow"
+                        aria-label={`About ${label.toLowerCase()} search`}
+                    >
+                        ?
+                    </button>
+                    <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-52 -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white shadow-lg group-hover:block group-focus-within:block">
+                        {tooltip}
+                    </span>
+                </span>
+            )}
+        </div>
         <div className="flex space-x-2">
             {(["OFF", "L", "M", "H"] as Preset[]).map((p) => (
                 <button
@@ -137,10 +153,112 @@ const WeightTabs: React.FC<{
     </div>
 );
 
+const PaperDetailPanel: React.FC<{
+    paper: Paper | null;
+}> = ({ paper }) => {
+    const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
+        if (!authors || authors.length === 0) return "";
+        if (authors.length <= maxAuthors) {
+            return authors.join(", ");
+        }
+        return `${authors.slice(0, maxAuthors).join(", ")} et al. (+${authors.length - maxAuthors} more)`;
+    };
+
+    const dateStr = useMemo(() => {
+        if (!paper) return null;
+        const y = paper.year != null ? String(paper.year) : "";
+        const m = paper.month ? String(paper.month).padStart(2, "0") : "";
+        const d = paper.day ? String(paper.day).padStart(2, "0") : "";
+        return [y, m, d].filter(Boolean).join("-") || null;
+    }, [paper?.year, paper?.month, paper?.day]);
+
+    const handleGoToPaper = () => {
+        if (paper?.doi) {
+            window.open(`https://doi.org/${paper.doi}`, "_blank", "noopener,noreferrer");
+        }
+    };
+
+    if (!paper) {
+        return (
+            <div className="w-[420px] border-l border-gray-200 p-6 flex items-center justify-center">
+                <p className="text-gray-400 text-center text-sm">
+                    Click a search result to learn more about it
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-[420px] border-l border-gray-200 p-6 overflow-y-auto">
+            {/* Action Button at Top */}
+            {paper.doi && (
+                <button
+                    onClick={handleGoToPaper}
+                    className="w-full px-4 py-2 text-sm flex items-center justify-center gap-2 rounded-lg bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition mb-6"
+                >
+                    <span className="material-icons text-sm">open_in_new</span>
+                    Go to Paper
+                </button>
+            )}
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-gray-900 leading-snug mb-4">
+                {paper.title}
+            </h3>
+
+            {/* Meta Information */}
+            <div className="space-y-2 text-sm text-gray-700 mb-6">
+                {!!paper.authors?.length && (
+                    <div>
+                        <span className="font-semibold text-gray-900">Authors:</span>{" "}
+                        {truncateAuthors(paper.authors)}
+                    </div>
+                )}
+                {dateStr && (
+                    <div>
+                        <span className="font-semibold text-gray-900">Date:</span> {dateStr}
+                    </div>
+                )}
+                {paper.category && (
+                    <div>
+                        <span className="font-semibold text-gray-900">Category:</span> {paper.category}
+                    </div>
+                )}
+                {paper.doi && (
+                    <div>
+                        <span className="font-semibold text-gray-900">DOI:</span>{" "}
+                        <a
+                            href={`https://doi.org/${paper.doi}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-kets-orange hover:underline break-all"
+                        >
+                            {paper.doi}
+                        </a>
+                    </div>
+                )}
+            </div>
+
+            {/* Abstract */}
+            {paper.abstract && (
+                <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">
+                        Abstract
+                    </h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                        {paper.abstract}
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ResultsList: React.FC<{
     results: Paper[];
+    selectedPaper: Paper | null;
     onPaperClick: (paper: Paper) => void;
-}> = ({ results, onPaperClick }) => {
+}> = ({ results, selectedPaper, onPaperClick }) => {
     // Helper function to truncate authors list
     const truncateAuthors = (authors: string[], maxAuthors: number = 10): string => {
         if (!authors || authors.length === 0) return "";
@@ -151,28 +269,35 @@ const ResultsList: React.FC<{
     };
     
     return (
-        <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {results.map((paper) => (
-            <div
-                key={paper.id}
-                onClick={() => onPaperClick(paper)}
-                className="p-4 rounded-md shadow-sm space-y-1 cursor-pointer hover:bg-gray-50"
-            >
-                <h3 className="text-lg font-semibold text-blue-800 hover:underline">
-                    {paper.title}
-                </h3>
-                <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1">
-                    {paper.year && <span>{paper.year} •</span>}
-                    {paper.authors && <span>{truncateAuthors(paper.authors)}</span>}
-                </div>
-                {paper.abstract && (
-                    <p className="text-gray-700 line-clamp-3 text-sm">{paper.abstract}</p>
-                )}
-            </div>
-        ))}
-        {results.length === 0 && <p className="text-center text-gray-500 mt-8">No papers found.</p>}
-    </div>
-);
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {results.map((paper) => {
+                const isSelected = selectedPaper?.id === paper.id;
+                return (
+                    <div
+                        key={paper.id}
+                        onClick={() => onPaperClick(paper)}
+                        className={`p-3 rounded-md shadow-sm cursor-pointer transition ${
+                            isSelected
+                                ? "bg-kets-orange-50 border-2 border-kets-orange-400"
+                                : "hover:bg-gray-50 border-2 border-transparent"
+                        }`}
+                    >
+                        <h3 className="text-base font-semibold text-gray-900 leading-tight mb-1">
+                            {paper.title}
+                        </h3>
+                        <div className="text-sm text-gray-600 flex flex-wrap items-center gap-1 mb-1">
+                            {paper.year && <span>{paper.year} •</span>}
+                            {paper.authors && <span>{truncateAuthors(paper.authors)}</span>}
+                        </div>
+                        {paper.abstract && (
+                            <p className="text-gray-700 line-clamp-2 text-sm leading-tight">{paper.abstract}</p>
+                        )}
+                    </div>
+                );
+            })}
+            {results.length === 0 && <p className="text-center text-gray-500 mt-8">No papers found.</p>}
+        </div>
+    );
 };
 
 const SearchViewer: React.FC = () => {
@@ -184,9 +309,10 @@ const SearchViewer: React.FC = () => {
         ""
     );
     const [loading, setLoading] = useState(false);
+    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
 
     // Get workbench context for project management
-    const { projectId, openModal, closeModal } = useWorkbench();
+    const { projectId } = useWorkbench();
 
     // filters state
     const [yearFilter, setYearFilter] = useState<number | "">("");
@@ -235,12 +361,7 @@ const SearchViewer: React.FC = () => {
     };
 
     const handlePaperClick = (paper: Paper) => {
-        openModal(
-            <PaperDetailsModal
-                paper={paper}
-                onClose={closeModal}
-            />
-        );
+        setSelectedPaper(paper);
     };
 
     useEffect(() => {
@@ -273,9 +394,24 @@ const SearchViewer: React.FC = () => {
                 />
 
                 <div className="flex flex-col justify-between p-1">
-                    <WeightTabs label="Keyword" preset={kwPreset} onChange={setKwPreset} />
-                    <WeightTabs label="Semantic" preset={semPreset} onChange={setSemPreset} />
-                    <WeightTabs label="Context" preset={ctxPreset} onChange={setCtxPreset} />
+                    <WeightTabs
+                        label="Keyword Match"
+                        preset={kwPreset}
+                        onChange={setKwPreset}
+                        tooltip="Prioritize results that include the exact words from your query."
+                    />
+                    <WeightTabs
+                        label="Semantic Meaning"
+                        preset={semPreset}
+                        onChange={setSemPreset}
+                        tooltip="Find papers with similar ideas, even when they use different wording."
+                    />
+                    <WeightTabs
+                        label="Project Context"
+                        preset={ctxPreset}
+                        onChange={setCtxPreset}
+                        tooltip="Let your current project context influence which papers appear first."
+                    />
                 </div>
                 <div className="flex flex-col justify-between p-1">
                     <YearFilter year={yearFilter} onYearChange={setYearFilter} />
@@ -289,7 +425,14 @@ const SearchViewer: React.FC = () => {
                 </div>
             </div>
 
-            <ResultsList results={results} onPaperClick={handlePaperClick} />
+            <div className="flex flex-1 overflow-hidden">
+                <ResultsList
+                    results={results}
+                    selectedPaper={selectedPaper}
+                    onPaperClick={handlePaperClick}
+                />
+                <PaperDetailPanel paper={selectedPaper} />
+            </div>
         </div>
     );
 };

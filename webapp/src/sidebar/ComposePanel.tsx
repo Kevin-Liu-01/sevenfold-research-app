@@ -43,12 +43,16 @@ const NewCompositionButton: React.FC<{
         <button
             onClick={onClick}
             disabled={isCreating}
-            className="inline-flex items-center space-x-1 bg-kets-orange text-white text-sm font-medium px-2 py-1 rounded-md transition disabled:opacity-50"
+            className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90 disabled:opacity-50"
         >
             {isCreating ? (
-                <span className="material-icons text-base animate-spin">refresh</span>
+                <span className="material-icons text-base animate-spin text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                    refresh
+                </span>
             ) : (
-                <span className="material-icons text-base">add</span>
+                <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                    add
+                </span>
             )}
             <span>{isCreating ? "Creating..." : "New Composition"}</span>
         </button>

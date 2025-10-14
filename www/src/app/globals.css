@@ -3,6 +3,12 @@
 @import "tailwindcss";
 @import "material-icons/iconfont/material-icons.css";
 
+@layer base {
+  body {
+    @apply bg-background text-gray-900;
+  }
+}
+
 @font-face {
   font-family: "Times Now";
   font-style: normal;
@@ -31,6 +37,7 @@
   --color-kets-orange: #f57920;
   --color-kets-yellow: #ffbd59;
   --color-kets-green: #7ed957;
+  --color-background: #f7f7f4;
 }
 
 /* Custom Utility: no-scrollbar */
@@ -77,15 +84,19 @@
     top: 0;
     background: linear-gradient(
       to right,
-      white 0%,
-      rgba(255, 255, 255, 0) 100%
+      var(--color-background) 0%,
+      color-mix(in srgb, var(--color-background) 0%, transparent 100%) 100%
     );
   }
 
   .slider-mask::after {
     right: 0;
     top: 0;
-    background: linear-gradient(to left, white 0%, rgba(255, 255, 255, 0) 100%);
+    background: linear-gradient(
+      to left,
+      var(--color-background) 0%,
+      color-mix(in srgb, var(--color-background) 0%, transparent 100%) 100%
+    );
   }
 }
 
