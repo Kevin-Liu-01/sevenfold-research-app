@@ -1,14 +1,15 @@
-# Supabase Schema
+# Sevenfold Database Schema
 
-You can connect to the Sevenfold primary database in Supabase via cli (note you must have `psql` installed):
+Complete database schema documentation for Sevenfold. Powered by Supabase (PostgreSQL + pgvector).
 
-```sh
-psql -h db.rivimoqvqpbypjxfpfhl.supabase.co -p 5432 -d postgres -U postgres
-```
+The database uses Row-Level Security (RLS) on all tables for data isolation and security.
 
-Keywords:
-- PK = Primary Key
-- FK = Foreign Key
+**Conventions:**
+- **PK** = Primary Key
+- **FK** = Foreign Key
+- **RLS** = Row-Level Security
+
+---
 
 ## user_profiles
 
