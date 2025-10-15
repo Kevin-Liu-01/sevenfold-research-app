@@ -54,27 +54,29 @@ const ViewerMap: Record<ViewType, React.FC> = {
     [ViewType.Settings]: SettingsViewer,
 };
 
-const Viewer: React.FC = () => {
-    const { currentView } = useWorkbench();
-    const ViewerComponent = ViewerMap[currentView] || SearchViewer;
-
-    return (
-        <section className="z-0 flex-1 my-2 mr-2 border overflow-hidden border-gray-200 rounded-lg bg-app-inner">
-            <ViewerComponent />
-        </section>
-    );
-};
-
 export default function WorkbenchPage() {
-    const { projectId } = useParams();
+    const { projectId, view } = useParams<{ projectId?: string; view?: string }>();
+
     if (!projectId) return <Navigate to="/" replace />;
+
+    const normalizedView = Object.values(ViewType).includes((view ?? "") as ViewType)
+        ? ((view as ViewType) ?? ViewType.Search)
+        : null;
+
+    if (!normalizedView) {
+        return <Navigate to={`/project/${projectId}/search`} replace />;
+    }
+
+    const ViewerComponent = ViewerMap[normalizedView] || SearchViewer;
 
     return (
         <WorkbenchProvider projectId={projectId}>
             <main className="flex h-screen bg-app-outer">
                 <Sidebar />
                 <Sidepanel />
-                <Viewer />
+                <section className="z-0 flex-1 my-2 mr-2 border overflow-hidden border-gray-200 rounded-lg bg-app-inner">
+                    <ViewerComponent />
+                </section>
             </main>
         </WorkbenchProvider>
     );

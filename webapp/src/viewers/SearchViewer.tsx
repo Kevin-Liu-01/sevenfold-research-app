@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, type FormEvent } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useWorkbench } from "../context/WorkbenchContext";
 
@@ -38,7 +38,7 @@ const SearchBox: React.FC<{
                         className={`
                             w-full resize-none rounded-md border border-gray-300
                             px-3 py-2 pr-10 text-gray-700 placeholder-gray-400
-                            focus:outline-none focus:ring-2 focus:ring-kets-yellow
+                            focus:outline-none focus:ring-2 focus:ring-viix-yellow
                         `}
                     />
                     {loading && (
@@ -48,7 +48,7 @@ const SearchBox: React.FC<{
                     )}
                     <button
                         type="submit"
-                        className="absolute bottom-3 right-2 p-1 bg-kets-green hover:bg-green-400 text-black rounded-lg w-8 h-8 justify-center items-center"
+                        className="absolute bottom-3 right-2 p-1 bg-viix-green hover:bg-green-400 text-black rounded-lg w-8 h-8 justify-center items-center"
                         aria-label="Submit search"
                     >
                         <span className="material-icons text-base">arrow_forward</span>
@@ -103,7 +103,7 @@ const YearFilter: React.FC<{
                 value={year}
                 onChange={(e) => onYearChange(e.target.value === "" ? "" : +e.target.value)}
                 placeholder="e.g. 2018"
-                className="border border-gray-300 rounded-md px-2 py-1 mt-2 text-sm focus:outline-none focus:ring-2 focus:ring-kets-yellow"
+                className="border border-gray-300 rounded-md px-2 py-1 mt-2 text-sm focus:outline-none focus:ring-2 focus:ring-viix-yellow"
             />
         </div>
     );
@@ -123,7 +123,7 @@ const WeightTabs: React.FC<{
                 <span className="relative inline-flex group">
                     <button
                         type="button"
-                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-kets-yellow"
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-viix-yellow"
                         aria-label={`About ${label.toLowerCase()} search`}
                     >
                         ?
@@ -142,7 +142,7 @@ const WeightTabs: React.FC<{
                     onClick={() => onChange(p)}
                     className={`px-5 py-3/4 text-sm rounded ${
                         preset === p
-                            ? "bg-kets-orange-400 text-white"
+                            ? "bg-viix-orange-400 text-white"
                             : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                     }`}
                 >
@@ -231,7 +231,7 @@ const PaperDetailPanel: React.FC<{
                             href={`https://doi.org/${paper.doi}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-kets-orange hover:underline break-all"
+                            className="text-viix-orange hover:underline break-all"
                         >
                             {paper.doi}
                         </a>
@@ -278,7 +278,7 @@ const ResultsList: React.FC<{
                         onClick={() => onPaperClick(paper)}
                         className={`p-3 rounded-md shadow-sm cursor-pointer transition ${
                             isSelected
-                                ? "bg-kets-orange-50 border-2 border-kets-orange-400"
+                                ? "bg-viix-orange-50 border-2 border-viix-orange-400"
                                 : "hover:bg-gray-50 border-2 border-transparent"
                         }`}
                     >
@@ -302,86 +302,149 @@ const ResultsList: React.FC<{
 
 const SearchViewer: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [query, setQuery] = useState(searchParams.get("q") ?? "");
-    const [results, setResults] = usePersistentState<Paper[]>(`workbench:search:results`, []);
-    const [lastSearchedQuery, setLastSearchedQuery] = usePersistentState<string>(
-        `workbench:search:lastQuery`,
-        ""
-    );
-    const [loading, setLoading] = useState(false);
-    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
-
-    // Get workbench context for project management
     const { projectId } = useWorkbench();
 
-    // filters state
-    const [yearFilter, setYearFilter] = useState<number | "">("");
-    const [kwPreset, setKwPreset] = useState<Preset>("M");
-    const [semPreset, setSemPreset] = useState<Preset>("L");
-    const [ctxPreset, setCtxPreset] = useState<Preset>("OFF");
+    const storagePrefix = projectId ? `workbench:${projectId}:search` : "workbench:search";
+
+    const [storedQuery, setStoredQuery] = usePersistentState<string>(`${storagePrefix}:query`, "");
+    const [results, setResults] = usePersistentState<Paper[]>(`${storagePrefix}:results`, []);
+    const [selectedPaperId, setSelectedPaperId] = usePersistentState<string | null>(
+        `${storagePrefix}:selectedPaperId`,
+        null
+    );
+    const [yearFilter, setYearFilter] = usePersistentState<number | "">(
+        `${storagePrefix}:yearFilter`,
+        ""
+    );
+    const [kwPreset, setKwPreset] = usePersistentState<Preset>(`${storagePrefix}:kwPreset`, "M");
+    const [semPreset, setSemPreset] = usePersistentState<Preset>(`${storagePrefix}:semPreset`, "L");
+    const [ctxPreset, setCtxPreset] = usePersistentState<Preset>(`${storagePrefix}:ctxPreset`, "OFF");
+
+    const [query, setQueryState] = useState(searchParams.get("q") ?? storedQuery);
+    const [loading, setLoading] = useState(false);
+    const initRef = useRef(false);
+
+    const setQuery = useCallback(
+        (value: string) => {
+            setQueryState(value);
+            setStoredQuery(value);
+        },
+        [setStoredQuery]
+    );
+
+    const selectedPaper = useMemo(() => {
+        if (!selectedPaperId) return null;
+        return results.find((paper) => paper.id === selectedPaperId) ?? null;
+    }, [results, selectedPaperId]);
 
     const kwPresetVals: Record<Preset, number> = { OFF: 0.1, L: 0.3, M: 0.7, H: 1.0 };
     const semPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.2, M: 0.5, H: 0.9 };
     const ctxPresetVals: Record<Preset, number> = { OFF: 0.0, L: 0.1, M: 0.5, H: 0.9 };
 
-    const doSearch = async () => {
-        setLoading(true);
-        setSearchParams({ q: query });
-        try {
-            const payload = {
-                query: query.trim(),
-                project_id: projectId,
-                match_count: 30,
-                lexical_weight: kwPresetVals[kwPreset],
-                semantic_weight: semPresetVals[semPreset],
-                context_weight: ctxPresetVals[ctxPreset],
-                ...(yearFilter !== "" && { min_year: yearFilter }),
-            };
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const data: Paper[] = await res.json();
-            setResults(data);
-            // on a successful search, we will store the query that was used
-            setLastSearchedQuery(query.trim());
-        } catch (err) {
-            console.error(err);
-            setResults([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const doSearch = useCallback(
+        async (overrideQuery?: string) => {
+            const activeQuery = (overrideQuery ?? query).trim();
+            if (!activeQuery) {
+                setResults([]);
+                setSelectedPaperId(null);
+                setStoredQuery("");
+                setSearchParams({}, { replace: true });
+                return;
+            }
+
+            if (!projectId) {
+                setStoredQuery(activeQuery);
+                setSearchParams({ q: activeQuery }, { replace: true });
+                return;
+            }
+
+            setLoading(true);
+            setSearchParams({ q: activeQuery }, { replace: true });
+            try {
+                const payload = {
+                    query: activeQuery,
+                    project_id: projectId,
+                    match_count: 30,
+                    lexical_weight: kwPresetVals[kwPreset],
+                    semantic_weight: semPresetVals[semPreset],
+                    context_weight: ctxPresetVals[ctxPreset],
+                    ...(yearFilter !== "" && { min_year: yearFilter }),
+                };
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const data: Paper[] = await res.json();
+                setStoredQuery(activeQuery);
+                setResults(data);
+                setSelectedPaperId((prev) => {
+                    if (prev && data.some((paper) => paper.id === prev)) {
+                        return prev;
+                    }
+                    return data[0]?.id ?? null;
+                });
+            } catch (err) {
+                console.error(err);
+                setResults([]);
+                setSelectedPaperId(null);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [
+            ctxPreset,
+            ctxPresetVals,
+            kwPreset,
+            kwPresetVals,
+            projectId,
+            query,
+            semPreset,
+            semPresetVals,
+            setResults,
+            setSearchParams,
+            setSelectedPaperId,
+            setStoredQuery,
+            yearFilter,
+        ]
+    );
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        doSearch();
+        void doSearch();
     };
 
-    const handlePaperClick = (paper: Paper) => {
-        setSelectedPaper(paper);
-    };
+    const handlePaperClick = useCallback(
+        (paper: Paper) => {
+            setSelectedPaperId(paper.id);
+        },
+        [setSelectedPaperId]
+    );
 
     useEffect(() => {
-        const trimmedQuery = query.trim();
+        if (initRef.current) {
+            return;
+        }
+        initRef.current = true;
 
-        // some necessary error handling for edge cases
-        // if the query from the URL is empty, clear any existing results to avoid showing stale data
-        if (!trimmedQuery) {
-            setResults([]);
-            setLastSearchedQuery("");
+        const urlQuery = searchParams.get("q");
+        if (urlQuery) {
+            setQueryState(urlQuery);
+            setStoredQuery(urlQuery);
+            if (!results.length) {
+                void doSearch(urlQuery);
+            }
             return;
         }
 
-        // only run a search on mount if the current query is different from the last one that was successfully searched
-        // this prevents re-searching when switching back to the tab if the query hasn't changed
-        if (trimmedQuery !== lastSearchedQuery) {
-            doSearch();
+        if (storedQuery) {
+            setQueryState(storedQuery);
+            if (!searchParams.get("q")) {
+                setSearchParams({ q: storedQuery }, { replace: true });
+            }
         }
-        // note: this effect should only run on component mount to check the initial URL state
-    }, []);
+    }, [doSearch, results.length, searchParams, setSearchParams, setStoredQuery, storedQuery]);
 
     return (
         <div className="flex flex-col h-screen p-6">
@@ -416,8 +479,8 @@ const SearchViewer: React.FC = () => {
                 <div className="flex flex-col justify-between p-1">
                     <YearFilter year={yearFilter} onYearChange={setYearFilter} />
                     <button
-                        onClick={doSearch}
-                        className="mt-2 bg-gray-800 text-white px-4 py-2 rounded hover:bg-kets-green-dark transition"
+                        onClick={() => void doSearch()}
+                        className="mt-2 bg-gray-800 text-white px-4 py-2 rounded hover:bg-viix-green-dark transition"
                         disabled={loading || !query.trim()}
                     >
                         Apply Filters

@@ -40,7 +40,7 @@ const FeedbackPopup: React.FC<FeedbackPopupProps> = ({ onClose }) => {
                     href="https://discord.gg/kMK6kmYQCu"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-kets-orange-400 underline"
+                    className="text-viix-orange-400 underline"
                 >
                     discord.gg/kMK6kmYQCu
                 </a>

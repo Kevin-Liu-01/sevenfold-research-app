@@ -224,7 +224,7 @@ const UserSettingsPage: React.FC = () => {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f57920] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-viix-orange mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading profile...</p>
                 </div>
             </div>
@@ -292,7 +292,7 @@ const UserSettingsPage: React.FC = () => {
                                 )}
                             </div>
                             <div>
-                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200">
+                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200">
                                     <span className="material-icons-outlined">upload</span>
                                     {uploading ? "Uploading..." : "Change Picture"}
                                     <input
@@ -337,7 +337,7 @@ const UserSettingsPage: React.FC = () => {
                                     value={formData.first_name}
                                     onChange={handleInputChange}
                                     required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f57920] focus:border-transparent"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
                                     placeholder="Enter your first name"
                                 />
                             </div>
@@ -356,7 +356,7 @@ const UserSettingsPage: React.FC = () => {
                                     value={formData.last_name}
                                     onChange={handleInputChange}
                                     required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f57920] focus:border-transparent"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
                                     placeholder="Enter your last name"
                                 />
                             </div>
@@ -375,7 +375,7 @@ const UserSettingsPage: React.FC = () => {
                                 name="institution"
                                 value={formData.institution}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f57920] focus:border-transparent"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
                                 placeholder="Enter your institution or organization"
                             />
                         </div>
@@ -415,7 +415,7 @@ const UserSettingsPage: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-3 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-6 py-3 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {loading ? (
                                     <>

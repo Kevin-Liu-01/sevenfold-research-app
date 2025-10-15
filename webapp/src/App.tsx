@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -24,7 +24,8 @@ export default function App() {
                 <Route element={<ProtectedRoute />}>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/newproject" element={<NewProjectPage />} />
-                    <Route path="/project/:projectId" element={<WorkbenchPage />} />
+                    <Route path="/project/:projectId" element={<ProjectRedirect />} />
+                    <Route path="/project/:projectId/:view" element={<WorkbenchPage />} />
                     <Route path="/settings" element={<UserSettingsPage />} />
                 </Route>
 
@@ -33,4 +34,12 @@ export default function App() {
             </Routes>
         </AuthProvider>
     );
+}
+
+function ProjectRedirect() {
+    const { projectId } = useParams();
+    if (!projectId) {
+        return <Navigate to="/" replace />;
+    }
+    return <Navigate to={`/project/${projectId}/search`} replace />;
 }

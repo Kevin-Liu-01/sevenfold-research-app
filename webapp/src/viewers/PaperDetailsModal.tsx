@@ -83,7 +83,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose }) => {
                                 href={`https://doi.org/${paper.doi}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-kets-orange hover:underline break-all"
+                                className="text-viix-orange hover:underline break-all"
                             >
                                 {paper.doi}
                             </a>
@@ -116,7 +116,7 @@ const PaperDetailsModal: React.FC<Props> = ({ paper, onClose }) => {
                         {paper.doi && (
                             <button
                                 onClick={handleGoToPaper}
-                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-kets-orange text-white font-semibold shadow hover:opacity-90"
+                                className="px-4 py-2 text-sm flex items-center gap-2 rounded-lg bg-viix-orange text-white font-semibold shadow hover:opacity-90"
                             >
                                 <span className="material-icons text-sm">open_in_new</span>
                                 Go to Paper
