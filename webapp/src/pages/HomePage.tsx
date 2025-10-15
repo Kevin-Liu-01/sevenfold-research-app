@@ -127,7 +127,7 @@ const HomePage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
                     <button
                         onClick={() => navigate("/newproject")}
-                        className="inline-flex items-center gap-2 pr-4 pl-3 py-3 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200 hover:shadow-lg font-medium"
+                        className="inline-flex items-center gap-2 pr-4 pl-3 py-3 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 hover:shadow-lg font-medium"
                     >
                         <span className="material-icons-outlined text-xl">add</span>
                         Create New Project
@@ -143,7 +143,7 @@ const HomePage: React.FC = () => {
                                 placeholder="Search projects..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f57920] focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -154,7 +154,7 @@ const HomePage: React.FC = () => {
                             onClick={() => setViewType("card")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
                                 viewType === "card"
-                                    ? "bg-[#f57920] text-white shadow-sm"
+                                    ? "bg-viix-orange text-white shadow-sm"
                                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                             }`}
                         >
@@ -165,7 +165,7 @@ const HomePage: React.FC = () => {
                             onClick={() => setViewType("table")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
                                 viewType === "table"
-                                    ? "bg-[#f57920] text-white shadow-sm"
+                                    ? "bg-viix-orange text-white shadow-sm"
                                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                             }`}
                         >
@@ -194,7 +194,7 @@ const HomePage: React.FC = () => {
                         {projects.length === 0 && (
                             <button
                                 onClick={() => navigate("/newproject")}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#f57920] text-white rounded-lg hover:bg-[#e6651b] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                             >
                                 <span className="material-icons-outlined text-xl">add</span>
                                 Create Your First Project
@@ -222,18 +222,18 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-white p-6 rounded-2xl border border-gray-200 hover:border-[#f57920] hover:shadow-md transition-all duration-200 cursor-pointer"
+                                        className="group bg-white p-6 rounded-2xl border border-gray-200 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
-                                                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f57920] transition-colors duration-200">
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-viix-orange transition-colors duration-200">
                                                     {project.name}
                                                 </h3>
                                                 <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
                                                     {project.description}
                                                 </p>
                                             </div>
-                                            <span className="material-icons-outlined text-gray-400 group-hover:text-[#f57920] transition-colors duration-200">
+                                            <span className="material-icons-outlined text-gray-400 group-hover:text-viix-orange transition-colors duration-200">
                                                 arrow_forward_ios
                                             </span>
                                         </div>
@@ -287,7 +287,7 @@ const HomePage: React.FC = () => {
                                                     className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                                                 >
                                                     <td className="py-4 px-6">
-                                                        <div className="font-semibold text-gray-900 hover:text-[#f57920] transition-colors duration-200">
+                                                        <div className="font-semibold text-gray-900 hover:text-viix-orange transition-colors duration-200">
                                                             {project.name}
                                                         </div>
                                                     </td>
@@ -304,7 +304,7 @@ const HomePage: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6 text-right">
-                                                        <button className="text-gray-400 hover:text-[#f57920] transition-colors duration-200">
+                                                        <button className="text-gray-400 hover:text-viix-orange transition-colors duration-200">
                                                             <span className="material-icons-outlined">
                                                                 arrow_forward_ios
                                                             </span>

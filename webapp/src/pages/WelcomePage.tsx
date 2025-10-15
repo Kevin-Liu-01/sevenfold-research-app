@@ -300,7 +300,7 @@ const WelcomePage: React.FC = () => {
                         <button
                             type="submit"
                             disabled={!canSubmit}
-                            className="w-full bg-kets-green text-white py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="w-full bg-viix-green text-white py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {submitting ? "Saving…" : "Continue"}
                         </button>

@@ -41,19 +41,26 @@
     --font-timesnow: "Times Now", serif;
     --font-dmsans: "DM Sans", sans-serif;
     --font-ptmono: "PT Mono", monospace;
-    --color-kets-orange: #f57920;
-    --color-kets-yellow: #ffbd59;
-    --color-kets-green: #7ed957;
-    --color-kets-orange-50: #fef4ee;
-    --color-kets-orange-100: #fde4cd;
-    --color-kets-orange-200: #fbc89c;
-    --color-kets-orange-300: #f7a36b;
-    --color-kets-orange-400: #f57920;
-    --color-kets-orange-500: #e6651b;
-    --color-kets-orange-600: #d55417;
-    --color-kets-orange-700: #b14313;
-    --color-kets-orange-800: #8f3410;
-    --color-kets-orange-900: #74280d;
+    --color-viix-orange: #f57920;
+    --color-viix-yellow: #ffbd59;
+    --color-viix-yellow-400: #ffd27a;
+    --color-viix-yellow-500: #ffbd59;
+    --color-viix-yellow-600: #e0a245;
+    --color-viix-green: #7ed957;
+    --color-viix-green-500: #7ed957;
+    --color-viix-green-600: #63c642;
+    --color-viix-green-700: #4baa32;
+    --color-viix-green-dark: #399725;
+    --color-viix-orange-50: #fef4ee;
+    --color-viix-orange-100: #fde4cd;
+    --color-viix-orange-200: #fbc89c;
+    --color-viix-orange-300: #f7a36b;
+    --color-viix-orange-400: #f57920;
+    --color-viix-orange-500: #e6651b;
+    --color-viix-orange-600: #d55417;
+    --color-viix-orange-700: #b14313;
+    --color-viix-orange-800: #8f3410;
+    --color-viix-orange-900: #74280d;
     --color-app-outer: #f3f3f3;
     --color-app-inner: #f7fcfe;
     --color-off-black: #1e2938;
@@ -112,7 +119,7 @@
 }
 
 ::selection {
-    background-color: rgba(245, 121, 32, 0.5);
+    background-color: var(--color-viix-orange-100);
 }
 
 @keyframes fade-in-sidebar {
@@ -149,7 +156,7 @@
     transform: translateY(-50%);
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid #f97316; /* Corresponds to bg-kets-orange-400 */
+    border-right: 6px solid var(--color-viix-orange-400);
 }
 
 /* Prose styles for markdown rendering - elegant, readable design */
@@ -290,11 +297,11 @@
     }
 
     .prose ul > li::marker {
-        color: var(--color-kets-orange);
+        color: var(--color-viix-orange);
     }
 
     .prose ol > li::marker {
-        color: var(--color-kets-orange);
+        color: var(--color-viix-orange);
         font-weight: 500;
     }
 
@@ -337,16 +344,16 @@
 
     /* Links with brand color */
     .prose a {
-        color: var(--color-kets-orange);
+        color: var(--color-viix-orange);
         text-decoration: none;
         font-weight: 500;
-        border-bottom: 1px solid var(--color-kets-orange-200);
+        border-bottom: 1px solid var(--color-viix-orange-200);
         transition: all 0.2s ease;
     }
 
     .prose a:hover {
-        color: var(--color-kets-orange-600);
-        border-bottom-color: var(--color-kets-orange);
+        color: var(--color-viix-orange-600);
+        border-bottom-color: var(--color-viix-orange);
     }
 
     /* Clean, professional tables with borders */

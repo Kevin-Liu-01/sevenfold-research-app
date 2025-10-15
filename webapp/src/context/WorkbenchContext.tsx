@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../auth/supabaseClient";
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -53,11 +54,29 @@ export const WorkbenchProvider: React.FC<{
     projectId: string;
     children: React.ReactNode;
 }> = ({ projectId, children }) => {
-    const [currentView, setCurrentView] = usePersistentState<ViewType>(
-        `workbench:${projectId}:view`,
-        ViewType.Search
-    );
+    const navigate = useNavigate();
+    const location = useLocation();
 
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+    const routeView = pathSegments[2];
+
+    const currentView = Object.values(ViewType).includes(routeView as ViewType)
+        ? (routeView as ViewType)
+        : ViewType.Search;
+
+    // Redirect to default view if the URL view is invalid
+    useEffect(() => {
+        if (!Object.values(ViewType).includes(routeView as ViewType)) {
+            // Replace the invalid view in the URL with the default view
+            const newPathSegments = [...pathSegments];
+            newPathSegments[2] = ViewType.Search;
+            // Reconstruct the pathname
+            const newPath = "/" + newPathSegments.join("/");
+            if (location.pathname !== newPath) {
+                navigate(newPath, { replace: true });
+            }
+        }
+    }, [routeView, location.pathname, navigate, pathSegments]);
     const [hoveredView, _setHoveredView] = useState<ViewType | null>(null);
     const hoverTimeoutRef = useRef<number | null>(null);
 
@@ -235,6 +254,14 @@ export const WorkbenchProvider: React.FC<{
         refreshConvos();
         refreshCompositions();
     }, [projectId]);
+
+    const setCurrentView = useCallback(
+        (view: ViewType) => {
+            if (view === currentView) return;
+            navigate(`/project/${projectId}/${view}`);
+        },
+        [currentView, navigate, projectId]
+    );
 
     return (
         <WorkbenchContext.Provider

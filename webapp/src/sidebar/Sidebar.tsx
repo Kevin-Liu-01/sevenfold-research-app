@@ -177,7 +177,7 @@ export default function Sidebar() {
                     <div key={item.view} className="relative flex justify-center">
                         <SidebarButton targetView={item.view} icon={item.icon} label={item.label} />
                         {item.view === ViewType.Library && notification && notification[0] && (
-                            <div className="library-notification-bubble absolute left-full ml-2 top-1/2 z-20 bg-kets-orange-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap flex items-center">
+                            <div className="library-notification-bubble absolute left-full ml-2 top-1/2 z-20 bg-viix-orange-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap flex items-center">
                                 <span className="material-icons-outlined text-base mr-2">
                                     check_circle
                                 </span>

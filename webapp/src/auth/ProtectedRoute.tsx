@@ -6,12 +6,8 @@ const ProtectedRoute: React.FC = () => {
     const { user, loading, hasProfile, profileLoading } = useAuth();
     const location = useLocation();
 
-    if (loading || profileLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-lg text-gray-600">Loading...</div>
-            </div>
-        );
+    if (loading) {
+        return null;
     }
 
     if (!user) {
@@ -21,7 +17,7 @@ const ProtectedRoute: React.FC = () => {
 
     // Allow the onboarding page itself even if no profile
     const isWelcome = location.pathname.startsWith("/welcome");
-    if (!hasProfile && !isWelcome) {
+    if (!hasProfile && !profileLoading && !isWelcome) {
         const redirect = encodeURIComponent(location.pathname + location.search);
         return <Navigate to={`/welcome?redirect=${redirect}`} replace />;
     }

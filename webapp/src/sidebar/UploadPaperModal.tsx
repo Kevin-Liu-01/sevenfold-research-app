@@ -183,10 +183,10 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
     };
 
     const steps = [
-        { label: "Upload", color: "bg-kets-orange" },
-        { label: "Pages", color: "bg-kets-green" },
+        { label: "Upload", color: "bg-viix-orange" },
+        { label: "Pages", color: "bg-viix-green" },
         { label: "Confirm", color: "bg-blue-500" },
-        { label: "Metadata", color: "bg-kets-yellow" },
+        { label: "Metadata", color: "bg-viix-yellow" },
     ];
 
     return (
@@ -194,9 +194,9 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
             {isProcessing || isUploading ? (
                 <div className="flex flex-col items-center justify-center h-full space-y-6">
                     <div className="relative">
-                        <div className="w-20 h-20 border-4 border-slate-200 border-t-kets-orange rounded-full animate-spin"></div>
+                        <div className="w-20 h-20 border-4 border-slate-200 border-t-viix-orange rounded-full animate-spin"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="material-icons text-kets-orange text-3xl">
+                            <span className="material-icons text-viix-orange text-3xl">
                                 description
                             </span>
                         </div>
@@ -283,11 +283,11 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                         onDrop={handleDrop}
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
-                                        className={`h-full w-full p-6 border-2 border-dashed rounded-lg cursor-pointer flex flex-col items-center justify-center text-kets-orange-800 text-center transition-all duration-200 ${dragOver ? "border-kets-orange-400 bg-kets-orange-200/50" : "border-kets-orange-300 bg-kets-orange-50/70"} hover:border-kets-orange-500 hover:bg-kets-orange-100/70`}
+                                        className={`h-full w-full p-6 border-2 border-dashed rounded-lg cursor-pointer flex flex-col items-center justify-center text-viix-orange-800 text-center transition-all duration-200 ${dragOver ? "border-viix-orange-400 bg-viix-orange-200/50" : "border-viix-orange-300 bg-viix-orange-50/70"} hover:border-viix-orange-500 hover:bg-viix-orange-100/70`}
                                     >
                                         {!file ? (
                                             <>
-                                                <span className="material-icons text-kets-orange-500 mb-3 text-3xl">
+                                                <span className="material-icons text-viix-orange-500 mb-3 text-3xl">
                                                     file_copy
                                                 </span>
                                                 <span className="font-semibold text-base">
@@ -296,7 +296,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                             </>
                                         ) : (
                                             <div className="flex items-center space-x-3">
-                                                <span className="material-icons text-kets-green text-5xl">
+                                                <span className="material-icons text-viix-green text-5xl">
                                                     check_circle
                                                 </span>
                                                 <span className="truncate font-semibold text-slate-800 text-base">
@@ -347,9 +347,9 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                                         value="title"
                                                         checked={selectionMode === "title"}
                                                         onChange={() => setSelectionMode("title")}
-                                                        className="form-radio text-kets-green-600 focus:ring-kets-green-500"
+                                                        className="form-radio text-viix-green-600 focus:ring-viix-green-500"
                                                     />
-                                                    <span className="font-semibold text-kets-green-700">
+                                                    <span className="font-semibold text-viix-green-700">
                                                         Title Page
                                                     </span>
                                                 </label>
@@ -362,9 +362,9 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                                         onChange={() =>
                                                             setSelectionMode("abstract")
                                                         }
-                                                        className="form-radio text-kets-yellow-500 focus:ring-kets-yellow-400"
+                                                        className="form-radio text-viix-yellow-500 focus:ring-viix-yellow-400"
                                                     />
-                                                    <span className="font-semibold text-kets-yellow-600">
+                                                    <span className="font-semibold text-viix-yellow-600">
                                                         Abstract Page(s)
                                                     </span>
                                                 </label>
@@ -407,7 +407,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                                 <div
                                                     key={`page_${index + 1}`}
                                                     onClick={() => handlePageSelection(index + 1)}
-                                                    className={`cursor-pointer rounded-md overflow-hidden shadow-lg transition-all duration-200 ${titlePage === index + 1 ? "ring-4 ring-offset-4 ring-kets-green" : ""} ${abstractPages.includes(index + 1) && titlePage !== index + 1 ? "ring-4 ring-offset-4 ring-kets-yellow" : ""}`}
+                                                    className={`cursor-pointer rounded-md overflow-hidden shadow-lg transition-all duration-200 ${titlePage === index + 1 ? "ring-4 ring-offset-4 ring-viix-green" : ""} ${abstractPages.includes(index + 1) && titlePage !== index + 1 ? "ring-4 ring-offset-4 ring-viix-yellow" : ""}`}
                                                 >
                                                     <Page
                                                         pageNumber={index + 1}
@@ -484,40 +484,40 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                         placeholder="Title"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                     />
                                     <input
                                         type="text"
                                         placeholder="Authors (comma-separated)"
                                         value={authors}
                                         onChange={(e) => setAuthors(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                     />
                                     <input
                                         type="date"
                                         value={pubDate}
                                         onChange={(e) => setPubDate(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                     />
                                     <input
                                         type="text"
                                         placeholder="DOI (optional)"
                                         value={doi}
                                         onChange={(e) => setDoi(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                     />
                                     <input
                                         type="text"
                                         placeholder="Tags (comma-separated)"
                                         value={tags}
                                         onChange={(e) => setTags(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                     />
                                     <textarea
                                         placeholder="Notes (optional)"
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-kets-yellow-500 focus:border-kets-yellow-500 sm:text-sm px-3 py-2"
+                                        className="w-full border border-slate-300 rounded-md placeholder-slate-400 focus:ring-1 focus:ring-viix-yellow-500 focus:border-viix-yellow-500 sm:text-sm px-3 py-2"
                                         rows={3}
                                     />
                                 </motion.div>
@@ -545,7 +545,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                 <button
                                     onClick={handleNextStep}
                                     disabled={(step === 1 && !file) || isProcessing}
-                                    className="px-4 py-2 bg-kets-orange-500 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-kets-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-4 py-2 bg-viix-orange-500 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-viix-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {isProcessing ? "Processing..." : "Next"}
                                 </button>
@@ -554,7 +554,7 @@ const UploadPaperModal: React.FC<UploadPaperModalProps> = ({
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!file || isUploading}
-                                    className="px-4 py-2 bg-kets-orange-500 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-kets-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-4 py-2 bg-viix-orange-500 text-white rounded-md text-sm font-semibold shadow-sm hover:bg-viix-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {isUploading ? "Uploading…" : "Submit"}
                                 </button>
