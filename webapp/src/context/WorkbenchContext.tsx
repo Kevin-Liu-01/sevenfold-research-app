@@ -64,6 +64,19 @@ export const WorkbenchProvider: React.FC<{
         ? (routeView as ViewType)
         : ViewType.Search;
 
+    // Redirect to default view if the URL view is invalid
+    useEffect(() => {
+        if (!Object.values(ViewType).includes(routeView as ViewType)) {
+            // Replace the invalid view in the URL with the default view
+            const newPathSegments = [...pathSegments];
+            newPathSegments[2] = ViewType.Search;
+            // Reconstruct the pathname
+            const newPath = "/" + newPathSegments.join("/");
+            if (location.pathname !== newPath) {
+                navigate(newPath, { replace: true });
+            }
+        }
+    }, [routeView, location.pathname, navigate, pathSegments]);
     const [hoveredView, _setHoveredView] = useState<ViewType | null>(null);
     const hoverTimeoutRef = useRef<number | null>(null);
 
