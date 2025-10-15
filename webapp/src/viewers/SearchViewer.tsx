@@ -444,7 +444,7 @@ const SearchViewer: React.FC = () => {
                 setSearchParams({ q: storedQuery }, { replace: true });
             }
         }
-    }, [doSearch, results.length, searchParams, setSearchParams, setStoredQuery, storedQuery]);
+    }, []);
 
     return (
         <div className="flex flex-col h-screen p-6">
