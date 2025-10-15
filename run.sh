@@ -119,17 +119,6 @@ check_env_files() {
     fi
 }
 
-# Start a service with logging
-start_service() {
-    local name=$1
-    local port=$2
-    local command=$3
-
-    print_service "Starting $name on port $port..."
-    eval "$command" &
-    local pid=$!
-    echo $pid
-}
 
 # Main function
 main() {
@@ -147,13 +136,22 @@ main() {
     echo ""
 
     # Start www (Next.js)
-    WWW_PID=$(start_service "www (Next.js)" "3000" "cd www && pnpm dev 2>&1 | sed 's/^/[www] /'")
+    print_service "Starting www (Next.js) on port 3000..."
+    (cd www && pnpm dev 2>&1 | sed 's/^/[www] /') &
+    WWW_PID=$!
 
     # Start webapp (Vite)
-    WEBAPP_PID=$(start_service "webapp (Vite)" "5173" "cd webapp && pnpm dev 2>&1 | sed 's/^/[webapp] /'")
+    print_service "Starting webapp (Vite) on port 5173..."
+    (cd webapp && pnpm dev 2>&1 | sed 's/^/[webapp] /') &
+    WEBAPP_PID=$!
 
     # Start API (FastAPI)
-    API_PID=$(start_service "api (FastAPI)" "8080" "cd api && source .venv/bin/activate && uvicorn main:app --reload --port 8080 2>&1 | sed 's/^/[api] /'")
+    print_service "Starting api (FastAPI) on port 8080..."
+    (cd api && source .venv/bin/activate && uvicorn main:app --reload --port 8080 2>&1 | sed 's/^/[api] /') &
+    API_PID=$!
+
+    # Give services a moment to start
+    sleep 2
 
     echo ""
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

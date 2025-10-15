@@ -200,13 +200,11 @@ main() {
     print_section "Setting Up Environment Files"
     setup_env_file "www" "www"
     setup_env_file "webapp" "webapp"
-    setup_env_file "extension" "extension"
     setup_env_file "api" "api"
 
     # Install dependencies for all Node.js apps
     install_node_deps "www" "www (Next.js)"
     install_node_deps "webapp" "webapp (Vite)"
-    install_node_deps "extension" "extension (Chrome Extension)"
 
     # Setup Python API
     setup_python_api
