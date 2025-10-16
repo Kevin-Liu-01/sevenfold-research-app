@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import type { Paper } from "../../../schema/db-types";
+import type { Paper, UploadedPaperPayload } from "../../../schema/db-types";
 import { useWorkbench } from "../context/WorkbenchContext";
 import supabase from "../auth/supabaseClient";
 import WebViewer from "@pdftron/pdfjs-express";
+import UploadPaperModal from "../sidebar/UploadPaperModal";
+import Modal from "../components/ui/Modal";
 
 // PDF Viewer Component - displays a single paper
 const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, projectId }) => {
@@ -233,8 +235,10 @@ const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, proje
 
 // Library Home View Component - displays all papers in a table
 const LibraryHomeView: React.FC = () => {
-    const { papers, setSelectedPaper, projectId } = useWorkbench();
+    const { papers, setSelectedPaper, projectId, refreshPapers, openModal, closeModal } = useWorkbench();
     const [searchQuery, setSearchQuery] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const filteredPapers = useMemo(() => {
         if (!searchQuery.trim()) return papers;
@@ -255,6 +259,159 @@ const LibraryHomeView: React.FC = () => {
         setSelectedPaper(paper);
     };
 
+    const processPdf = async (payload: {
+        file: File;
+        titlePage: number | null;
+        abstractPages: number[];
+    }) => {
+        const {
+            data: { session },
+            error: authErr,
+        } = await supabase.auth.getSession();
+        if (authErr || !session?.access_token) throw new Error("Not authenticated");
+
+        const processFormData = new FormData();
+        processFormData.append("file", payload.file);
+        processFormData.append("project_id", projectId);
+
+        const pagesToProcess = [
+            ...(payload.titlePage ? [payload.titlePage] : []),
+            ...(payload.abstractPages || []),
+        ];
+        const pages_spec =
+            pagesToProcess.length > 0
+                ? [...new Set(pagesToProcess)].sort((a, b) => a - b).join(",")
+                : "1,2";
+        processFormData.append("pages_spec", pages_spec);
+
+        const processResponse = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
+            {
+                method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                body: processFormData,
+            }
+        );
+
+        if (processResponse.ok) {
+            return await processResponse.json();
+        } else {
+            const errData = await processResponse
+                .json()
+                .catch(() => ({ detail: "Failed to process PDF" }));
+            throw new Error(errData.detail);
+        }
+    };
+
+    const linkPaper = async ({ paperId, file }: { paperId: string; file: File }) => {
+        setIsUploading(true);
+        setError(null);
+        try {
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) throw new Error("Not authenticated");
+
+            const formData = new FormData();
+            formData.append("paper_id", paperId);
+            formData.append("project_id", projectId);
+            formData.append("file", file);
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/papers/link-paper`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || "Failed to link paper.");
+            }
+
+            await refreshPapers();
+            closeModal();
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An unknown error occurred");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const uploadPaper = async (payload: UploadedPaperPayload): Promise<boolean> => {
+        setIsUploading(true);
+        setError(null);
+        try {
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) throw new Error("Not authenticated");
+
+            const finalMetadata = {
+                title: payload.title?.trim() || payload.file.name.replace(".pdf", ""),
+                authors: payload.authors || [],
+                doi: payload.doi?.trim() || null,
+                year: null as number | null,
+                month: null as number | null,
+                day: null as number | null,
+            };
+
+            if (payload.publicationDate) {
+                const date = new Date(payload.publicationDate);
+                finalMetadata.year = date.getUTCFullYear();
+                finalMetadata.month = date.getUTCMonth() + 1;
+                finalMetadata.day = date.getUTCDate();
+            }
+
+            const uploadFormData = new FormData();
+            uploadFormData.append("file", payload.file);
+            uploadFormData.append("project_id", projectId);
+            uploadFormData.append("paper_type", "source");
+            uploadFormData.append("metadata_json", JSON.stringify(finalMetadata));
+
+            const uploadResponse = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
+                {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                    body: uploadFormData,
+                }
+            );
+
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                throw new Error(JSON.parse(errorText).detail || "Upload failed");
+            }
+
+            await refreshPapers();
+            return true;
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Failed to upload paper");
+            return false;
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleOpenUploadModal = () => {
+        setError(null);
+        openModal(
+            <Modal onClose={closeModal}>
+                <UploadPaperModal
+                    onClose={closeModal}
+                    onProcessPdf={processPdf}
+                    onLinkPaper={linkPaper}
+                    onSubmit={async (data) => {
+                        const success = await uploadPaper(data);
+                        if (success) closeModal();
+                    }}
+                    isUploading={isUploading}
+                />
+            </Modal>
+        );
+    };
+
     return (
         <div className="flex flex-col h-full bg-app-inner px-8 py-6">
             {/* Header */}
@@ -271,26 +428,37 @@ const LibraryHomeView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative max-w-xl">
-                    <span className="material-icons text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2">
-                        search
-                    </span>
-                    <input
-                        type="text"
-                        placeholder="Search by title, author, or year..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-                    />
-                    {searchQuery && (
-                        <button
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                            <span className="material-icons text-xl">close</span>
-                        </button>
-                    )}
+                {/* Search Bar and Upload Button */}
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-1 max-w-xl">
+                        <span className="material-icons text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2">
+                            search
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Search by title, author, or year..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <span className="material-icons text-xl">close</span>
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleOpenUploadModal}
+                        className="group inline-flex items-center space-x-2 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-4 py-2 rounded-lg transition hover:opacity-90"
+                    >
+                        <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                            upload_file
+                        </span>
+                        <span>Upload Paper</span>
+                    </button>
                 </div>
             </div>
 

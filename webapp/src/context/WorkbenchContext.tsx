@@ -18,8 +18,6 @@ interface WorkbenchContextType {
     // View management
     currentView: ViewType;
     setCurrentView: (view: ViewType) => void;
-    hoveredView: ViewType | null;
-    setHoveredView: (view: ViewType | null) => void;
 
     // Chat
     convos: ChatConvo[];
@@ -77,11 +75,7 @@ export const WorkbenchProvider: React.FC<{
             }
         }
     }, [routeView, location.pathname, navigate, pathSegments]);
-    const [hoveredView, _setHoveredView] = useState<ViewType | null>(null);
-    const hoverTimeoutRef = useRef<number | null>(null);
 
-    // We lock the hovered view if modal is open
-    const [lockedView, setLockedView] = useState<ViewType | null>(null);
     // Library
     const [papers, setPapers] = useState<Paper[]>([]);
     const [selectedPaper, setSelectedPaper] = usePersistentState<Paper | null>(
@@ -112,43 +106,12 @@ export const WorkbenchProvider: React.FC<{
         }
     }, [notification]);
 
-    const setHoveredView = useCallback(
-        (view: ViewType | null) => {
-            if (modal) {
-                // lock current engagement until modal closes
-                if (view) setLockedView(view);
-                return;
-            }
-
-            // Always clear any pending timeout when the hover state changes.
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current);
-            }
-
-            if (view === null) {
-                // If we're clearing the hover, delay it to allow moving to the panel.
-                hoverTimeoutRef.current = window.setTimeout(() => {
-                    _setHoveredView(null);
-                }, 150); // 150ms delay
-            } else {
-                // If we're setting a new hover view, do it immediately.
-                _setHoveredView(view);
-            }
-        },
-        [modal]
-    );
-
-    const openModal = useCallback(
-        (content: React.ReactNode) => {
-            setLockedView(currentView); // persist sidebar engagement
-            setModal(content);
-        },
-        [currentView]
-    );
+    const openModal = useCallback((content: React.ReactNode) => {
+        setModal(content);
+    }, []);
 
     const closeModal = useCallback(() => {
         setModal(null);
-        setLockedView(null); // release lock
     }, []);
 
     const refreshPapers = useCallback(async () => {
@@ -269,8 +232,6 @@ export const WorkbenchProvider: React.FC<{
                 projectId,
                 currentView,
                 setCurrentView,
-                hoveredView: lockedView ?? hoveredView,
-                setHoveredView,
                 papers,
                 refreshPapers,
                 selectedPaper,

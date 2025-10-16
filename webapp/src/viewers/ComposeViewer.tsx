@@ -1,10 +1,70 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { ChangeEvent } from "react";
+import type { Composition } from "../../../schema/db-types";
 import { marked } from "marked";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
+
+const CompositionListPanel: React.FC<{
+    compositions: Composition[];
+    selectedComposition: Composition | null;
+    onSelectComposition: (composition: Composition) => void;
+    onNewComposition: () => void;
+    isCreating: boolean;
+}> = ({ compositions, selectedComposition, onSelectComposition, onNewComposition, isCreating }) => {
+
+    return (
+        <div className="w-64 bg-app-outer border-r border-gray-200 p-4 flex flex-col space-y-3">
+            <button
+                onClick={onNewComposition}
+                disabled={isCreating}
+                className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90 disabled:opacity-50"
+            >
+                {isCreating ? (
+                    <span className="material-icons text-base animate-spin text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                        refresh
+                    </span>
+                ) : (
+                    <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                        add
+                    </span>
+                )}
+                <span>{isCreating ? "Creating..." : "New Composition"}</span>
+            </button>
+
+            <div className="flex-1 overflow-y-auto">
+                {compositions.length === 0 ? (
+                    <div className="text-gray-500 text-sm text-center py-4">No compositions found</div>
+                ) : (
+                    <div className="flex flex-col space-y-2">
+                        {compositions.map((composition) => (
+                            <div
+                                key={composition.id}
+                                onClick={() => onSelectComposition(composition)}
+                                className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
+                                    ${selectedComposition?.id === composition.id ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
+                                `}
+                            >
+                                <div className="flex items-center space-x-1">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
+                                            {composition.title || "Untitled"}
+                                        </span>
+                                        <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                                            {composition.type?.toUpperCase() || "UNKNOWN"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const Editor: React.FC = () => {
     const { selectedComposition, refreshCompositions } = useWorkbench();
@@ -15,7 +75,7 @@ const Editor: React.FC = () => {
                 <div className="text-center">
                     <span className="material-icons text-6xl text-gray-300 mb-4">description</span>
                     <h3 className="text-xl font-medium text-gray-500 mb-2">No Composition Selected</h3>
-                    <p className="text-gray-400">Select a composition from the sidebar to start editing</p>
+                    <p className="text-gray-400">Select or create a composition to start editing</p>
                 </div>
             </div>
         );
@@ -308,4 +368,72 @@ const Editor: React.FC = () => {
     );
 };
 
-export default Editor;
+const ComposeViewer: React.FC = () => {
+    const { projectId, compositions, selectedComposition, setSelectedComposition, refreshCompositions } = useWorkbench();
+    const [isCreating, setIsCreating] = useState(false);
+
+    const handleSelectComposition = (composition: Composition) => {
+        setSelectedComposition(composition);
+    };
+
+    const createNewComposition = async () => {
+        setIsCreating(true);
+        try {
+            const {
+                data: { session },
+                error: authErr,
+            } = await supabase.auth.getSession();
+            if (authErr || !session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            const res = await fetch(
+                `${import.meta.env.VITE_API_BASE_URL}/compose/new_composition`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({
+                        project_id: projectId,
+                        type: "latex",
+                        title: "",
+                        contents: "",
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Failed to create composition: ${res.status} – ${text}`);
+            }
+
+            const newComposition = await res.json();
+            setSelectedComposition(newComposition);
+            await refreshCompositions();
+        } catch (error: unknown) {
+            console.error("Error creating composition:", error);
+            alert(error instanceof Error ? error.message : "Failed to create composition");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    return (
+        <div className="flex h-full bg-app-inner">
+            <CompositionListPanel
+                compositions={compositions}
+                selectedComposition={selectedComposition}
+                onSelectComposition={handleSelectComposition}
+                onNewComposition={createNewComposition}
+                isCreating={isCreating}
+            />
+            <div className="flex-1">
+                <Editor />
+            </div>
+        </div>
+    );
+};
+
+export default ComposeViewer;
