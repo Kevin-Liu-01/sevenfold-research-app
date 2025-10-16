@@ -61,8 +61,8 @@
     --color-viix-orange-700: #b14313;
     --color-viix-orange-800: #8f3410;
     --color-viix-orange-900: #74280d;
-    --color-app-outer: #fdfdf9;
-    --color-app-inner: #fffef9;
+    --color-app-outer: #e8e6e0;
+    --color-app-inner: #f5f4f0;
     --color-off-black: #1a1f2e;
 }
 
@@ -108,13 +108,13 @@
     .slider-mask::before {
         left: 0;
         top: 0;
-        background: linear-gradient(to right, #fdfdf9 0%, rgba(253, 253, 249, 0) 100%);
+        background: linear-gradient(to right, #e8e6e0 0%, rgba(232, 230, 224, 0) 100%);
     }
 
     .slider-mask::after {
         right: 0;
         top: 0;
-        background: linear-gradient(to left, #fdfdf9 0%, rgba(253, 253, 249, 0) 100%);
+        background: linear-gradient(to left, #e8e6e0 0%, rgba(232, 230, 224, 0) 100%);
     }
 }
 
