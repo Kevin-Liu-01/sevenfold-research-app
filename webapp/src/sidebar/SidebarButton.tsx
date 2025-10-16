@@ -13,7 +13,7 @@ export default function SidebarButton({ targetView, icon, label }: SidebarButton
     const iconBase = "material-icons-outlined transition-transform duration-200";
     const labelBase = "text-xs mt-0.5 transition-all duration-200 text-[var(--color-off-black)]";
 
-    const { currentView, setCurrentView, setHoveredView } = useWorkbench();
+    const { currentView, setCurrentView } = useWorkbench();
 
     const active = currentView === targetView;
 
@@ -32,11 +32,7 @@ export default function SidebarButton({ targetView, icon, label }: SidebarButton
         <button
             type="button"
             className={wrapper}
-            onClick={() => {
-                setCurrentView(targetView);
-                setHoveredView(null);
-            }}
-            onMouseEnter={() => setHoveredView(targetView)}
+            onClick={() => setCurrentView(targetView)}
         >
             <div className={`${boxBase} ${boxState}`}>
                 <span className={`${iconBase} ${iconState}`}>{icon}</span>

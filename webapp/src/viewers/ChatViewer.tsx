@@ -499,8 +499,8 @@ const ChatInput: React.FC<{
     disabled: boolean;
 }> = ({ value, setValue, onSend, disabled }) => {
     return (
-        <div className="fixed bottom-0 left-0 w-full py-4 z-10">
-            <div className="max-w-3xl mx-auto bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="w-full py-4 px-8">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
                 <textarea
                     placeholder="Ask another question..."
                     className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
@@ -516,7 +516,7 @@ const ChatInput: React.FC<{
                 />
                 <div className="flex justify-between items-center mt-3">
                     <div className="flex gap-2">
-                        {/* Hidden non-functional buttons 
+                        {/* Hidden non-functional buttons
                         <button className="flex items-center gap-1 border border-orange-200 bg-white rounded-full px-3 py-1 text-sm text-orange-600 hover:bg-orange-50">
                             <span className="material-icons text-base">attach_file</span>
                             Source
@@ -613,10 +613,99 @@ const NewChatPage: React.FC<{
     );
 };
 
+const ConversationListPanel: React.FC<{
+    convos: ChatConvo[];
+    selectedConvo: ChatConvo | null;
+    onSelectConvo: (convo: ChatConvo) => void;
+    onNewChat: () => void;
+}> = ({ convos, selectedConvo, onSelectConvo, onNewChat }) => {
+    return (
+        <div className="w-64 bg-app-outer border-r border-gray-200 p-4 flex flex-col space-y-3">
+            <button
+                onClick={onNewChat}
+                className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90"
+            >
+                <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                    chat
+                </span>
+                <span>New Chat</span>
+            </button>
+            <div className="flex-1 overflow-y-auto">
+                {convos.length === 0 ? (
+                    <div className="text-gray-500 text-sm text-center py-4">No conversations yet</div>
+                ) : (
+                    <div className="flex flex-col space-y-2">
+                        {convos.map((convo) => (
+                            <div
+                                key={convo.id}
+                                onClick={() => onSelectConvo(convo)}
+                                className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
+                                    ${selectedConvo?.id === convo.id ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
+                                `}
+                            >
+                                <div className="flex items-center space-x-1">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
+                                            {convo.name || "Untitled"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const SourcesIngestedPanel: React.FC<{
+    papers: Paper[];
+    selectedPaperIds: string[];
+    onTogglePaper: (paperId: string) => void;
+}> = ({ papers, selectedPaperIds, onTogglePaper }) => {
+    return (
+        <div className="w-64 bg-app-outer border-l border-gray-200 p-4 flex flex-col space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700">Sources Ingested</h3>
+            <div className="flex-1 overflow-y-auto">
+                {papers.length === 0 ? (
+                    <div className="text-gray-500 text-sm text-center py-4">No sources available</div>
+                ) : (
+                    <div className="flex flex-col space-y-2">
+                        {papers.map((paper) => (
+                            <label
+                                key={paper.id}
+                                className="flex items-start space-x-2 p-2 bg-app-inner rounded-md hover:bg-gray-100 cursor-pointer transition"
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPaperIds.includes(paper.id)}
+                                    onChange={() => onTogglePaper(paper.id)}
+                                    className="mt-1 h-4 w-4 rounded border-gray-300 focus:ring-viix-orange-400"
+                                    style={{ accentColor: '#f57920' }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-gray-800 truncate">
+                                        {paper.title || "Untitled Paper"}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                        {paper.authors?.join(", ") || "Unknown author"}
+                                    </div>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const ChatViewer: React.FC = () => {
     const {
         projectId,
         papers,
+        convos,
         selectedConvo,
         setSelectedConvo,
         refreshConvos,
@@ -888,31 +977,54 @@ const ChatViewer: React.FC = () => {
         getPaperUris,
     ]);
 
+    const handleNewChat = () => {
+        setSelectedConvo(null);
+    };
+
+    const handleSelectConvo = (convo: ChatConvo) => {
+        setSelectedConvo(convo);
+    };
+
     return (
-        <div className="min-h-screen max-w-5xl mx-auto flex flex-col bg-app-inner">
-            {!selectedConvo ? (
-                <div className="flex-1 px-8 pt-10 pb-20">
-                    <NewChatPage
-                        value={input}
-                        setValue={setInput}
-                        onSend={sendMessage}
-                        papers={papers}
-                        selectedPaperIds={selectedPaperIds}
-                        togglePaper={togglePaper}
-                        disabled={sending}
-                    />
+        <div className="flex h-full bg-app-inner">
+            <ConversationListPanel
+                convos={convos}
+                selectedConvo={selectedConvo}
+                onSelectConvo={handleSelectConvo}
+                onNewChat={handleNewChat}
+            />
+            <div className="flex-1 flex flex-col items-center">
+                <div className="w-full max-w-5xl flex flex-col h-full">
+                    {!selectedConvo ? (
+                        <div className="flex-1 px-8 pt-10 pb-20">
+                            <NewChatPage
+                                value={input}
+                                setValue={setInput}
+                                onSend={sendMessage}
+                                papers={papers}
+                                selectedPaperIds={selectedPaperIds}
+                                togglePaper={togglePaper}
+                                disabled={sending}
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            <ConvoHeaderWithNavigation convo={selectedConvo} messages={messages} onSelectPaper={handleSelectPaper} />
+                            <ChatInput
+                                value={input}
+                                setValue={setInput}
+                                onSend={sendMessage}
+                                disabled={sending}
+                            />
+                        </>
+                    )}
                 </div>
-            ) : (
-                <>
-                    <ConvoHeaderWithNavigation convo={selectedConvo} messages={messages} onSelectPaper={handleSelectPaper} />
-                    <ChatInput
-                        value={input}
-                        setValue={setInput}
-                        onSend={sendMessage}
-                        disabled={sending}
-                    />
-                </>
-            )}
+            </div>
+            <SourcesIngestedPanel
+                papers={papers}
+                selectedPaperIds={selectedPaperIds}
+                onTogglePaper={togglePaper}
+            />
         </div>
     );
 };

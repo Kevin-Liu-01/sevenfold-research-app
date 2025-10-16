@@ -164,13 +164,10 @@ const FeedbackButton: React.FC = () => {
 };
 
 export default function Sidebar() {
-    const { setHoveredView, notification } = useWorkbench();
+    const { notification } = useWorkbench();
 
     return (
-        <div
-            className="flex flex-col space-between p-3 w-20 z-10 bg-app-outer"
-            onMouseLeave={() => setHoveredView(null)}
-        >
+        <div className="flex flex-col space-between p-3 w-20 z-10 bg-app-outer">
             <HomeButton />
             <nav className="flex flex-1 flex-col justify-top space-y-6">
                 {navItems.map((item) => (
