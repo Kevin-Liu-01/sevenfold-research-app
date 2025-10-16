@@ -92,7 +92,7 @@ const AvatarButton: React.FC = () => {
                         `${profile?.first_name ?? "User"} ${profile?.last_name ?? ""}`.trim() ||
                         "Avatar"
                     }
-                    className="h-11 w-11 mx-auto rounded-full border border-gray-200 cursor-pointer transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
+                    className="h-11 w-11 mx-auto rounded-full border-2 border-gray-300 cursor-pointer transition-all duration-200 hover:border-gray-400 hover:shadow-md"
                     onError={() => setAvatarUrl(null)}
                 />
             </div>
@@ -102,7 +102,7 @@ const AvatarButton: React.FC = () => {
                     avatarMenuOpen
                         ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
                         : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-                } ml-2 w-max bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-40`}
+                } ml-2 w-max bg-white border border-gray-300 rounded-xl shadow-xl overflow-hidden z-40`}
             >
                 {/* Account button commented out - non-functional
                 <button

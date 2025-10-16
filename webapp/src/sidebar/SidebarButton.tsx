@@ -19,13 +19,13 @@ export default function SidebarButton({ targetView, icon, label }: SidebarButton
 
     // conditional classes
     const boxState = active
-        ? "bg-[var(--color-off-black)] text-[var(--color-app-inner)] shadow-sm"
-        : "group-hover:bg-gray-100";
+        ? "bg-[var(--color-off-black)] text-white shadow-md"
+        : "group-hover:bg-gray-200";
     const iconState = active
-        ? "text-lg scale-[1.18] text-[var(--color-app-inner)]"
+        ? "text-lg scale-[1.18] text-white"
         : "text-base group-hover:scale-[1.15] text-[var(--color-off-black)]";
     const labelState = active
-        ? "font-medium text-[var(--color-off-black)]"
+        ? "font-semibold text-[var(--color-off-black)]"
         : "font-normal group-hover:font-medium";
 
     return (

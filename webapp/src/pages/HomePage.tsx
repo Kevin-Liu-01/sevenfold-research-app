@@ -68,21 +68,21 @@ const HomePage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-app-outer">
                 <div className="relative">
                     <span className="material-icons-outlined text-6xl text-gray-400 animate-spin">
                         data_usage
                     </span>
                 </div>
-                <div className="text-lg text-gray-600">Loading projects...</div>
+                <div className="text-lg text-gray-700">Loading projects...</div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-app-outer">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
+            <header className="bg-white shadow-sm border-b border-gray-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-7 py-6">
                     <div className="flex justify-between items-center">
                         <div className="flex flex-row items-center gap-4">
@@ -92,25 +92,25 @@ const HomePage: React.FC = () => {
                                 className="h-[5rem] w-auto"
                             />
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                                <h1 className="text-3xl font-bold text-[var(--color-off-black)] mb-1">
                                     Your Projects
                                 </h1>
-                                <p className="text-gray-600">
+                                <p className="text-gray-700">
                                     Manage and organize your research projects
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-600">{user?.email}</span>
+                            <span className="text-sm text-gray-700">{user?.email}</span>
                             <button
                                 onClick={handleSignOut}
-                                className="text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition-all duration-200"
+                                className="text-gray-700 hover:text-[var(--color-off-black)] border border-gray-400 rounded-lg px-4 py-2 hover:bg-gray-100 transition-all duration-200 font-medium"
                             >
                                 Sign Out
                             </button>
                             <button
                                 onClick={() => navigate("/settings", { state: { from: "home" } })}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-[var(--color-off-black)] border border-gray-400 rounded-lg hover:bg-gray-100 transition-all duration-200 font-medium"
                                 title="User Settings"
                             >
                                 <span className="material-icons-outlined text-lg">settings</span>
@@ -149,13 +149,13 @@ const HomePage: React.FC = () => {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center bg-white border border-gray-300 rounded-lg p-1 shadow-sm">
+                    <div className="flex items-center bg-white border border-gray-400 rounded-lg p-1 shadow-sm">
                         <button
                             onClick={() => setViewType("card")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
                                 viewType === "card"
-                                    ? "bg-viix-orange text-white shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                    ? "bg-viix-orange text-white shadow-md font-medium"
+                                    : "text-gray-700 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
                             <span className="material-icons-outlined text-lg">grid_view</span>
@@ -165,8 +165,8 @@ const HomePage: React.FC = () => {
                             onClick={() => setViewType("table")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
                                 viewType === "table"
-                                    ? "bg-viix-orange text-white shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                    ? "bg-viix-orange text-white shadow-md font-medium"
+                                    : "text-gray-700 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
                             <span className="material-icons-outlined text-lg">view_list</span>
@@ -179,14 +179,14 @@ const HomePage: React.FC = () => {
                 {filteredProjects.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="mb-4">
-                            <span className="material-icons-outlined text-6xl text-gray-300">
+                            <span className="material-icons-outlined text-6xl text-gray-400">
                                 folder_open
                             </span>
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
                             {projects.length === 0 ? "No projects yet" : "No projects found"}
                         </h3>
-                        <p className="text-gray-500 mb-6">
+                        <p className="text-gray-600 mb-6">
                             {projects.length === 0
                                 ? "Create your first project to get started."
                                 : "Try adjusting your search terms!"}
@@ -205,8 +205,8 @@ const HomePage: React.FC = () => {
                     <>
                         {/* Results Counter */}
                         <div className="flex items-center justify-between mb-6">
-                            <p className="flex items-center gap-1 text-sm text-gray-600">
-                                <span className="material-icons-outlined text-3xl text-gray-500">
+                            <p className="flex items-center gap-1 text-sm text-gray-700 font-medium">
+                                <span className="material-icons-outlined text-3xl text-gray-600">
                                     dashboard
                                 </span>
                                 {filteredProjects.length === 1
@@ -222,24 +222,24 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-white p-6 rounded-2xl border border-gray-200 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer"
+                                        className="group bg-white p-6 rounded-2xl border-2 border-gray-300 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
-                                                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-viix-orange transition-colors duration-200">
+                                                <h3 className="text-xl font-semibold text-[var(--color-off-black)] mb-2 group-hover:text-viix-orange transition-colors duration-200">
                                                     {project.name}
                                                 </h3>
-                                                <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+                                                <p className="text-gray-700 text-sm line-clamp-2 leading-relaxed">
                                                     {project.description}
                                                 </p>
                                             </div>
-                                            <span className="material-icons-outlined text-gray-400 group-hover:text-viix-orange transition-colors duration-200">
+                                            <span className="material-icons-outlined text-gray-500 group-hover:text-viix-orange transition-colors duration-200">
                                                 arrow_forward_ios
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                        <div className="flex items-center justify-between pt-4 border-t border-gray-300">
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <span className="material-icons-outlined text-sm">
                                                     schedule
                                                 </span>
@@ -258,53 +258,53 @@ const HomePage: React.FC = () => {
 
                         {/* Table View */}
                         {viewType === "table" && (
-                            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                            <div className="bg-white rounded-2xl border-2 border-gray-300 overflow-hidden shadow-md">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
+                                        <thead className="bg-gray-100 border-b-2 border-gray-300">
                                             <tr>
-                                                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
+                                                <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Project
                                                 </th>
-                                                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
+                                                <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Description
                                                 </th>
-                                                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900">
+                                                <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Created
                                                 </th>
-                                                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-900">
+                                                <th className="text-right py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Actions
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200">
+                                        <tbody className="divide-y divide-gray-300">
                                             {filteredProjects.map((project) => (
                                                 <tr
                                                     key={project.id}
                                                     onClick={() =>
                                                         navigate(`/project/${project.id}`)
                                                     }
-                                                    className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                                                    className="hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
                                                 >
                                                     <td className="py-4 px-6">
-                                                        <div className="font-semibold text-gray-900 hover:text-viix-orange transition-colors duration-200">
+                                                        <div className="font-semibold text-[var(--color-off-black)] hover:text-viix-orange transition-colors duration-200">
                                                             {project.name}
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6">
-                                                        <div className="text-sm text-gray-600 max-w-md truncate">
+                                                        <div className="text-sm text-gray-700 max-w-md truncate">
                                                             {project.description}
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6">
-                                                        <div className="text-sm text-gray-600">
+                                                        <div className="text-sm text-gray-700">
                                                             {new Date(
                                                                 project.created_at
                                                             ).toLocaleDateString()}
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6 text-right">
-                                                        <button className="text-gray-400 hover:text-viix-orange transition-colors duration-200">
+                                                        <button className="text-gray-500 hover:text-viix-orange transition-colors duration-200">
                                                             <span className="material-icons-outlined">
                                                                 arrow_forward_ios
                                                             </span>
