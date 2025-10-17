@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+
 export const ProductShowcase = () => {
   return (
     <div className="relative mx-auto p-3" style={{ backgroundImage: "url('/images/bob.jpg')", backgroundSize: "cover", backgroundPosition: "center", maxWidth: 'var(--max-width-screen)' }}>

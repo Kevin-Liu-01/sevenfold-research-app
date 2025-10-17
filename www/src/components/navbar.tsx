@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MenuIcon, XIcon, ArrowUpRightIcon } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ShaderGradientCanvas, ShaderGradient } from "@shadergradient/react";
 import * as reactSpring from "@react-spring/three";
 
@@ -27,9 +28,12 @@ export const Navbar = () => {
   return (
     <nav
       aria-label="Primary"
-      className="sticky top-0 z-50 w-full bg-background/20 backdrop-blur-sm"
+      className="sticky top-0 z-50 w-full bg-background"
     >
-      <div className="mx-auto flex h-16 items-center px-12" style={{ maxWidth: 'var(--max-width-screen)' }}>
+      <div
+        className="mx-auto flex h-16 items-center justify-between px-12"
+        style={{ maxWidth: 'var(--max-width-screen)' }}
+      >
         <Link
           href="/"
           className="inline-flex items-center"
@@ -44,16 +48,17 @@ export const Navbar = () => {
           />
         </Link>
 
-        <div className="flex-1" />
-
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <Link
             href={APP_BASE_URL}
-            className="hidden md:inline-flex items-center gap-1 rounded-full bg-black px-5 py-2.5 text-white font-semibold hover:bg-gray-800 transition-all hover:shadow-lg"
-            style={{ boxShadow: BOX_SHADOW }}
+            className="hidden md:inline-flex items-center gap-1.5 rounded-2xl px-5 py-2 text-white font-semibold hover:opacity-90 transition-all"
+            style={{
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 0 rgba(0, 0, 0, 0.3)',
+              background: 'linear-gradient(to bottom, rgba(60, 60, 60, 1), rgba(30, 30, 30, 1))'
+            }}
           >
             Open&nbsp;App
-            <ArrowUpRightIcon size={18} />
+            <ArrowUpRightIcon size={16} strokeWidth={2.5} />
           </Link>
 
           <button

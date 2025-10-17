@@ -2,6 +2,11 @@
 
 import { motion } from "framer-motion";
 
+const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "").replace(
+  /\/$/,
+  ""
+);
+
 export const CTA = () => {
   return (
     <section className="w-full bg-teal-900 py-20 sm:py-32">
@@ -24,8 +29,8 @@ export const CTA = () => {
         </div>
         <div className="w-full lg:w-1/3 flex items-center justify-center">
           <a
-            href="#"
-            className="inline-block rounded-lg bg-white px-8 py-4 font-dmsans text-lg font-bold text-black transition hover:bg-gray-100"
+            href={APP_BASE_URL}
+            className="inline-block rounded-lg bg-background px-8 py-4 font-dmsans text-lg font-bold text-black transition hover:bg-gray-200"
           >
             Try Sevenfold Now
           </a>
