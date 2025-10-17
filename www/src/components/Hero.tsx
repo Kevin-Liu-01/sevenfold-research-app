@@ -1,6 +1,5 @@
 "use client";
 
-import { ShaderGradientCanvas, ShaderGradient } from "@shadergradient/react";
 import { Fragment } from "react";
 import { Sparkles, Mail } from "lucide-react";
 import { motion } from "framer-motion";

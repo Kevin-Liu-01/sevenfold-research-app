@@ -4,15 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
+const LOGOS = [
+  { name: "Princeton University", src: "/images/usedby/princeton.png" },
+  { name: "Harvard University", src: "/images/usedby/harvard.png" },
+  { name: "University of Washington", src: "/images/usedby/uw.png" },
+  { name: "Technical University of Munich", src: "/images/usedby/tum.svg" },
+  { name: "Stanford University", src: "/images/usedby/stanford.png" },
+  { name: "University of Oxford", src: "/images/usedby/oxford.svg" },
+] as const;
+
 export const TrustedByCarousel = () => {
-  const logos = [
-    { name: "Princeton University", src: "/images/usedby/princeton.png" },
-    { name: "Harvard University", src: "/images/usedby/harvard.png" },
-    { name: "University of Washington", src: "/images/usedby/uw.png" },
-    { name: "Technical University of Munich", src: "/images/usedby/tum.svg" },
-    { name: "Stanford University", src: "/images/usedby/stanford.png" },
-    { name: "University of Oxford", src: "/images/usedby/oxford.svg" },
-  ] as const;
 
   const ROTATION_INTERVAL_MS = 3000;
   const SLOT_COUNT = 3;
@@ -33,9 +34,10 @@ export const TrustedByCarousel = () => {
     },
   } as const;
 
-  const slotCount = Math.min(SLOT_COUNT, logos.length);
+  const logoCount = LOGOS.length;
+  const slotCount = Math.min(SLOT_COUNT, logoCount);
   const [visibleIndices, setVisibleIndices] = useState(() =>
-    Array.from({ length: slotCount }, (_, idx) => idx % logos.length)
+    Array.from({ length: slotCount }, (_, idx) => idx % logoCount)
   );
   const scheduledTimeoutsRef = useRef<number[]>([]);
   const currentStartRef = useRef(0);
@@ -46,16 +48,16 @@ export const TrustedByCarousel = () => {
       scheduledTimeoutsRef.current = [];
     };
 
-    if (slotCount === 0 || logos.length <= slotCount) {
+    if (slotCount === 0 || logoCount <= slotCount) {
       return () => clearScheduled();
     }
 
     const intervalId = window.setInterval(() => {
       clearScheduled();
-      const nextStart = (currentStartRef.current + slotCount) % logos.length;
+      const nextStart = (currentStartRef.current + slotCount) % logoCount;
       const targetIndices = Array.from(
         { length: slotCount },
-        (_, slot) => (nextStart + slot) % logos.length
+        (_, slot) => (nextStart + slot) % logoCount
       );
       targetIndices.forEach((targetIndex, slot) => {
         const timeoutId = window.setTimeout(() => {
@@ -75,7 +77,7 @@ export const TrustedByCarousel = () => {
       clearScheduled();
       window.clearInterval(intervalId);
     };
-  }, [slotCount]);
+  }, [logoCount, slotCount]);
 
   return (
     <section className="py-12 sm:py-16 w-full flex flex-col items-center justify-center px-12 bg-[#f7f7f4]">
@@ -85,7 +87,7 @@ export const TrustedByCarousel = () => {
         </p>
         <div className="mx-auto grid max-w-4xl grid-cols-1 gap-12 sm:grid-cols-3 items-center">
           {visibleIndices.map((logoIndex, slotIndex) => {
-            const logo = logos[logoIndex];
+            const logo = LOGOS[logoIndex];
             return (
               <div
                 key={slotIndex}

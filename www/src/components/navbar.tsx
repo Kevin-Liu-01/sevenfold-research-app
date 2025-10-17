@@ -4,8 +4,6 @@ import { useState } from "react";
 import { MenuIcon, XIcon, ArrowUpRightIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShaderGradientCanvas, ShaderGradient } from "@shadergradient/react";
-import * as reactSpring from "@react-spring/three";
 
 const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "").replace(
   /\/$/,
