@@ -222,9 +222,9 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-app-inner p-6 rounded-2xl border border-gray-300 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                                        className="group bg-app-inner p-6 rounded-2xl border border-gray-300 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col"
                                     >
-                                        <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-semibold text-[var(--color-off-black)] mb-2 group-hover:text-viix-orange transition-colors duration-200">
                                                     {project.name}
@@ -238,18 +238,10 @@ const HomePage: React.FC = () => {
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-300">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <span className="material-icons-outlined text-sm">
-                                                    schedule
-                                                </span>
-                                                <span>
-                                                    Created{" "}
-                                                    {new Date(
-                                                        project.created_at
-                                                    ).toLocaleDateString()}
-                                                </span>
-                                            </div>
+                                        <div className="mt-auto pt-4">
+                                            <span className="text-xs text-gray-600">
+                                                Created {new Date(project.created_at).toLocaleDateString()}
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
