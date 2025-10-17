@@ -82,7 +82,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-app-outer">
             {/* Header */}
-            <header className="bg-app-outer border-b border-gray-300">
+            <header className="bg-app-outer border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-6 py-5">
                     <div className="flex justify-between items-center">
                         <div className="flex flex-row items-center gap-3">
@@ -111,7 +111,7 @@ const HomePage: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleSignOut}
-                                className="text-sm text-gray-600 hover:text-[var(--color-off-black)] border border-gray-300 rounded-lg px-3 py-2 transition-all duration-200 font-medium hover:bg-gray-100"
+                                className="text-sm text-gray-600 hover:text-[var(--color-off-black)] border border-gray-200 rounded-lg px-3 py-2 transition-all duration-200 font-medium hover:bg-gray-100"
                             >
                                 Sign Out
                             </button>
@@ -150,7 +150,7 @@ const HomePage: React.FC = () => {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center bg-app-outer border border-gray-300 rounded-lg p-1">
+                    <div className="flex items-center bg-app-outer border border-gray-200 rounded-lg p-1">
                         <button
                             onClick={() => setViewType("card")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
@@ -220,7 +220,7 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-app-outer p-5 rounded-xl border border-gray-300 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col min-h-[140px]"
+                                        className="group bg-app-outer p-5 rounded-xl border border-gray-200 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col min-h-[140px]"
                                     >
                                         <div className="flex items-start justify-between mb-3 flex-1">
                                             <div className="flex-1 min-w-0">
@@ -248,10 +248,10 @@ const HomePage: React.FC = () => {
 
                         {/* Table View */}
                         {viewType === "table" && (
-                            <div className="bg-app-outer rounded-2xl border border-gray-300 overflow-hidden shadow-md">
+                            <div className="bg-app-outer rounded-2xl border border-gray-200 overflow-hidden shadow-md">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gray-100 border-b border-gray-300">
+                                        <thead className="bg-gray-100 border-b border-gray-200">
                                             <tr>
                                                 <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Project
@@ -267,7 +267,7 @@ const HomePage: React.FC = () => {
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-300">
+                                        <tbody className="divide-y divide-gray-200">
                                             {filteredProjects.map((project) => (
                                                 <tr
                                                     key={project.id}

@@ -40,7 +40,7 @@ const LegalLayout: React.FC<LegalLayoutProps> = ({
                         <h3 className="mb-4 text-sm font-semibold uppercase text-gray-600">
                             Related Policies
                         </h3>
-                        <ul className="border-l border-gray-200 pl-4 space-y-4 text-gray-700">
+                        <ul className="border-l border-gray-200/50 pl-4 space-y-4 text-gray-700">
                             {navItems.map((item) => {
                                 const isActive = pageKey === item.id;
                                 return (

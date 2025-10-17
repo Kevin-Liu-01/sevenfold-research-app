@@ -151,12 +151,12 @@ const SettingsViewer: React.FC = () => {
     }
 
     return (
-        <div className="p-6 md:p-10 h-full overflow-auto">
-            {/* Header card */}
-            <div className="mx-auto max-w-4xl rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-emerald-50 shadow-sm">
-                <div className="flex items-center justify-between px-6 py-5 border-b border-amber-200/70">
+        <div className="h-full overflow-auto bg-app-inner">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur py-4">
+                <div className="flex items-center justify-between max-w-4xl mx-auto px-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Project Settings</h1>
+                        <h1 className="text-xl font-semibold text-gray-800">Project Settings</h1>
                         <p className="text-sm text-gray-600 mt-1">
                             Manage the project name, description, and raw settings JSON.
                         </p>
@@ -166,8 +166,8 @@ const SettingsViewer: React.FC = () => {
                             <button
                                 onClick={onEdit}
                                 disabled={!canEdit}
-                                className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition
-                                    ${canEdit ? "bg-lime-500 text-gray-800 hover:bg-lime-600" : "bg-gray-300 text-gray-600 cursor-not-allowed"}`}
+                                className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition
+                                    ${canEdit ? "bg-viix-orange text-white hover:bg-viix-orange-500" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
                             >
                                 Edit
                             </button>
@@ -175,14 +175,14 @@ const SettingsViewer: React.FC = () => {
                             <>
                                 <button
                                     onClick={onCancel}
-                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={onSave}
                                     disabled={saving}
-                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60"
+                                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white bg-viix-orange hover:bg-viix-orange-500 disabled:opacity-60"
                                 >
                                     {saving ? "Saving…" : "Save"}
                                 </button>
@@ -190,21 +190,23 @@ const SettingsViewer: React.FC = () => {
                         )}
                     </div>
                 </div>
+            </div>
 
                 {/* General settings */}
-                <div className="px-6 py-6 grid grid-cols-1 gap-6">
+                <div className="px-6 py-8 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 gap-6">
                     {/* Project ID */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                             Project ID
                         </label>
-                        <div className="mt-2 flex items-center gap-3">
-                            <code className="rounded-lg bg-white/70 px-3 py-2 text-sm text-gray-700 border border-gray-300">
+                        <div className="flex items-center gap-3">
+                            <code className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 border border-gray-200 flex-1">
                                 {project.id}
                             </code>
                             <button
                                 onClick={copyProjectId}
-                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                             >
                                 {copied ? "Copied!" : "Copy"}
                             </button>
@@ -213,7 +215,7 @@ const SettingsViewer: React.FC = () => {
 
                     {/* Name */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                             Project name
                         </label>
                         <input
@@ -221,14 +223,14 @@ const SettingsViewer: React.FC = () => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             disabled={!isEditing}
-                            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm disabled:bg-gray-100"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 disabled:bg-gray-50"
                             placeholder="Project name"
                         />
                     </div>
 
                     {/* Description below name with larger box */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                             Description
                         </label>
                         <textarea
@@ -236,7 +238,7 @@ const SettingsViewer: React.FC = () => {
                             onChange={(e) => setDescription(e.target.value)}
                             disabled={!isEditing}
                             rows={5}
-                            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm disabled:bg-gray-100"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 disabled:bg-gray-50"
                             placeholder="Optional description"
                         />
                     </div>
@@ -251,41 +253,39 @@ const SettingsViewer: React.FC = () => {
                             onChange={(e) => setSettingsText(e.target.value)}
                             disabled={!isEditing}
                             rows={12}
-                            className="w-full rounded-xl border border-gray-300 bg-slate-900 text-slate-100 font-mono text-sm p-4 shadow-inner disabled:opacity-80"
+                            className="w-full rounded-lg border border-gray-200 bg-slate-900 text-slate-100 font-mono text-sm p-4 disabled:opacity-80"
                             placeholder="{ }"
                         />
                         <p className="mt-2 text-xs text-gray-500">
                             No settings yet — you can store arbitrary configuration here as JSON.
                         </p>
                     </div>
-                </div>
 
                 {error && (
-                    <div className="px-6 pb-6">
-                        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-                            {error}
-                        </div>
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        {error}
                     </div>
                 )}
-            </div>
+                </div>
+                </div>
 
             {/* Danger zone only */}
-            <div className="mx-auto max-w-4xl mt-8">
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-5 shadow-sm">
+            <div className="px-6 pb-8 max-w-4xl mx-auto">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold text-rose-900">Danger zone</h3>
-                            <p className="text-sm text-rose-800">
+                            <h3 className="font-semibold text-red-900">Danger zone</h3>
+                            <p className="text-sm text-red-700">
                                 Delete project and all associated data.
                             </p>
                         </div>
                         <button
                             onClick={deleteProject}
                             disabled={!canEdit}
-                            className={`rounded-lg px-3 py-2 text-sm font-semibold text-white ${
+                            className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
                                 canEdit
-                                    ? "bg-rose-600 hover:bg-rose-700"
-                                    : "bg-rose-300 cursor-not-allowed"
+                                    ? "bg-red-600 hover:bg-red-700"
+                                    : "bg-red-300 cursor-not-allowed"
                             }`}
                         >
                             Delete project

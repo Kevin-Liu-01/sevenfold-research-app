@@ -554,60 +554,62 @@ const NewChatPage: React.FC<{
     disabled: boolean;
 }> = ({ value, setValue, onSend, papers, selectedPaperIds, togglePaper, disabled }) => {
     return (
-        <div className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center">
-            <img
-                src="/branding/logo-long.png"
-                alt="Logo"
-                className="text-4xl h-12 font-bold text-gray-900 mb-6"
-            />
-            <div className="w-full max-w-3xl bg-gray-50 border border-orange-200 rounded-xl p-4 shadow-sm">
-                <textarea
-                    placeholder="What are you researching today?"
-                    className="w-full resize-none bg-transparent text-lg text-gray-800 placeholder-gray-400 focus:outline-none"
-                    rows={2}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            onSend();
-                        }
-                    }}
-                    disabled={disabled}
-                />
-            </div>
-
-            <div className="mt-6 text-left w-full max-w-3xl">
-                <p className="text-sm font-medium text-gray-600 mb-2">Ingested Sources</p>
-                <div className="flex flex-wrap gap-2">
-                    {papers.map((paper) => (
-                        <button
-                            type="button"
-                            key={paper.id}
-                            onClick={() => togglePaper(paper.id)}
-                            disabled={disabled}
-                            className={`text-xs px-3 py-1 rounded-full border cursor-pointer transition disabled:opacity-40
-                                ${
-                                    selectedPaperIds.includes(paper.id)
-                                        ? "bg-orange-100 border-orange-300 text-orange-800"
-                                        : "bg-gray-100 border-gray-300 text-gray-500"
-                                }`}
-                        >
-                            {paper.title || "Untitled"}
-                        </button>
-                    ))}
+        <div className="flex flex-col h-full">
+            {/* Empty header matching ConvoHeader style */}
+            <div className="sticky top-0 z-10 bg-app-inner/80 backdrop-blur border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2"></div>
+                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-semibold text-gray-800">
+                        New Conversation
+                    </h2>
+                    <div className="text-xs text-gray-500">
+                        Sources:{" "}
+                        <span className="font-medium">
+                            {selectedPaperIds.length}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-6">
-                <button
-                    onClick={onSend}
-                    disabled={!value.trim() || disabled}
-                    className="inline-flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 disabled:opacity-30"
-                >
-                    <span className="material-icons">play_arrow</span>
-                    Start chat
-                </button>
+            {/* Empty content area with centered text */}
+            <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <span className="material-icons-outlined text-5xl text-orange-500/50">
+                        chat_bubble_outline
+                    </span>
+                    <p className="text-orange-500/50 text-lg font-medium">
+                        What are you curious about?
+                    </p>
+                </div>
+            </div>
+
+            {/* Chat input at bottom */}
+            <div className="w-full py-4 px-8">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <textarea
+                        placeholder="Ask your query to get started"
+                        className="w-full resize-none bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none"
+                        rows={1}
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                onSend();
+                            }
+                        }}
+                    />
+                    <div className="flex justify-between items-center mt-3">
+                        <div className="flex gap-2"></div>
+                        <button
+                            onClick={onSend}
+                            disabled={disabled}
+                            className="text-orange-500 hover:text-orange-700 transition disabled:opacity-30"
+                        >
+                            <span className="material-icons text-xl">send</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -620,7 +622,7 @@ const ConversationListPanel: React.FC<{
     onNewChat: () => void;
 }> = ({ convos, selectedConvo, onSelectConvo, onNewChat }) => {
     return (
-        <div className="w-64 bg-app-outer border-r border-gray-200 p-4 flex flex-col space-y-3">
+        <div className="w-64 bg-app-inner border-r border-gray-300 p-4 flex flex-col space-y-3">
             <button
                 onClick={onNewChat}
                 className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90"
@@ -634,18 +636,18 @@ const ConversationListPanel: React.FC<{
                 {convos.length === 0 ? (
                     <div className="text-gray-500 text-sm text-center py-4">No conversations yet</div>
                 ) : (
-                    <div className="flex flex-col space-y-2">
+                    <div className="flex flex-col space-y-1">
                         {convos.map((convo) => (
                             <div
                                 key={convo.id}
                                 onClick={() => onSelectConvo(convo)}
-                                className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
-                                    ${selectedConvo?.id === convo.id ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
+                                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition
+                                    ${selectedConvo?.id === convo.id ? "bg-gray-200" : "hover:bg-gray-100"}
                                 `}
                             >
                                 <div className="flex items-center space-x-1">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
+                                        <span className="text-sm text-gray-800 truncate max-w-[200px]">
                                             {convo.name || "Untitled"}
                                         </span>
                                     </div>
@@ -665,7 +667,7 @@ const SourcesIngestedPanel: React.FC<{
     onTogglePaper: (paperId: string) => void;
 }> = ({ papers, selectedPaperIds, onTogglePaper }) => {
     return (
-        <div className="w-64 bg-app-outer border-l border-gray-200 p-4 flex flex-col space-y-3">
+        <div className="w-64 bg-app-inner border-l border-gray-300 p-4 flex flex-col space-y-3">
             <h3 className="text-sm font-semibold text-gray-700">Sources Ingested</h3>
             <div className="flex-1 overflow-y-auto">
                 {papers.length === 0 ? (
@@ -996,17 +998,15 @@ const ChatViewer: React.FC = () => {
             <div className="flex-1 flex flex-col items-center">
                 <div className="w-full max-w-5xl flex flex-col h-full">
                     {!selectedConvo ? (
-                        <div className="flex-1 px-8 pt-10 pb-20">
-                            <NewChatPage
-                                value={input}
-                                setValue={setInput}
-                                onSend={sendMessage}
-                                papers={papers}
-                                selectedPaperIds={selectedPaperIds}
-                                togglePaper={togglePaper}
-                                disabled={sending}
-                            />
-                        </div>
+                        <NewChatPage
+                            value={input}
+                            setValue={setInput}
+                            onSend={sendMessage}
+                            papers={papers}
+                            selectedPaperIds={selectedPaperIds}
+                            togglePaper={togglePaper}
+                            disabled={sending}
+                        />
                     ) : (
                         <>
                             <ConvoHeaderWithNavigation convo={selectedConvo} messages={messages} onSelectPaper={handleSelectPaper} />

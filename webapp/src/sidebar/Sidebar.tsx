@@ -86,15 +86,18 @@ const AvatarButton: React.FC = () => {
                 onClick={() => setAvatarMenuOpen((o) => !o)}
                 className="flex flex-col justify-center items-center pb-2"
             >
-                <img
-                    src={avatarUrl || "/default-avatar.jpg"}
-                    alt={
-                        `${profile?.first_name ?? "User"} ${profile?.last_name ?? ""}`.trim() ||
-                        "Avatar"
-                    }
-                    className="h-11 w-11 mx-auto rounded-full border border-gray-300 cursor-pointer transition-all duration-200 hover:border-gray-400 hover:shadow-md"
-                    onError={() => setAvatarUrl(null)}
-                />
+                <div className="relative flex items-center justify-center">
+                    <div className="absolute w-[50px] h-[50px] rounded-full border-2 border-viix-orange"></div>
+                    <img
+                        src={avatarUrl || "/default-avatar.jpg"}
+                        alt={
+                            `${profile?.first_name ?? "User"} ${profile?.last_name ?? ""}`.trim() ||
+                            "Avatar"
+                        }
+                        className="h-11 w-11 rounded-full cursor-pointer transition-all duration-200 hover:shadow-md relative z-10"
+                        onError={() => setAvatarUrl(null)}
+                    />
+                </div>
             </div>
 
             <div

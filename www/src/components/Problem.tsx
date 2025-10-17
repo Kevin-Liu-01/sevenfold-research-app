@@ -15,7 +15,7 @@ export const Problem = () => {
           than ever to stay on top of your field.
         </p>
         <div className="grid gap-8 sm:grid-cols-2 max-w-5xl mx-auto">
-          <div className="group relative overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-10 transition-all hover:border-gray-700 hover:shadow-xl">
+          <div className="group relative overflow-hidden rounded-2xl border border-gray-800/30 bg-gradient-to-br from-gray-900 to-gray-950 p-10 transition-all hover:border-gray-700/40 hover:shadow-xl">
             <div className="relative">
               <div className="mb-4 font-dmsans text-7xl font-light tracking-tight text-white">
                 59%
@@ -28,7 +28,7 @@ export const Problem = () => {
               </div>
             </div>
           </div>
-          <div className="group relative overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-10 transition-all hover:border-gray-700 hover:shadow-xl">
+          <div className="group relative overflow-hidden rounded-2xl border border-gray-800/30 bg-gradient-to-br from-gray-900 to-gray-950 p-10 transition-all hover:border-gray-700/40 hover:shadow-xl">
             <div className="relative">
               <div className="mb-4 font-dmsans text-7xl font-light tracking-tight text-white">
                 8+
