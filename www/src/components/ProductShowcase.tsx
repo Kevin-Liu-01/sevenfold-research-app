@@ -12,14 +12,14 @@ export const ProductShowcase = () => {
           width={2880}
           height={2160}
           priority
-          className="absolute left-2 top-2 h-auto w-3/4 rounded-lg border border-white/10 bg-black/40 object-contain shadow-lg"
+          className="absolute left-2 top-2 h-auto w-3/4 rounded-lg border border-white/5 bg-black/40 object-contain shadow-lg"
         />
         <Image
           src="/images/mockups/chat-demo.png"
           alt="Sevenfold chat demo"
           width={2880}
           height={2160}
-          className="absolute bottom-2 right-2 h-auto w-1/2 rounded-lg border border-white/10 bg-black/40 object-contain shadow-lg"
+          className="absolute bottom-2 right-2 h-auto w-1/2 rounded-lg border border-white/5 bg-black/40 object-contain shadow-lg"
         />
       </div>
     </div>

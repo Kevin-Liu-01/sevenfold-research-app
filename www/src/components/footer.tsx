@@ -27,7 +27,7 @@ const FOOTER_LINKS = {
 export const Footer = () => {
   return (
     <footer
-      className="border-t border-gray-200 bg-background py-12"
+      className="border-t border-gray-200/50 bg-background py-12"
       role="contentinfo"
       aria-label="Site footer"
     >
@@ -109,7 +109,7 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-200 pt-8">
+        <div className="border-t border-gray-200/50 pt-8">
           <p className="text-sm text-gray-500">© 2025 Sevenfold Inc.</p>
         </div>
       </div>

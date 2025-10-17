@@ -82,7 +82,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-app-outer">
             {/* Header */}
-            <header className="bg-app-inner shadow-sm border-b-2 border-gray-600">
+            <header className="bg-app-inner shadow-sm border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-7 py-6">
                     <div className="flex justify-between items-center">
                         <div className="flex flex-row items-center gap-4">
@@ -104,13 +104,13 @@ const HomePage: React.FC = () => {
                             <span className="text-sm text-gray-700">{user?.email}</span>
                             <button
                                 onClick={handleSignOut}
-                                className="text-gray-700 hover:text-[var(--color-off-black)] border-2 border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-100 transition-all duration-200 font-medium"
+                                className="text-gray-700 hover:text-[var(--color-off-black)] border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-100 transition-all duration-200 font-medium"
                             >
                                 Sign Out
                             </button>
                             <button
                                 onClick={() => navigate("/settings", { state: { from: "home" } })}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-[var(--color-off-black)] border-2 border-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 font-medium"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-[var(--color-off-black)] border border-gray-200 rounded-lg hover:bg-gray-100 transition-all duration-200 font-medium"
                                 title="User Settings"
                             >
                                 <span className="material-icons-outlined text-lg">settings</span>
@@ -149,7 +149,7 @@ const HomePage: React.FC = () => {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center bg-app-inner border-2 border-gray-700 rounded-lg p-1 shadow-sm">
+                    <div className="flex items-center bg-app-inner border border-gray-200 rounded-lg p-1 shadow-sm">
                         <button
                             onClick={() => setViewType("card")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
@@ -222,7 +222,7 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-app-inner p-6 rounded-2xl border-2 border-gray-600 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                                        className="group bg-app-inner p-6 rounded-2xl border border-gray-200 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
@@ -238,7 +238,7 @@ const HomePage: React.FC = () => {
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t-2 border-gray-600">
+                                        <div className="flex items-center justify-between pt-4">
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <span className="material-icons-outlined text-sm">
                                                     schedule
@@ -258,10 +258,10 @@ const HomePage: React.FC = () => {
 
                         {/* Table View */}
                         {viewType === "table" && (
-                            <div className="bg-app-inner rounded-2xl border-2 border-gray-600 overflow-hidden shadow-md">
+                            <div className="bg-app-inner rounded-2xl border border-gray-200 overflow-hidden shadow-md">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gray-100 border-b-2 border-gray-700">
+                                        <thead className="bg-gray-100 border-b border-gray-200">
                                             <tr>
                                                 <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Project
@@ -277,7 +277,7 @@ const HomePage: React.FC = () => {
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y-2 divide-gray-600">
+                                        <tbody className="divide-y divide-gray-200">
                                             {filteredProjects.map((project) => (
                                                 <tr
                                                     key={project.id}
