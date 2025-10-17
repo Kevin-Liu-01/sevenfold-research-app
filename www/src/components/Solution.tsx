@@ -1,20 +1,46 @@
 "use client";
 
+import { motion } from "framer-motion";
+
 export const Solution = () => {
   return (
-    <section className="w-full bg-gray-950 flex items-center justify-center px-12 py-20 sm:py-32">
-      <div className="mx-auto text-center" style={{ maxWidth: 'var(--max-width-screen)' }}>
-        <p className="mb-3 font-dmsans text-sm font-medium uppercase tracking-wide text-orange-500">
+    <section className="w-full bg-gray-950 flex items-center justify-center py-20 sm:py-32">
+      <div className="mx-auto text-center px-12 w-full" style={{ maxWidth: 'var(--max-width-screen)' }}>
+        <motion.p
+          className="mb-3 font-dmsans text-sm font-medium uppercase tracking-wide text-orange-500"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
           The Solution &amp; Features
-        </p>
-        <h2 className="mb-8 font-timesnow text-5xl tracking-tight text-white sm:text-6xl">
+        </motion.p>
+        <motion.h2
+          className="mb-8 font-timesnow text-5xl tracking-tight text-white sm:text-6xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
           One Platform, Complete Control
-        </h2>
-        <p className="mx-auto mb-16 max-w-3xl font-dmsans text-xl leading-relaxed text-gray-300">
+        </motion.h2>
+        <motion.p
+          className="mx-auto mb-16 max-w-3xl font-dmsans text-xl leading-relaxed text-gray-300"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           Sevenfold unifies your entire research workflow in one intelligent
           workspace—from discovery to publication.
-        </p>
-        <div className="grid gap-8 text-left sm:grid-cols-2 lg:grid-cols-3 px-8 sm:px-16">
+        </motion.p>
+        <motion.div
+          className="grid gap-8 text-left sm:grid-cols-2 lg:grid-cols-3"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
           {/* Solution Benefits */}
           <div className="group">
             <div className="mb-2 flex items-start gap-3">
@@ -100,7 +126,7 @@ export const Solution = () => {
               you write.
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

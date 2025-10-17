@@ -68,7 +68,7 @@ const HomePage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-app-outer">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-app-inner">
                 <div className="relative">
                     <span className="material-icons-outlined text-6xl text-gray-400 animate-spin">
                         data_usage
@@ -80,9 +80,9 @@ const HomePage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-app-outer">
+        <div className="min-h-screen bg-app-inner">
             {/* Header */}
-            <header className="bg-app-outer border-b border-gray-200">
+            <header className="bg-app-inner border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-6 py-5">
                     <div className="flex justify-between items-center">
                         <div className="flex flex-row items-center gap-3">
@@ -111,7 +111,7 @@ const HomePage: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleSignOut}
-                                className="text-sm text-gray-600 hover:text-[var(--color-off-black)] border border-gray-200 rounded-lg px-3 py-2 transition-all duration-200 font-medium hover:bg-gray-100"
+                                className="text-sm text-white bg-black hover:bg-gray-800 rounded-full px-4 py-2 transition-all duration-200 font-medium"
                             >
                                 Sign Out
                             </button>
@@ -127,7 +127,7 @@ const HomePage: React.FC = () => {
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                         <button
                             onClick={() => navigate("/newproject")}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 font-medium text-sm"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-full hover:bg-gray-800 transition-all duration-200 font-medium text-sm"
                         >
                             <span className="material-icons-outlined text-lg">add</span>
                             New Project
@@ -143,19 +143,19 @@ const HomePage: React.FC = () => {
                                     placeholder="Search projects..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-app-outer border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center bg-app-outer border border-gray-200 rounded-lg p-1">
+                    <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1">
                         <button
                             onClick={() => setViewType("card")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
                                 viewType === "card"
-                                    ? "bg-viix-orange text-white font-medium"
+                                    ? "bg-black text-white font-medium"
                                     : "text-gray-600 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
@@ -166,7 +166,7 @@ const HomePage: React.FC = () => {
                             onClick={() => setViewType("table")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
                                 viewType === "table"
-                                    ? "bg-viix-orange text-white font-medium"
+                                    ? "bg-black text-white font-medium"
                                     : "text-gray-600 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
@@ -195,7 +195,7 @@ const HomePage: React.FC = () => {
                         {projects.length === 0 && (
                             <button
                                 onClick={() => navigate("/newproject")}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 font-medium text-sm"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-full hover:bg-gray-800 transition-all duration-200 font-medium text-sm"
                             >
                                 <span className="material-icons-outlined text-lg">add</span>
                                 Create Your First Project
@@ -220,23 +220,23 @@ const HomePage: React.FC = () => {
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-app-outer p-5 rounded-xl border border-gray-200 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col min-h-[140px]"
+                                        className="group bg-white p-5 rounded-xl border border-gray-300 hover:border-black hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col min-h-[140px]"
                                     >
                                         <div className="flex items-start justify-between mb-3 flex-1">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-semibold text-[var(--color-off-black)] mb-1.5 group-hover:text-viix-orange transition-colors duration-200 truncate">
+                                                <h3 className="text-lg font-semibold text-[var(--color-off-black)] mb-1.5 group-hover:text-black transition-colors duration-200 truncate">
                                                     {project.name}
                                                 </h3>
                                                 <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
                                                     {project.description}
                                                 </p>
                                             </div>
-                                            <span className="material-icons-outlined text-lg text-gray-400 group-hover:text-viix-orange transition-colors duration-200 ml-2 flex-shrink-0">
+                                            <span className="material-icons-outlined text-lg text-gray-400 group-hover:text-black transition-colors duration-200 ml-2 flex-shrink-0">
                                                 arrow_forward_ios
                                             </span>
                                         </div>
 
-                                        <div className="mt-auto">
+                                        <div className="mt-auto pt-3">
                                             <span className="text-xs text-gray-500">
                                                 {new Date(project.created_at).toLocaleDateString()}
                                             </span>
@@ -248,7 +248,7 @@ const HomePage: React.FC = () => {
 
                         {/* Table View */}
                         {viewType === "table" && (
-                            <div className="bg-app-outer rounded-2xl border border-gray-200 overflow-hidden shadow-md">
+                            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-md">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead className="bg-gray-100 border-b border-gray-200">
@@ -277,7 +277,7 @@ const HomePage: React.FC = () => {
                                                     className="hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
                                                 >
                                                     <td className="py-4 px-6">
-                                                        <div className="font-semibold text-[var(--color-off-black)] hover:text-viix-orange transition-colors duration-200">
+                                                        <div className="font-semibold text-[var(--color-off-black)] hover:text-black transition-colors duration-200">
                                                             {project.name}
                                                         </div>
                                                     </td>
@@ -294,7 +294,7 @@ const HomePage: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6 text-right">
-                                                        <button className="text-gray-500 hover:text-viix-orange transition-colors duration-200">
+                                                        <button className="text-gray-500 hover:text-black transition-colors duration-200">
                                                             <span className="material-icons-outlined">
                                                                 arrow_forward_ios
                                                             </span>
