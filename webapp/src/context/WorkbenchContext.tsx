@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../auth/supabaseClient";
 import type { Paper, ChatConvo, Composition } from "../../../schema/db-types";
@@ -45,6 +45,16 @@ interface WorkbenchContextType {
     // Notifications
     notification: string | null;
 }
+
+type ProjectPaperLinkRow = { paper?: unknown };
+
+const isPaper = (value: unknown): value is Paper => {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+    const candidate = value as Partial<Paper>;
+    return typeof candidate.id === "string";
+};
 
 const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
 
@@ -126,11 +136,11 @@ export const WorkbenchProvider: React.FC<{
             console.error("Error fetching project papers:", error.message);
             return;
         }
-        const newPapersList = (data ?? [])
-            .map((p: any) =>
-                p && typeof p.paper === "object" && p.paper !== null ? p.paper : null
-            )
-            .filter((p): p is Paper => !!p);
+        const projectPaperLinks = (data ?? []) as ProjectPaperLinkRow[];
+
+        const newPapersList = projectPaperLinks
+            .map((row) => (row && isPaper(row.paper) ? row.paper : null))
+            .filter((paper): paper is Paper => Boolean(paper));
 
         setPapers((prevPapers) => {
             // Compare the new list with the old one to detect added papers

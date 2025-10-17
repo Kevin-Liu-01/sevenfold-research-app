@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { ChangeEvent } from "react";
 import type { Composition } from "../../../schema/db-types";
 import { marked } from "marked";

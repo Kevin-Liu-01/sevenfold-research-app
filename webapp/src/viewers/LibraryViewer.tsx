@@ -65,7 +65,7 @@ const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, proje
                 setInstance(inst);
                 const { documentViewer, annotationManager } = inst.Core;
 
-                inst.UI.setHeaderItems(function (header: any) {
+                inst.UI.setHeaderItems((header) => {
                     header.getHeader("toolbarGroup-Annotate").delete("toolsOverlay");
                     const toolItems = header.getHeader("toolbarGroup-Annotate").getItems();
                     const items = header.getHeader("default").getItems().slice(0, -4);
@@ -77,7 +77,7 @@ const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, proje
                 // hide all ribbon tabs and tools header
                 inst.UI.disableElements(["ribbons", "toolsHeader"]);
 
-                inst.Core.documentViewer.addEventListener("documentLoadFailed", (evt: any) =>
+                inst.Core.documentViewer.addEventListener("documentLoadFailed", (evt) =>
                     console.error("PDF failed to load:", evt)
                 );
                 inst.UI.setZoomStepFactors([
@@ -110,8 +110,10 @@ const PdfViewer: React.FC<{ paper: Paper; projectId: string }> = ({ paper, proje
                     }
                 });
 
-                documentViewer.addEventListener("pageNumberUpdated", (pageNumber: number) => {
-                    setCurrentPage(pageNumber);
+                documentViewer.addEventListener("pageNumberUpdated", (pageNumber) => {
+                    if (typeof pageNumber === "number") {
+                        setCurrentPage(pageNumber);
+                    }
                 });
 
                 annotationManager.addEventListener(
@@ -460,6 +462,12 @@ const LibraryHomeView: React.FC = () => {
                         <span>Upload Paper</span>
                     </button>
                 </div>
+
+                {error && (
+                    <div className="mt-3 text-sm text-red-600" role="alert">
+                        {error}
+                    </div>
+                )}
             </div>
 
             {/* Papers Table */}

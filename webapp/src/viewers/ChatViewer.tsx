@@ -548,11 +548,9 @@ const NewChatPage: React.FC<{
     value: string;
     setValue: (v: string) => void;
     onSend: () => Promise<void>;
-    papers: Paper[];
     selectedPaperIds: string[];
-    togglePaper: (id: string) => void;
     disabled: boolean;
-}> = ({ value, setValue, onSend, papers, selectedPaperIds, togglePaper, disabled }) => {
+}> = ({ value, setValue, onSend, selectedPaperIds, disabled }) => {
     return (
         <div className="flex flex-col h-full">
             {/* Empty header matching ConvoHeader style */}
@@ -1002,9 +1000,7 @@ const ChatViewer: React.FC = () => {
                             value={input}
                             setValue={setInput}
                             onSend={sendMessage}
-                            papers={papers}
                             selectedPaperIds={selectedPaperIds}
-                            togglePaper={togglePaper}
                             disabled={sending}
                         />
                     ) : (
