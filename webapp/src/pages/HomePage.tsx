@@ -82,39 +82,38 @@ const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-app-outer">
             {/* Header */}
-            <header className="bg-app-inner shadow-sm border-b-2 border-gray-600">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-7 py-6">
+            <header className="bg-app-outer border-b border-gray-300">
+                <div className="max-w-7xl mx-auto px-6 py-5">
                     <div className="flex justify-between items-center">
-                        <div className="flex flex-row items-center gap-4">
+                        <div className="flex flex-row items-center gap-3">
                             <img
                                 src="/branding/logo-sq.png"
                                 alt="Logo"
-                                className="h-[5rem] w-auto"
+                                className="h-12 w-auto"
                             />
                             <div>
-                                <h1 className="text-3xl font-bold text-[var(--color-off-black)] mb-1">
+                                <h1 className="text-2xl font-semibold text-[var(--color-off-black)]">
                                     Your Projects
                                 </h1>
-                                <p className="text-gray-700">
+                                <p className="text-sm text-gray-600">
                                     Manage and organize your research projects
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-700">{user?.email}</span>
-                            <button
-                                onClick={handleSignOut}
-                                className="text-gray-700 hover:text-[var(--color-off-black)] border-2 border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-100 transition-all duration-200 font-medium"
-                            >
-                                Sign Out
-                            </button>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-600">{user?.email}</span>
                             <button
                                 onClick={() => navigate("/settings", { state: { from: "home" } })}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-[var(--color-off-black)] border-2 border-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 font-medium"
-                                title="User Settings"
+                                className="inline-flex items-center justify-center p-2 text-gray-600 hover:text-[var(--color-off-black)] hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                title="Settings"
                             >
-                                <span className="material-icons-outlined text-lg">settings</span>
-                                <span className="hidden sm:inline">Settings</span>
+                                <span className="material-icons-outlined text-xl">settings</span>
+                            </button>
+                            <button
+                                onClick={handleSignOut}
+                                className="text-sm text-gray-600 hover:text-[var(--color-off-black)] border border-gray-300 rounded-lg px-3 py-2 transition-all duration-200 font-medium hover:bg-gray-100"
+                            >
+                                Sign Out
                             </button>
                         </div>
                     </div>
@@ -122,81 +121,83 @@ const HomePage: React.FC = () => {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Action Bar */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                    <button
-                        onClick={() => navigate("/newproject")}
-                        className="inline-flex items-center gap-2 pr-4 pl-3 py-3 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 hover:shadow-lg font-medium"
-                    >
-                        <span className="material-icons-outlined text-xl">add</span>
-                        Create New Project
-                    </button>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <button
+                            onClick={() => navigate("/newproject")}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 font-medium text-sm"
+                        >
+                            <span className="material-icons-outlined text-lg">add</span>
+                            New Project
+                        </button>
 
-                    <div className="flex-1 max-w-md">
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 material-icons-outlined">
-                                search
-                            </span>
-                            <input
-                                type="text"
-                                placeholder="Search projects..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
-                            />
+                        <div className="flex-1 sm:flex-initial sm:w-80">
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 material-icons-outlined text-lg">
+                                    search
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Search projects..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-app-outer border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-viix-orange-400 focus:border-transparent"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center bg-app-inner border-2 border-gray-700 rounded-lg p-1 shadow-sm">
+                    <div className="flex items-center bg-app-outer border border-gray-300 rounded-lg p-1">
                         <button
                             onClick={() => setViewType("card")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
                                 viewType === "card"
-                                    ? "bg-viix-orange text-white shadow-md font-medium"
-                                    : "text-gray-700 hover:text-[var(--color-off-black)] hover:bg-gray-100"
+                                    ? "bg-viix-orange text-white font-medium"
+                                    : "text-gray-600 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
-                            <span className="material-icons-outlined text-lg">grid_view</span>
-                            <span className="hidden sm:inline">Cards</span>
+                            <span className="material-icons-outlined text-base">grid_view</span>
+                            <span>Cards</span>
                         </button>
                         <button
                             onClick={() => setViewType("table")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
                                 viewType === "table"
-                                    ? "bg-viix-orange text-white shadow-md font-medium"
-                                    : "text-gray-700 hover:text-[var(--color-off-black)] hover:bg-gray-100"
+                                    ? "bg-viix-orange text-white font-medium"
+                                    : "text-gray-600 hover:text-[var(--color-off-black)] hover:bg-gray-100"
                             }`}
                         >
-                            <span className="material-icons-outlined text-lg">view_list</span>
-                            <span className="hidden sm:inline">Table</span>
+                            <span className="material-icons-outlined text-base">view_list</span>
+                            <span>Table</span>
                         </button>
                     </div>
                 </div>
 
                 {/* Projects Display */}
                 {filteredProjects.length === 0 ? (
-                    <div className="text-center py-16">
+                    <div className="text-center py-20">
                         <div className="mb-4">
                             <span className="material-icons-outlined text-6xl text-gray-400">
                                 folder_open
                             </span>
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">
                             {projects.length === 0 ? "No projects yet" : "No projects found"}
                         </h3>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-6">
                             {projects.length === 0
                                 ? "Create your first project to get started."
-                                : "Try adjusting your search terms!"}
+                                : "Try adjusting your search terms"}
                         </p>
                         {projects.length === 0 && (
                             <button
                                 onClick={() => navigate("/newproject")}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-viix-orange text-white rounded-lg hover:bg-viix-orange-500 transition-all duration-200 font-medium text-sm"
                             >
-                                <span className="material-icons-outlined text-xl">add</span>
+                                <span className="material-icons-outlined text-lg">add</span>
                                 Create Your First Project
                             </button>
                         )}
@@ -204,52 +205,41 @@ const HomePage: React.FC = () => {
                 ) : (
                     <>
                         {/* Results Counter */}
-                        <div className="flex items-center justify-between mb-6">
-                            <p className="flex items-center gap-1 text-sm text-gray-700 font-medium">
-                                <span className="material-icons-outlined text-3xl text-gray-600">
-                                    dashboard
-                                </span>
+                        <div className="mb-5">
+                            <p className="text-sm text-gray-600">
                                 {filteredProjects.length === 1
-                                    ? "1 project found"
-                                    : `${filteredProjects.length} projects found`}
+                                    ? "1 project"
+                                    : `${filteredProjects.length} projects`}
                             </p>
                         </div>
 
                         {/* Card View */}
                         {viewType === "card" && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                 {filteredProjects.map((project) => (
                                     <div
                                         key={project.id}
                                         onClick={() => navigate(`/project/${project.id}`)}
-                                        className="group bg-app-inner p-6 rounded-2xl border-2 border-gray-600 hover:border-viix-orange-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                                        className="group bg-app-outer p-5 rounded-xl border border-gray-300 hover:border-viix-orange-400 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col min-h-[140px]"
                                     >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex-1">
-                                                <h3 className="text-xl font-semibold text-[var(--color-off-black)] mb-2 group-hover:text-viix-orange transition-colors duration-200">
+                                        <div className="flex items-start justify-between mb-3 flex-1">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-lg font-semibold text-[var(--color-off-black)] mb-1.5 group-hover:text-viix-orange transition-colors duration-200 truncate">
                                                     {project.name}
                                                 </h3>
-                                                <p className="text-gray-700 text-sm line-clamp-2 leading-relaxed">
+                                                <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
                                                     {project.description}
                                                 </p>
                                             </div>
-                                            <span className="material-icons-outlined text-gray-500 group-hover:text-viix-orange transition-colors duration-200">
+                                            <span className="material-icons-outlined text-lg text-gray-400 group-hover:text-viix-orange transition-colors duration-200 ml-2 flex-shrink-0">
                                                 arrow_forward_ios
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t-2 border-gray-600">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <span className="material-icons-outlined text-sm">
-                                                    schedule
-                                                </span>
-                                                <span>
-                                                    Created{" "}
-                                                    {new Date(
-                                                        project.created_at
-                                                    ).toLocaleDateString()}
-                                                </span>
-                                            </div>
+                                        <div className="mt-auto">
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(project.created_at).toLocaleDateString()}
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -258,10 +248,10 @@ const HomePage: React.FC = () => {
 
                         {/* Table View */}
                         {viewType === "table" && (
-                            <div className="bg-app-inner rounded-2xl border-2 border-gray-600 overflow-hidden shadow-md">
+                            <div className="bg-app-outer rounded-2xl border border-gray-300 overflow-hidden shadow-md">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gray-100 border-b-2 border-gray-700">
+                                        <thead className="bg-gray-100 border-b border-gray-300">
                                             <tr>
                                                 <th className="text-left py-4 px-6 text-sm font-semibold text-[var(--color-off-black)]">
                                                     Project
@@ -277,7 +267,7 @@ const HomePage: React.FC = () => {
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y-2 divide-gray-600">
+                                        <tbody className="divide-y divide-gray-300">
                                             {filteredProjects.map((project) => (
                                                 <tr
                                                     key={project.id}
