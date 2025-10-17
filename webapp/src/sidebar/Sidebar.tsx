@@ -105,7 +105,7 @@ const AvatarButton: React.FC = () => {
                     avatarMenuOpen
                         ? "translate-x-2 -translate-y-[100%] opacity-100 pointer-events-auto"
                         : "translate-x-0 -translate-y-[100%] opacity-0 pointer-events-none"
-                } ml-2 w-max bg-app-inner border-2 border-gray-700 rounded-xl shadow-xl overflow-hidden z-40`}
+                } ml-2 w-max bg-app-inner border border-gray-300 rounded-xl shadow-xl overflow-hidden z-40`}
             >
                 {/* Account button commented out - non-functional
                 <button
