@@ -1,8 +1,10 @@
 import os
 import sys
 from fastapi import APIRouter, Header, HTTPException, Body, Query
+from fastapi.responses import Response
 from typing import List, Optional, Literal
 from utils.auth import get_user_id_from_token
+from utils.latex_compiler import compile_latex_to_pdf
 from db.supabase import supabase
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -76,7 +78,7 @@ async def create_composition(
 @router.get("/project/{project_id}", response_model=List[CompositionResponse])
 async def get_compositions(
     project_id: str,
-    composition_type: Optional[Literal["latex", "markdown"]] = Query(None, description="Filter by composition type"),
+    composition_type: Optional[Literal["docx", "latex", "markdown"]] = Query(None, description="Filter by composition type"),
     authorization: str = Header(...)
 ):
     """Get all compositions for a project, optionally filtered by type."""
@@ -167,3 +169,58 @@ async def delete_composition(
     
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to delete composition")
+
+
+@router.post("/compile-latex/{composition_id}")
+async def compile_latex(
+    composition_id: str,
+    authorization: str = Header(...)
+):
+    """
+    Compile a LaTeX composition to PDF using Tectonic.
+    
+    Returns the compiled PDF file directly or an error message.
+    """
+    user_id = _get_user_id(authorization)
+    composition = _verify_composition_access(composition_id, user_id)
+    
+    # Verify it's a LaTeX composition
+    if composition["type"] != "latex":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Composition type is '{composition['type']}', not 'latex'"
+        )
+    
+    # Get the LaTeX content
+    tex_content = composition.get("contents")
+    if not tex_content:
+        raise HTTPException(
+            status_code=400,
+            detail="Composition has no content to compile"
+        )
+    
+    # Compile to PDF
+    # TODO: In future, support file uploads for assets (images, .bib files)
+    pdf_bytes, error = compile_latex_to_pdf(tex_content, assets=None)
+    
+    if error:
+        # Return error as JSON
+        raise HTTPException(
+            status_code=400,
+            detail=f"LaTeX compilation failed:\n{error}"
+        )
+    
+    # Return PDF directly
+    title = composition.get("title") or "composition"
+    # Sanitize filename
+    safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()
+    if not safe_title:
+        safe_title = "composition"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_title}.pdf"'
+        }
+    )

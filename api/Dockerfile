@@ -6,6 +6,18 @@ WORKDIR /code
 # Set PYTHONPATH so Python can find modules in the /code directory
 ENV PYTHONPATH=/code
 
+# Install Tectonic LaTeX engine for PDF compilation
+# Using the binary installation method for reliability
+RUN apt-get update && \
+    apt-get install -y wget ca-certificates && \
+    wget https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-0.15.0-x86_64-unknown-linux-gnu.tar.gz && \
+    tar -xzf tectonic-0.15.0-x86_64-unknown-linux-gnu.tar.gz && \
+    mv tectonic /usr/local/bin/ && \
+    rm tectonic-0.15.0-x86_64-unknown-linux-gnu.tar.gz && \
+    chmod +x /usr/local/bin/tectonic && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    
 # Copy only the requirements file first to leverage Docker layer caching
 COPY api/requirements.txt requirements.txt
 

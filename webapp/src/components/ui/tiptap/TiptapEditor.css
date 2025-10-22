@@ -1,0 +1,272 @@
+/* Tiptap Editor Container */
+.tiptap-editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: white;
+}
+
+/* Menu Bar */
+.tiptap-menubar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+}
+
+.menu-group {
+    display: flex;
+    gap: 2px;
+    padding: 0 6px;
+    border-right: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.menu-group:last-child {
+    border-right: none;
+}
+
+.tiptap-menubar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 6px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #374151;
+    transition: all 0.15s ease;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tiptap-menubar button:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.tiptap-menubar button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.tiptap-menubar button.is-active {
+    background: #dbeafe;
+    color: #ea580c;
+}
+
+.tiptap-menubar button .material-icons {
+    font-size: 20px;
+}
+
+/* Editor Content */
+.tiptap-editor-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* Tiptap ProseMirror Editor Styles */
+.tiptap-editor-content .ProseMirror {
+    min-height: 100%;
+    outline: none;
+}
+
+.tiptap-editor-content .ProseMirror > * + * {
+    margin-top: 0.75em;
+}
+
+/* Headings */
+.tiptap-editor-content h1 {
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.tiptap-editor-content h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+}
+
+.tiptap-editor-content h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 0.6em;
+    margin-bottom: 0.3em;
+}
+
+/* Paragraph */
+.tiptap-editor-content p {
+    line-height: 1.6;
+}
+
+/* Lists */
+.tiptap-editor-content ul,
+.tiptap-editor-content ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+
+.tiptap-editor-content ul {
+    list-style-type: disc;
+}
+
+.tiptap-editor-content ol {
+    list-style-type: decimal;
+}
+
+.tiptap-editor-content li {
+    margin: 0.25em 0;
+}
+
+/* Task List */
+.tiptap-editor-content ul[data-type="taskList"] {
+    list-style: none;
+    padding: 0;
+}
+
+.tiptap-editor-content ul[data-type="taskList"] li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+}
+
+.tiptap-editor-content ul[data-type="taskList"] li > label {
+    flex: 0 0 auto;
+    margin-top: 0.2em;
+}
+
+.tiptap-editor-content ul[data-type="taskList"] li > div {
+    flex: 1 1 auto;
+}
+
+/* Blockquote */
+.tiptap-editor-content blockquote {
+    padding-left: 1em;
+    border-left: 3px solid #ea580c;
+    font-style: italic;
+    color: #6b7280;
+    margin: 1em 0;
+}
+
+/* Code */
+.tiptap-editor-content code {
+    background: #f3f4f6;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    color: #ef4444;
+}
+
+.tiptap-editor-content pre {
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.tiptap-editor-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+}
+
+/* Links */
+.tiptap-editor-content a {
+    color: #ea580c;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.tiptap-editor-content a:hover {
+    color: #c2410c;
+}
+
+/* Images */
+.tiptap-editor-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 1em 0;
+}
+
+/* Horizontal Rule */
+.tiptap-editor-content hr {
+    border: none;
+    border-top: 2px solid #e5e7eb;
+    margin: 2em 0;
+}
+
+/* Tables */
+.tiptap-editor-content table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin: 1em 0;
+    overflow: hidden;
+}
+
+.tiptap-editor-content td,
+.tiptap-editor-content th {
+    min-width: 1em;
+    border: 1px solid #d1d5db;
+    padding: 6px 8px;
+    vertical-align: top;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.tiptap-editor-content th {
+    font-weight: bold;
+    text-align: left;
+    background-color: #f9fafb;
+}
+
+/* Text formatting */
+.tiptap-editor-content strong {
+    font-weight: 700;
+}
+
+.tiptap-editor-content em {
+    font-style: italic;
+}
+
+.tiptap-editor-content u {
+    text-decoration: underline;
+}
+
+.tiptap-editor-content s {
+    text-decoration: line-through;
+}
+
+/* Placeholder */
+.tiptap-editor-content .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af;
+    pointer-events: none;
+    height: 0;
+}
+
+/* Selection */
+.tiptap-editor-content .ProseMirror ::selection {
+    background: #fef3c7;
+}
