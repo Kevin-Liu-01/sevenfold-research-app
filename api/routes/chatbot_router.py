@@ -40,42 +40,44 @@ class ChatTabCreate(BaseModel):
     project_id: str
 
 # Helper functions
-def _get_user_id(authorization: str) -> str:
-    """Extract user ID from Authorization header (expects Bearer JWT)."""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid Authorization header")
-    token = authorization.removeprefix("Bearer ")
-    return get_user_id_from_token(token)
 
-def _verify_project(project_id: str, user_id: str) -> None:
-    """Ensure the project exists and belongs to this user."""
-    proj = (
-        supabase
-        .table("projects")
-        .select("id")
-        .eq("id", project_id)
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
-    if not proj.data:
-        raise HTTPException(status_code=404, detail="Project not found or access denied")
+# Auth functions not being used as of now
+# def _get_user_id(authorization: str) -> str:
+#     """Extract user ID from Authorization header (expects Bearer JWT)."""
+#     if not authorization.startswith("Bearer "):
+#         raise HTTPException(status_code=401, detail="Invalid Authorization header")
+#     token = authorization.removeprefix("Bearer ")
+#     return get_user_id_from_token(token)
 
-def _verify_tab_access(tab_id: str, user_id: str) -> Dict:
-    """Verify user has access to the chatbot tab through their project."""
-    result = (
-        supabase
-        .table("chatbot_tabs")
-        .select("*, projects!inner(user_id)")
-        .eq("id", tab_id)
-        .single()
-        .execute()
-    )
+# def _verify_project(project_id: str, user_id: str) -> None:
+#     """Ensure the project exists and belongs to this user."""
+#     proj = (
+#         supabase
+#         .table("projects")
+#         .select("id")
+#         .eq("id", project_id)
+#         .eq("user_id", user_id)
+#         .single()
+#         .execute()
+#     )
+#     if not proj.data:
+#         raise HTTPException(status_code=404, detail="Project not found or access denied")
+
+# def _verify_tab_access(tab_id: str, user_id: str) -> Dict:
+#     """Verify user has access to the chatbot tab through their project."""
+#     result = (
+#         supabase
+#         .table("chatbot_tabs")
+#         .select("*, projects!inner(user_id)")
+#         .eq("id", tab_id)
+#         .single()
+#         .execute()
+#     )
     
-    if not result.data or result.data["projects"]["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Access denied to this chat tab")
+#     if not result.data or result.data["projects"]["user_id"] != user_id:
+#         raise HTTPException(status_code=403, detail="Access denied to this chat tab")
     
-    return result.data
+#     return result.data
 
 def _build_chat_prompt(
     message: str,
@@ -207,35 +209,6 @@ async def send_chat_message(
                         status_code=500, 
                         detail=f"Error fetching paper {paper_id}: {str(e)}"
                     )
-    
-    result = (
-        supabase
-        .table("chat_convos")
-        .select("paper_ids")
-        .eq("id", convo_id)
-        .single()
-        .execute()
-    )
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if paper_ids:
-        existing_ids = set(result.data.get("paper_ids", []) or [])
-        new_ids = set(paper_ids)
-        ids_to_add = new_ids - existing_ids
-        
-        # Only update database if there are actually new IDs
-        if ids_to_add:
-            updated_paper_ids = list(existing_ids | ids_to_add)
-            update_result = (
-                supabase
-                .table("chat_convos")
-                .update({"paper_ids": updated_paper_ids})
-                .eq("id", convo_id)
-                .execute()
-            )
-            if not update_result.data:
-                raise HTTPException(status_code=500, detail="Failed to update paper_ids")
     
     # Get conversation history
     history_result = (
