@@ -82,7 +82,7 @@ export interface ChatMessage {
 export interface Composition {
   id: UUID;
   project_id: UUID; // FK → projects.id
-  type: "latex" | "markdown";
+  type: "docx" | "latex" | "markdown";
   title: string | null;
   contents: string | null;
 }

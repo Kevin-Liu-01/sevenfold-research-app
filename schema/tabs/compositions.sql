@@ -2,6 +2,7 @@
 
 -- Create enum for composition types
 CREATE TYPE composition_type AS ENUM (
+    'docx',
     'latex',
     'markdown'
 );

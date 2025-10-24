@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import type { ChangeEvent } from "react";
 import type { Composition } from "../../../schema/db-types";
-import { marked } from "marked";
-import katex from "katex";
-import "katex/dist/katex.min.css";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
+import Editor from "@monaco-editor/react";
+import { marked } from "marked";
+import LatexPdfPreview from "../components/ui/LatexPdfPreview";
+import TiptapEditor from "../components/ui/tiptap/TiptapEditor";
 
 const CompositionListPanel: React.FC<{
     compositions: Composition[];
@@ -66,7 +66,7 @@ const CompositionListPanel: React.FC<{
     );
 };
 
-const Editor: React.FC = () => {
+const EditorComponent: React.FC = () => {
     const { selectedComposition, refreshCompositions } = useWorkbench();
     // If no composition is selected, show placeholder
     if (!selectedComposition) {
@@ -82,22 +82,36 @@ const Editor: React.FC = () => {
     }
 
     // state & refs
-    const [mode, setMode] = useState<"markdown" | "latex">(selectedComposition.type as "markdown" | "latex");
+    const [mode, setMode] = useState<"docx" | "latex" | "markdown">(selectedComposition.type as "docx" | "latex" | "markdown");
     const [content, setContent] = useState(selectedComposition.contents || "");
     const [title, setTitle] = useState(selectedComposition.title || "Untitled");
+    const [compileCounter, setCompileCounter] = useState(0);
     const [renderedHtml, setRenderedHtml] = useState("");
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isInitialLoad = useRef(true);
 
     // Update state when selectedComposition changes
     useEffect(() => {
         if (selectedComposition) {
-            setMode(selectedComposition.type as "markdown" | "latex");
+            setMode(selectedComposition.type as "docx" | "latex" | "markdown");
             setContent(selectedComposition.contents || "");
             setTitle(selectedComposition.title || "Untitled");
             isInitialLoad.current = true;
         }
     }, [selectedComposition.id]);
+
+    // render markdown preview (debounce)
+    useEffect(() => {
+        const t = setTimeout(async () => {
+            if (mode === "markdown") {
+                const html = await marked.parse(content, {
+                    gfm: true,
+                    breaks: true,
+                });
+                setRenderedHtml(html);
+            }
+        }, 300);
+        return () => clearTimeout(t);
+    }, [content, mode]);
 
     // Load full composition content
     useEffect(() => {
@@ -120,35 +134,10 @@ const Editor: React.FC = () => {
                 const data = await res.json();
                 setContent(data.contents || "");
                 setTitle(data.title || "Untitled");
-                setMode(data.type as "markdown" | "latex");
+                setMode(data.type as "docx" | "latex" | "markdown");
             }
         })();
     }, [selectedComposition?.id]);
-
-    // render preview (debounce)
-    useEffect(() => {
-        const t = setTimeout(async () => {
-            if (mode === "markdown") {
-                const html = await marked.parse(content, {
-                    gfm: true,
-                    breaks: true,
-                });
-                setRenderedHtml(html);
-            } else {
-                try {
-                    setRenderedHtml(
-                        katex.renderToString(content, {
-                            throwOnError: false,
-                            displayMode: true,
-                        })
-                    );
-                } catch {
-                    setRenderedHtml(content);
-                }
-            }
-        }, 300);
-        return () => clearTimeout(t);
-    }, [content, mode]);
 
     // auto‑save (debounce)
     useEffect(() => {
@@ -193,42 +182,6 @@ const Editor: React.FC = () => {
         return () => clearTimeout(t);
     }, [content, title, mode, selectedComposition?.id, refreshCompositions]);
 
-    // formatting helpers
-    const applyInline = (pre: string, post: string = pre) => {
-        const ta = textareaRef.current;
-        if (!ta) return;
-        const { selectionStart, selectionEnd, value } = ta;
-        const selected = value.slice(selectionStart, selectionEnd);
-        const newText =
-            value.slice(0, selectionStart) + pre + selected + post + value.slice(selectionEnd);
-        setContent(newText);
-        // restore cursor
-        setTimeout(() => {
-            ta.focus();
-            ta.setSelectionRange(
-                selectionStart + pre.length,
-                selectionStart + pre.length + selected.length
-            );
-        }, 0);
-    };
-
-    const applyLine = (prefix: string) => {
-        const ta = textareaRef.current;
-        if (!ta) return;
-        const { selectionStart, selectionEnd, value } = ta;
-        const before = value.slice(0, selectionStart);
-        const selected = value.slice(selectionStart, selectionEnd);
-        const after = value.slice(selectionEnd);
-        const lines = selected
-            .split("\n")
-            .map((l) => (l.trim() ? prefix + l : l))
-            .join("\n");
-        setContent(before + lines + after);
-        setTimeout(() => ta?.focus(), 0);
-    };
-
-    const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value);
-
     return (
         <div className="flex flex-col h-full bg-gray-50">
             {/* header */}
@@ -242,127 +195,110 @@ const Editor: React.FC = () => {
                         className="text-xl font-semibold text-gray-800 bg-transparent border-none outline-none focus:bg-gray-50 rounded px-2 py-1 flex-1"
                     />
                 </div>
-                <div>
-                    <label htmlFor="mode-select" className="sr-only">
-                        Editor mode
-                    </label>
-                    <select
-                        id="mode-select"
-                        value={mode}
-                        onChange={(e) => setMode(e.target.value as "markdown" | "latex")}
-                        className="px-3 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                        <option value="markdown">Markdown</option>
-                        <option value="latex">LaTeX</option>
-                    </select>
+                <div className="flex items-center space-x-3">
+                    {mode === "latex" && (
+                        <button
+                            onClick={() => setCompileCounter(c => c + 1)}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                            title="Compile LaTeX to PDF (Ctrl+Shift+B)"
+                        >
+                            <span className="material-icons text-base">play_arrow</span>
+                            <span className="font-medium">Compile PDF</span>
+                        </button>
+                    )}
+                    <div>
+                        <label htmlFor="mode-select" className="sr-only">
+                            Editor mode
+                        </label>
+                        <select
+                            id="mode-select"
+                            value={mode}
+                            onChange={(e) => setMode(e.target.value as "docx" | "latex" | "markdown")}
+                            className="px-3 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                            <option value="docx">Rich Text (DOCX)</option>
+                            <option value="latex">LaTeX</option>
+                            <option value="markdown">Markdown</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* toolbar */}
-            <div
-                role="toolbar"
-                aria-label="Formatting options"
-                className="flex flex-wrap items-center gap-2 px-6 pt-1 bg-white border-b border-gray-200"
-            >
-                {[
-                    {
-                        fn: () => applyInline("**"),
-                        icon: "format_bold",
-                        label: "Bold",
-                    },
-                    {
-                        fn: () => applyInline("_"),
-                        icon: "format_italic",
-                        label: "Italic",
-                    },
-                    {
-                        fn: () => applyLine("## "),
-                        icon: "title",
-                        label: "Heading",
-                    },
-                    {
-                        fn: () => applyLine("> "),
-                        icon: "format_quote",
-                        label: "Blockquote",
-                    },
-                    {
-                        fn: () => applyLine("- "),
-                        icon: "format_list_bulleted",
-                        label: "Bullet list",
-                    },
-                    {
-                        fn: () => applyLine("1. "),
-                        icon: "format_list_numbered",
-                        label: "Numbered list",
-                    },
-                    {
-                        fn: () => applyInline("`"),
-                        icon: "code",
-                        label: "Inline code",
-                    },
-                    {
-                        fn: () => applyInline("```\\n", "\\n```"),
-                        icon: "code",
-                        label: "Code block",
-                    },
-                    {
-                        fn: () => applyInline("$$", "$$"),
-                        icon: "functions",
-                        label: "Math",
-                    },
-                    {
-                        fn: () => applyInline("[", "](url)"),
-                        icon: "link",
-                        label: "Link",
-                    },
-                    {
-                        fn: () => applyInline("![](", ")"),
-                        icon: "image",
-                        label: "Image",
-                    },
-                ].map(({ fn, icon, label }) => (
-                    <button
-                        key={label}
-                        type="button"
-                        onClick={fn}
-                        aria-label={label}
-                        title={label}
-                        className="p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                        <span className="material-icons text-gray-600">{icon}</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* editor + preview */}
-            <div className="flex flex-1 divide-x divide-gray-200 overflow-hidden">
-                <div className="w-1/2 p-4">
-                    <label htmlFor="editor-area" className="sr-only">
-                        {mode === "markdown" ? "Markdown editor" : "LaTeX editor"}
-                    </label>
-                    <textarea
-                        id="editor-area"
-                        ref={textareaRef}
-                        value={content}
-                        onChange={onChange}
-                        placeholder={
-                            mode === "markdown" ? "Type Markdown here…" : "Type LaTeX here…"
-                        }
-                        className="w-full h-full p-2 font-mono text-sm text-gray-800 resize-none
-                       focus:outline-none focus:ring-2 rounded-sm focus:ring-orange-500 border border-transparent"
-                    />
-                </div>
-                <div
-                    className="w-1/2 p-4 overflow-auto bg-white"
-                    role="region"
-                    aria-label="Preview"
-                    aria-live="polite"
-                >
-                    <div
-                        className="prose prose-sm sm:prose lg:prose-lg text-gray-800"
-                        dangerouslySetInnerHTML={{ __html: renderedHtml }}
-                    />
-                </div>
+            {/* editor content */}
+            <div className="flex flex-1 overflow-hidden">
+                {mode === "docx" ? (
+                    /* Rich text editor (DOCX-like) - full width WYSIWYG */
+                    <div className="flex-1">
+                        <TiptapEditor
+                            content={content}
+                            onChange={(newContent) => setContent(newContent)}
+                        />
+                    </div>
+                ) : mode === "markdown" ? (
+                    /* Split view for Markdown: Monaco editor on left, rendered preview on right */
+                    <>
+                        <div className="w-1/2 flex flex-col border-r border-gray-200">
+                            <label htmlFor="markdown-editor" className="sr-only">
+                                Markdown editor
+                            </label>
+                            <Editor
+                                height="100%"
+                                language="markdown"
+                                value={content}
+                                onChange={(value) => setContent(value || "")}
+                                theme="vs-light"
+                                options={{
+                                    minimap: { enabled: false },
+                                    fontSize: 14,
+                                    wordWrap: "on",
+                                    lineNumbers: "on",
+                                    folding: true,
+                                    scrollBeyondLastLine: false,
+                                    automaticLayout: true,
+                                    tabSize: 2,
+                                }}
+                            />
+                        </div>
+                        <div className="w-1/2 overflow-auto bg-white p-8">
+                            <div 
+                                className="prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    /* Split view for LaTeX: Monaco editor on left, PDF preview on right */
+                    <>
+                        <div className="w-1/2 flex flex-col border-r border-gray-200">
+                            <label htmlFor="editor-area" className="sr-only">
+                                LaTeX editor
+                            </label>
+                            <Editor
+                                height="100%"
+                                language="latex"
+                                value={content}
+                                onChange={(value) => setContent(value || "")}
+                                theme="vs-light"
+                                options={{
+                                    minimap: { enabled: false },
+                                    fontSize: 14,
+                                    wordWrap: "on",
+                                    lineNumbers: "on",
+                                    folding: true,
+                                    scrollBeyondLastLine: false,
+                                    automaticLayout: true,
+                                    tabSize: 2,
+                                }}
+                            />
+                        </div>
+                        <div className="w-1/2 overflow-auto bg-white">
+                            <LatexPdfPreview 
+                                compositionId={selectedComposition.id}
+                                triggerCompile={compileCounter}
+                            />
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -387,6 +323,34 @@ const ComposeViewer: React.FC = () => {
                 throw new Error("Not authenticated");
             }
 
+            // Default LaTeX template for new compositions
+            const defaultLatexContent = `\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{graphicx}
+
+\\title{Your Title Here}
+\\author{Your Name}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Introduction}
+Write your introduction here.
+
+\\section{Methods}
+Describe your methods.
+
+\\section{Results}
+Present your results.
+
+\\section{Conclusion}
+Summarize your findings.
+
+\\end{document}`;
+
             const res = await fetch(
                 `${import.meta.env.VITE_API_BASE_URL}/compose/new_composition`,
                 {
@@ -399,7 +363,7 @@ const ComposeViewer: React.FC = () => {
                         project_id: projectId,
                         type: "latex",
                         title: "",
-                        contents: "",
+                        contents: defaultLatexContent,
                     }),
                 }
             );
@@ -430,7 +394,7 @@ const ComposeViewer: React.FC = () => {
                 isCreating={isCreating}
             />
             <div className="flex-1">
-                <Editor />
+                <EditorComponent />
             </div>
         </div>
     );
