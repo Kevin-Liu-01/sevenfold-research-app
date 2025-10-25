@@ -716,7 +716,15 @@ const ChatViewer: React.FC = () => {
     const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() =>
         papers.map((p) => p.id)
     );
-    useEffect(() => setSelectedPaperIds(papers.map((p) => p.id)), [papers]);
+    useEffect(() => {
+        setSelectedPaperIds((prev) => {
+            const currentPaperIds = papers.map((p) => p.id);
+            const newPaperIds = currentPaperIds.filter(id => !prev.includes(id));
+            
+            // Remove papers that no longer exist, add new papers
+            return [...prev.filter(id => currentPaperIds.includes(id)), ...newPaperIds];
+        });
+    }, [papers]);
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
