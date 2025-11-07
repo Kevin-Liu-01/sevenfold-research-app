@@ -14,3 +14,4 @@ numpy
 anthropic
 pypdf2
 requests
+httpx

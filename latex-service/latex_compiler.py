@@ -1,13 +1,8 @@
 """
 LaTeX Compilation Utility using Tectonic
 
-For Azure deployment, we have several options:
-1. Use Docker container with Tectonic installed (recommended for production)
-2. Use Azure Container Instances for on-demand compilation
-3. Use external LaTeX compilation service (Overleaf API, LaTeX.Online, etc.)
-
-For development, Tectonic should be installed locally.
-For production on Azure, the Dockerfile will include Tectonic installation.
+This module provides functions to compile LaTeX source code to PDF using the Tectonic engine.
+Designed to work in a microservice architecture.
 """
 
 import subprocess
@@ -148,12 +143,12 @@ def _format_compilation_error(stderr: str, stdout: str) -> str:
     return "".join(error_lines)
 
 
-def check_tectonic_available() -> Tuple[bool, str]:
+def check_tectonic_available() -> bool:
     """
     Check if Tectonic is installed and available.
     
     Returns:
-        Tuple of (is_available, version_or_error_message)
+        Boolean indicating if Tectonic is available
     """
     try:
         result = subprocess.run(
@@ -163,13 +158,10 @@ def check_tectonic_available() -> Tuple[bool, str]:
             timeout=5
         )
         
-        if result.returncode == 0:
-            version = result.stdout.strip()
-            return True, version
-        else:
-            return False, "Tectonic found but version check failed"
+        return result.returncode == 0
             
     except FileNotFoundError:
-        return False, "Tectonic not installed"
+        return False
     except Exception as e:
-        return False, f"Error checking Tectonic: {str(e)}"
+        logger.error(f"Error checking Tectonic: {str(e)}")
+        return False

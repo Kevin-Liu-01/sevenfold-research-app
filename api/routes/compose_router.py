@@ -3,14 +3,17 @@ import sys
 from fastapi import APIRouter, Header, HTTPException, Body, Query
 from fastapi.responses import Response
 from typing import List, Optional, Literal
+import httpx
 from utils.auth import get_user_id_from_token
-from utils.latex_compiler import compile_latex_to_pdf
 from db.supabase import supabase
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from schema.db_types import CompositionCreate, CompositionUpdate, CompositionResponse
 
 router = APIRouter(prefix="/compose", tags=["compose"])
+
+# LaTeX microservice URL - configurable via environment variable
+LATEX_SERVICE_URL = os.getenv("LATEX_SERVICE_URL", "http://localhost:8081")
 
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""
@@ -177,7 +180,7 @@ async def compile_latex(
     authorization: str = Header(...)
 ):
     """
-    Compile a LaTeX composition to PDF using Tectonic.
+    Compile a LaTeX composition to PDF using the LaTeX microservice.
     
     Returns the compiled PDF file directly or an error message.
     """
@@ -199,28 +202,45 @@ async def compile_latex(
             detail="Composition has no content to compile"
         )
     
-    # Compile to PDF
-    # TODO: In future, support file uploads for assets (images, .bib files)
-    pdf_bytes, error = compile_latex_to_pdf(tex_content, assets=None)
-    
-    if error:
-        # Return error as JSON
+    # Call LaTeX microservice to compile
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LATEX_SERVICE_URL}/compile",
+                json={
+                    "tex_content": tex_content,
+                    "assets": None,  # TODO: In future, support file uploads for assets
+                    "timeout": 45
+                }
+            )
+            
+            if response.status_code == 200:
+                # Return PDF directly
+                title = composition.get("title") or "composition"
+                # Sanitize filename
+                safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()
+                if not safe_title:
+                    safe_title = "composition"
+                
+                return Response(
+                    content=response.content,
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'inline; filename="{safe_title}.pdf"'
+                    }
+                )
+            else:
+                # Extract error message from microservice
+                error_detail = response.json().get("detail", "LaTeX compilation failed")
+                raise HTTPException(status_code=400, detail=error_detail)
+                
+    except httpx.TimeoutException:
         raise HTTPException(
-            status_code=400,
-            detail=f"LaTeX compilation failed:\n{error}"
+            status_code=504,
+            detail="LaTeX compilation timed out. Document may be too complex."
         )
-    
-    # Return PDF directly
-    title = composition.get("title") or "composition"
-    # Sanitize filename
-    safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()
-    if not safe_title:
-        safe_title = "composition"
-    
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'inline; filename="{safe_title}.pdf"'
-        }
-    )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"LaTeX service unavailable: {str(e)}"
+        )
