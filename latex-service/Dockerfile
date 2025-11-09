@@ -25,12 +25,12 @@ RUN wget https://github.com/tectonic-typesetting/tectonic/releases/download/tect
     chmod +x /usr/local/bin/tectonic
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY latex-service/requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Copy application code
-COPY main.py .
-COPY latex_compiler.py .
+COPY latex-service/main.py .
+COPY latex-service/latex_compiler.py .
 
 # Expose the port the service runs on
 EXPOSE 8081
