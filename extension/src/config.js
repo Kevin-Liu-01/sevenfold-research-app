@@ -10,9 +10,9 @@ export const apiConfig = {
    * Base URL for the Sevenfold API. Replace this with the environment you deploy the backend to.
    */
   baseUrl: 'http://127.0.0.1:8000',
-  uploadPath: '/papers/upload-pdf',
-  linkPaperPath: '/papers/link-paper',
-  processPdfPath: '/papers/process-pdf'
+  uploadPath: '/papers/upload-private',
+  linkPaperPath: '/papers/link-pdf-public',
+  processPdfPath: '/papers/extract-metadata'
 };
 
 /**

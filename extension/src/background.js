@@ -589,7 +589,7 @@ function buildUploadUrl() {
   const base = apiConfig.baseUrl.endsWith('/')
     ? apiConfig.baseUrl.slice(0, -1)
     : apiConfig.baseUrl;
-  const path = apiConfig.uploadPath || '/upload-pdf';
+  const path = apiConfig.uploadPath || '/papers/upload-private';
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 
@@ -601,7 +601,7 @@ function buildLinkPaperUrl() {
   const base = apiConfig.baseUrl.endsWith('/')
     ? apiConfig.baseUrl.slice(0, -1)
     : apiConfig.baseUrl;
-  const path = apiConfig.linkPaperPath || '/link-paper';
+  const path = apiConfig.linkPaperPath || '/papers/link-pdf-public';
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 
@@ -613,7 +613,7 @@ function buildProcessPdfUrl() {
   const base = apiConfig.baseUrl.endsWith('/')
     ? apiConfig.baseUrl.slice(0, -1)
     : apiConfig.baseUrl;
-  const path = apiConfig.processPdfPath || '/papers/process-pdf';
+  const path = apiConfig.processPdfPath || '/papers/extract-metadata';
   return path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 

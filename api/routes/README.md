@@ -39,13 +39,17 @@ Manages documents called "compositions," which can be either LaTeX or Markdown.
 
 ### `papers_router.py`
 
-Handles the ingestion, management, and retrieval of research papers. This is a multi-step process.
+Manages the complete lifecycle of research papers in user projects, from metadata extraction through storage and retrieval.
 
-- **`POST /papers/process-pdf`**: Takes a PDF file and extracts its metadata (title, authors, abstract, etc.) using the Anthropic API. It also checks if a similar paper already exists in the public corpus.
-- **`POST /papers/upload-pdf`**: Uploads the PDF file to Supabase storage and creates a new paper record in the database using the metadata from the previous step.
-- **`POST /papers/link-paper`**: Links an existing paper from the public corpus to a user's project and uploads the associated PDF.
-- **`GET /papers/{paper_id}/signed-url`**: Generates a temporary, secure URL to view a paper's PDF.
-- **`PUT /papers/{paper_id}/annotations`**: Saves a list of annotations for a specific paper within a project.
+- **`POST /papers/extract-metadata`**: Analyzes a PDF using Claude AI to extract bibliographic metadata (title, authors, abstract, publication date, DOI, category). Accepts a `pages_spec` parameter (e.g., "1,2" or "1-3,5") to process specific pages. Returns the extracted metadata and automatically checks if a matching paper already exists in the public corpus using fuzzy title matching, helping avoid duplicates.
+
+- **`POST /papers/upload-private`**: Creates a new paper entry in your private corpus. Uploads the PDF to secure storage, generates a paper record with the provided metadata, links it to the specified project, and returns a preview URL. This is for papers unique to your library.
+
+- **`POST /papers/link-pdf-public`**: Attaches an existing paper from the public corpus to your project. Instead of creating a duplicate paper record, this reuses the existing metadata while uploading your copy of the PDF. Useful when the paper was discovered via metadata extraction and you want to add it to your project.
+
+- **`GET /papers/{paper_id}/signed-url`**: Generates a temporary, secure URL (default 1 hour) to view or download a paper's PDF. Requires both `paper_id` and `project_id` to verify access permissions before creating the signed URL.
+
+- **`PUT /papers/{paper_id}/annotations`**: Stores user annotations for a specific paper within a project context. Annotations are project-scoped, allowing different notes for the same paper across multiple projects.
 
 ### `projects_router.py`
 
