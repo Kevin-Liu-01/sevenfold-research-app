@@ -1,10 +1,19 @@
+import asyncio
+import json
 import os
 import sys
-from fastapi import APIRouter, Header, HTTPException, Body, Query
-from fastapi.responses import Response
-from typing import List, Optional, Literal
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Literal
+
+import anthropic
 import httpx
+from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.responses import Response, StreamingResponse
+from pydantic import BaseModel, Field
 from utils.auth import get_user_id_from_token
+from utils.latex_context import clean_context_window
 from db.supabase import supabase
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -12,8 +21,139 @@ from schema.db_types import CompositionCreate, CompositionUpdate, CompositionRes
 
 router = APIRouter(prefix="/compose", tags=["compose"])
 
+PROMPTS_ROOT = Path(__file__).resolve().parent.parent / "prompts"
+
+def _load_prompt(*relative_parts: str) -> str:
+    return (PROMPTS_ROOT.joinpath(*relative_parts)).read_text(encoding="utf-8")
+
 # LaTeX microservice URL - configurable via environment variable
 LATEX_SERVICE_URL = os.getenv("LATEX_SERVICE_URL", "http://localhost:8081")
+
+SSE_MEDIA_TYPE = "text/event-stream"
+SSE_HEADERS = {
+    "Cache-Control": "no-store",
+    "X-Accel-Buffering": "no",
+}
+
+MAX_COMPLETION_TOKENS = 80
+RATE_LIMIT_REFILL_PER_SEC = 2.0
+RATE_LIMIT_BURST = 3
+COMPLETION_MODEL = os.getenv("SEVENFOLD_AUTOCOMPLETE_MODEL", "claude-sonnet-4-20250514")
+COMPLETION_TEMPERATURE = float(os.getenv("SEVENFOLD_AUTOCOMPLETE_TEMPERATURE", "0.25"))
+
+anthropic_client = anthropic.Anthropic(
+    api_key=os.getenv("ANTHROPIC_API_KEY")
+)
+
+COMPOSE_SYSTEM_PROMPT = _load_prompt("compose", "system_prompt.xml").strip()
+COMPOSE_USER_PROMPT_TEMPLATE = _load_prompt("compose", "user_prompt_template.xml")
+
+@dataclass
+class TokenBucket:
+    capacity: int
+    refill_rate: float
+    tokens: float = field(init=False)
+    last_refill: float = field(default_factory=time.time)
+
+    def __post_init__(self) -> None:
+        self.tokens = self.capacity
+
+    def consume(self, amount: float = 1.0) -> bool:
+        self._refill()
+        if self.tokens >= amount:
+            self.tokens -= amount
+            return True
+        return False
+
+    def _refill(self) -> None:
+        now = time.time()
+        elapsed = now - self.last_refill
+        if elapsed <= 0:
+            return
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+        self.last_refill = now
+
+
+@dataclass
+class CompletionSession:
+    user_id: str
+    doc_id: str
+    request_id: str
+    started_at: float = field(default_factory=time.time)
+    aborted: asyncio.Event = field(default_factory=asyncio.Event)
+    first_token_time: Optional[float] = None
+
+    def cancel(self) -> None:
+        self.aborted.set()
+
+
+ACTIVE_COMPLETIONS: Dict[str, Dict[str, CompletionSession]] = {}
+USER_RATE_LIMITERS: Dict[str, TokenBucket] = {}
+
+
+class CompletionRequest(BaseModel):
+    doc_id: str = Field(..., description="Composition/document UUID")
+    cursor: int = Field(..., ge=0, description="Cursor offset within the document")
+    request_id: str = Field(..., description="Client-supplied request identifier")
+    language: Literal["latex", "markdown", "docx"] = Field("latex", description="Document language")
+    context: str = Field(..., min_length=1, description="Client-provided context window surrounding the cursor")
+
+
+class AbortRequest(BaseModel):
+    request_id: str = Field(..., description="Completion request identifier to abort")
+
+
+def _format_sse(event_type: str, payload: Dict) -> str:
+    return f"event: {event_type}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _get_rate_limiter(user_id: str) -> TokenBucket:
+    limiter = USER_RATE_LIMITERS.get(user_id)
+    if limiter is None:
+        limiter = TokenBucket(capacity=RATE_LIMIT_BURST, refill_rate=RATE_LIMIT_REFILL_PER_SEC)
+        USER_RATE_LIMITERS[user_id] = limiter
+    return limiter
+
+
+def _cancel_active_sessions_for_user(user_id: str) -> None:
+    user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+    if not user_sessions:
+        return
+    for request_id, session in list(user_sessions.items()):
+        session.cancel()
+        user_sessions.pop(request_id, None)
+    if not user_sessions:
+        ACTIVE_COMPLETIONS.pop(user_id, None)
+
+
+async def _rate_limited_stream(request_id: str):
+    payload = {
+        "request_id": request_id,
+        "error": "rate_limited",
+        "detail": "Too many completion requests per second.",
+    }
+    yield _format_sse("error", payload)
+
+
+def _wrap_cdata(text: str) -> str:
+    if not text:
+        return "<![CDATA[]]>"
+    safe_text = text.replace("]]>", "]]]]><![CDATA[>")
+    return f"<![CDATA[{safe_text}]]>"
+
+
+def _build_completion_prompt(context_excerpt: str) -> str:
+    trimmed = context_excerpt.strip()
+    context_cdata = _wrap_cdata(trimmed)
+    recent_tokens = " ".join(trimmed.split()[-12:])
+    recent_instruction = ""
+    if recent_tokens:
+        recent_instruction = f"    <item>Do not repeat these recent words: {_wrap_cdata(recent_tokens)}</item>"
+
+    return COMPOSE_USER_PROMPT_TEMPLATE.format(
+        context_cdata=context_cdata,
+        recent_tokens_instruction=recent_instruction
+    )
 
 def _get_user_id(authorization: str) -> str:
     """Extract user ID from Authorization header (expects Bearer JWT)."""
@@ -244,3 +384,145 @@ async def compile_latex(
             status_code=503,
             detail=f"LaTeX service unavailable: {str(e)}"
         )
+
+
+@router.post("/complete")
+async def stream_completion(
+    completion_request: CompletionRequest,
+    request: Request,
+    authorization: str = Header(...)
+):
+    """Stream ghost-text completion suggestions for a composition."""
+    user_id = _get_user_id(authorization)
+    limiter = _get_rate_limiter(user_id)
+    if not limiter.consume():
+        return StreamingResponse(
+            _rate_limited_stream(completion_request.request_id),
+            media_type=SSE_MEDIA_TYPE,
+            headers=SSE_HEADERS
+        )
+
+    context_meta = clean_context_window(completion_request.context)
+    context_excerpt = context_meta["excerpt"]
+    if not context_excerpt:
+        async def _no_context_stream():
+            payload = {
+                "request_id": completion_request.request_id,
+                "error": "no_context",
+                "detail": "No context available for completion.",
+            }
+            yield _format_sse("error", payload)
+
+        return StreamingResponse(
+            _no_context_stream(),
+            media_type=SSE_MEDIA_TYPE,
+            headers=SSE_HEADERS
+        )
+
+    _cancel_active_sessions_for_user(user_id)
+
+    session = CompletionSession(
+        user_id=user_id,
+        doc_id=completion_request.doc_id,
+        request_id=completion_request.request_id,
+    )
+    ACTIVE_COMPLETIONS.setdefault(user_id, {})[completion_request.request_id] = session
+
+    prompt_payload = _build_completion_prompt(context_excerpt)
+    anthropic_messages = [{"role": "user", "content": prompt_payload}]
+
+    async def event_publisher():
+        usage_summary = {"input_tokens": 0, "output_tokens": 0}
+        try:
+            if await request.is_disconnected():
+                session.cancel()
+                return
+
+            try:
+                with anthropic_client.messages.stream(
+                    model=COMPLETION_MODEL,
+                    system=COMPOSE_SYSTEM_PROMPT,
+                    messages=anthropic_messages,
+                    max_tokens=MAX_COMPLETION_TOKENS,
+                    temperature=COMPLETION_TEMPERATURE,
+                ) as stream:
+                    for text in stream.text_stream:
+                        client_disconnected = await request.is_disconnected()
+                        if session.aborted.is_set() or client_disconnected:
+                            session.cancel()
+                            stream.close()
+                            detail = "Client disconnected." if client_disconnected else "Completion cancelled."
+                            error_payload = {
+                                "request_id": completion_request.request_id,
+                                "error": "aborted",
+                                "detail": detail,
+                            }
+                            yield _format_sse("error", error_payload)
+                            return
+
+                        if not text:
+                            continue
+
+                        if session.first_token_time is None:
+                            session.first_token_time = time.time()
+
+                        chunk_payload = {
+                            "request_id": completion_request.request_id,
+                            "delta": text,
+                            "finish": False,
+                        }
+                        yield _format_sse("chunk", chunk_payload)
+
+                    final_message = stream.get_final_message()
+                    if final_message and final_message.usage:
+                        usage_summary = {
+                            "input_tokens": final_message.usage.input_tokens,
+                            "output_tokens": final_message.usage.output_tokens,
+                        }
+            except Exception as exc:
+                error_payload = {
+                    "request_id": completion_request.request_id,
+                    "error": "generation_failed",
+                    "detail": str(exc),
+                }
+                yield _format_sse("error", error_payload)
+                return
+
+            done_payload = {
+                "request_id": completion_request.request_id,
+                "finish": True,
+                "usage": usage_summary,
+            }
+            yield _format_sse("done", done_payload)
+        finally:
+            user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+            if user_sessions:
+                user_sessions.pop(completion_request.request_id, None)
+                if not user_sessions:
+                    ACTIVE_COMPLETIONS.pop(user_id, None)
+
+    return StreamingResponse(
+        event_publisher(),
+        media_type=SSE_MEDIA_TYPE,
+        headers=SSE_HEADERS
+    )
+
+
+@router.post("/complete/abort", status_code=202)
+async def abort_completion(
+    abort_request: AbortRequest,
+    authorization: str = Header(...)
+):
+    """Abort an in-flight completion stream."""
+    user_id = _get_user_id(authorization)
+    session = ACTIVE_COMPLETIONS.get(user_id, {}).get(abort_request.request_id)
+    if not session:
+        return {"status": "not_found"}
+
+    session.cancel()
+    user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+    if user_sessions:
+        user_sessions.pop(abort_request.request_id, None)
+        if not user_sessions:
+            ACTIVE_COMPLETIONS.pop(user_id, None)
+    return {"status": "aborting"}
