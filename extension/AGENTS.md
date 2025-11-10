@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Overview
-Project: Zotero-style Chrome extension that collects, uploads, and organizes research PDFs. Backend relies on Supabase Auth (PKCE) plus a custom `/upload-pdf` API. PDF ingestion happens client-side, with background upload to the backend.
+Project: Zotero-style Chrome extension that collects, uploads, and organizes research PDFs. Backend relies on Supabase Auth (PKCE) plus a custom `/upload-private` API. PDF ingestion happens client-side, with background upload to the backend.
 
 ## Architecture Summary
 The extension agents collaborate to handle authentication, PDF detection, user prompting, PDF fetching, and uploads. Tokens stay scoped to background agents, while content scripts manage discovery and UX.
@@ -9,9 +9,9 @@ The extension agents collaborate to handle authentication, PDF detection, user p
 ## High-Level Flow
 1. User signs in with Supabase Auth (PKCE via `launchWebAuthFlow`).
 2. Content script detects a research PDF (direct link or embedded viewer).
-3. Floating UI prompts “Add to my library?”.
+3. Floating UI prompts "Add to my library?".
 4. On confirmation, content script fetches PDF bytes.
-5. Background service worker uploads PDF and metadata to `/upload-pdf`.
+5. Background service worker uploads PDF and metadata to `/upload-private`.
 6. Server validates input and returns `paper_id` plus preview URL.
 
 ```mermaid
@@ -19,13 +19,13 @@ sequenceDiagram
     participant U as User
     participant CS as Content Script
     participant BG as Background Worker
-    participant API as Backend (/upload-pdf)
+    participant API as Backend (/upload-private)
 
     U->>CS: Views research PDF
     CS->>CS: Detect PDF and render CTA
     U->>CS: Click "Add to Library"
     CS->>BG: Send PDF bytes + metadata
-    BG->>API: POST /upload-pdf
+    BG->>API: POST /upload-private
     API-->>BG: 201 Created {paper_id, preview_url}
     BG-->>CS: Notify success
     CS-->>U: Show success toast
@@ -55,7 +55,7 @@ sequenceDiagram
 - Outputs: `fetch:result { arrayBuffer, metadata }`, `fetch:error`.
 
 ### Upload Orchestrator Agent (background)
-- Receives ArrayBuffer, builds `FormData`, attaches auth headers, and posts to `/upload-pdf`.
+- Receives ArrayBuffer, builds `FormData`, attaches auth headers, and posts to `/upload-private`.
 - Inputs: `fetch:result`, `auth:getSession`.
 - Outputs: `upload:progress`, `upload:result { paper_id, preview_url }`, `upload:error { code, message }`.
 
@@ -67,7 +67,7 @@ sequenceDiagram
 - Displays auth status, default `project_id`, `paper_type`, and PDF detection toggles.
 
 ## Upload API Integration
-`POST /upload-pdf`
+`POST /upload-private`
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ type AgentMessage =
 - Supabase login via `launchWebAuthFlow`.
 - Detect PDFs on arXiv and direct PDF links.
 - Handle CORS during PDF fetch.
-- POST `/upload-pdf` with the required form fields.
+- POST `/upload-private` with the required form fields.
 - Validate metadata contains `title`.
 - Confirm preview URL returns HTTP 200.
 - Verify local cache updates with the new `paper_id`.

@@ -20,7 +20,7 @@ PDF Fetcher (content script)
 - Send ArrayBuffer plus metadata to the background via chrome.runtime.sendMessage, handling error retries.
 
 Upload Orchestrator (background)
-- Assemble FormData (file, project_id, paper_type, metadata_json), attach Authorization: Bearer <token>, and POST to /upload-pdf.
+- Assemble FormData (file, project_id, paper_type, metadata_json), attach Authorization: Bearer <token>, and POST to /upload-private.
 - Emit upload:progress, upload:result, or upload:error messages back to the content script for user feedback.
 - Update Library Sync cache when uploads succeed.
 
@@ -30,7 +30,7 @@ Settings & Library Sync
 
 Testing & QA
 - Use Jest with mocked Chrome APIs to cover auth flows, direct PDF detection, messaging, and upload formatting.
-- Add Playwright or similar tests loading a sample PDF page, validating CTA display, and asserting /upload-pdf payloads against a mock server.
+- Add Playwright or similar tests loading a sample PDF page, validating CTA display, and asserting /upload-private payloads against a mock server.
 - Maintain a manual QA checklist covering Supabase login, direct PDF detection, upload success, and cache updates.
 
 Release Prep
