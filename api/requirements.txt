@@ -15,3 +15,7 @@ anthropic
 pypdf2
 requests
 httpx
+langchain
+langchain-anthropic
+langchain-core
+langgraph
