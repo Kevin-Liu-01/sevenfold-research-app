@@ -103,8 +103,7 @@ def clean_context_window(raw_context: str, max_chars: int = 4000) -> Dict[str, o
         cleaned_chars.append(working[i])
         i += 1
 
-    cleaned = "".join(cleaned_chars)
-    compressed = cleaned.strip()
+    compressed = "".join(cleaned_chars)
     paragraphs = [p for p in compressed.split("\n\n") if p.strip()]
 
     return {

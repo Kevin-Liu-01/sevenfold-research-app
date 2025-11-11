@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Literal
@@ -18,6 +19,9 @@ from db.supabase import supabase
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from schema.db_types import CompositionCreate, CompositionUpdate, CompositionResponse
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/compose", tags=["compose"])
 
@@ -35,10 +39,10 @@ SSE_HEADERS = {
     "X-Accel-Buffering": "no",
 }
 
-MAX_COMPLETION_TOKENS = 80
+MAX_COMPLETION_TOKENS = 50
 RATE_LIMIT_REFILL_PER_SEC = 2.0
 RATE_LIMIT_BURST = 3
-COMPLETION_MODEL = os.getenv("SEVENFOLD_AUTOCOMPLETE_MODEL", "claude-sonnet-4-20250514")
+COMPLETION_MODEL = os.getenv("SEVENFOLD_AUTOCOMPLETE_MODEL", "claude-haiku-4-5-20251001")
 COMPLETION_TEMPERATURE = float(os.getenv("SEVENFOLD_AUTOCOMPLETE_TEMPERATURE", "0.25"))
 
 anthropic_client = anthropic.Anthropic(
@@ -393,9 +397,18 @@ async def stream_completion(
     authorization: str = Header(...)
 ):
     """Stream ghost-text completion suggestions for a composition."""
+    logger.info("compose completion requested")
     user_id = _get_user_id(authorization)
     limiter = _get_rate_limiter(user_id)
     if not limiter.consume():
+        logger.warning(
+            "Compose completion rate limited",
+            extra={
+                "user_id": user_id,
+                "doc_id": completion_request.doc_id,
+                "request_id": completion_request.request_id,
+            },
+        )
         return StreamingResponse(
             _rate_limited_stream(completion_request.request_id),
             media_type=SSE_MEDIA_TYPE,
@@ -405,6 +418,14 @@ async def stream_completion(
     context_meta = clean_context_window(completion_request.context)
     context_excerpt = context_meta["excerpt"]
     if not context_excerpt:
+        logger.warning(
+            "Compose completion missing context",
+            extra={
+                "user_id": user_id,
+                "doc_id": completion_request.doc_id,
+                "request_id": completion_request.request_id,
+            },
+        )
         async def _no_context_stream():
             payload = {
                 "request_id": completion_request.request_id,
@@ -433,6 +454,7 @@ async def stream_completion(
 
     async def event_publisher():
         usage_summary = {"input_tokens": 0, "output_tokens": 0}
+        completion_text_parts: List[str] = []
         try:
             if await request.is_disconnected():
                 session.cancel()
@@ -466,6 +488,7 @@ async def stream_completion(
                         if session.first_token_time is None:
                             session.first_token_time = time.time()
 
+                        completion_text_parts.append(text)
                         chunk_payload = {
                             "request_id": completion_request.request_id,
                             "delta": text,
@@ -486,6 +509,14 @@ async def stream_completion(
                     "detail": str(exc),
                 }
                 yield _format_sse("error", error_payload)
+                logger.exception(
+                    "Compose completion failed",
+                    extra={
+                        "user_id": user_id,
+                        "doc_id": completion_request.doc_id,
+                        "request_id": completion_request.request_id,
+                    },
+                )
                 return
 
             done_payload = {
