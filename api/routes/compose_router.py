@@ -11,7 +11,7 @@ from db.supabase import supabase
 
 # LangChain imports
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 load_dotenv()
 
@@ -424,11 +424,13 @@ When suggesting edits, be specific about what should change and why."""
                         tool_name = event.get("name", "unknown")
                         tool_input = event.get("data", {}).get("input", {})
                         
-                        yield f"data: {json.dumps({
+                        yield f"""
+                        data: {json.dumps({
                             'type': 'tool_call',
                             'tool': tool_name,
                             'data': tool_input
-                        })}\n\n"
+                        })}\n\n
+                        """
                         
                     # Tool execution completed
                     elif kind == "on_tool_end":
@@ -444,11 +446,13 @@ When suggesting edits, be specific about what should change and why."""
                         else:
                             tool_result = str(tool_output)
                         
-                        yield f"data: {json.dumps({
+                        yield f"""
+                        data: {json.dumps({
                             'type': 'tool_result',
                             'tool': tool_name,
                             'result': tool_result
-                        })}\n\n"
+                        })}\n\n
+                        """
             else:
                 # Ask mode - no tools
                 async for chunk in llm.astream(lc_messages):

@@ -3,7 +3,7 @@ Utilities for chunking compositions and papers for semantic search.
 """
 
 import hashlib
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from db.supabase import supabase
 import torch
 from transformers import AutoTokenizer, AutoModel
