@@ -1,0 +1,40 @@
+<prompt>
+  <context>
+    <prefix>{context_before}</prefix>
+    <suffix>{context_after}</suffix>
+    <note><![CDATA[The prefix precedes the cursor, and the suffix follows it. Continue from the end of the prefix so that the suffix remains unchanged.]]></note>
+  </context>
+  <goal>Continue the academic paragraph naturally.</goal>
+  <instructions>
+    <item>Continue the passage seamlessly in academic tone.</item>
+    <item>Avoid meta commentary or describing what you are about to do.</item>
+    <item>Do not repeat the recent words verbatim.</item>
+    <item>Respect the suffix that follows the cursor: bridge into it smoothly, and never contradict or rewrite it.</item>
+    <item>Do not begin with citations, brackets, or references.</item>
+    <item>If there is insufficient context and you are unable to make a reasonable continuation, respond ONLY with "_INSUFFICIENT_CONTEXT_" and no further explanation.</item>
+{recent_tokens_instruction}
+  </instructions>
+  <examples>
+    <example type="positive">
+      <context>
+        <prefix><![CDATA[... the latent dynamics converge within three iterations, suggesting the sampler is near equilibrium.]]></prefix>
+        <suffix><![CDATA[Additional analyses will examine residual autocorrelation in Supplementary Table 4.]]></suffix>
+      </context>
+      <completion><![CDATA[Therefore, the empirical signal strengthens the proposed mechanism and permits tighter confidence bounds, providing a natural lead-in to the residual diagnostics summarized in Supplementary Table 4.]]></completion>
+    </example>
+    <example type="negative">
+      <context>
+        <prefix><![CDATA[... the latent dynamics converge within three iterations, suggesting the sampler is near equilibrium.]]></prefix>
+        <suffix><![CDATA[Additional analyses will examine residual autocorrelation in Supplementary Table 4.]]></suffix>
+      </context>
+      <completion><![CDATA[In this section, I will explain what comes next for the reader, rewriting the future text instead of flowing into it.]]></completion>
+    </example>
+    <example type="insufficient_context">
+      <context>
+        <prefix><![CDATA[\documentclass{{article}}\n\usepackage[utf8]{{inputenc}}\n\usepackage{{amsmath}}\n\title{{]]></prefix>
+        <suffix><![CDATA[}}\n\begin{{document}}]]></suffix>
+      </context>
+      <completion><![CDATA[_INSUFFICIENT_CONTEXT_]]></completion>
+    </example>
+  </examples>
+</prompt>

@@ -12,16 +12,16 @@ import {
 type MonacoEditor = Parameters<OnMount>[0];
 type SuggestionShape = {
   text: string;
-  anchor: { lineNumber: number; column: number } | null;
 };
 
 export type CompletionState = "idle" | "requesting" | "streaming" | "shown";
-export type CompletionTrigger = "idle" | "punctuation" | "manual";
+export type CompletionTrigger = "idle" | "provider";
 
 const PUNCTUATION_AFTER_SPACE = new Set([".", "?", "!", ";", ":", ")", "]", "}", "$"]);
 const CITATION_SUPPRESS_REGEX = /\\(cite|parencite|ref|footnote)\{[^}]*$/;
-const EMPTY_SUGGESTION: SuggestionShape = { text: "", anchor: null };
+const EMPTY_SUGGESTION: SuggestionShape = { text: "" };
 const PROVIDER_DEBOUNCE_MS = 500;
+const AFTER_CONTEXT_WINDOW = 1000;
 
 interface UseInlineStreamingArgs {
   mode: "docx" | "latex" | "markdown";
@@ -30,7 +30,6 @@ interface UseInlineStreamingArgs {
 
 export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingArgs) => {
   const editorRef = useRef<MonacoEditor | null>(null);
-  const anchorPositionRef = useRef<{ lineNumber: number; column: number } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
   const startCompletionRef = useRef<((trigger: CompletionTrigger) => void) | null>(null);
@@ -79,10 +78,9 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       const trigger = () => {
         lastProviderRequestTimeRef.current = Date.now();
         providerDebounceTimeoutRef.current = null;
-        void startCompletionRef.current?.("manual");
+        void startCompletionRef.current?.("provider");
       };
       if (elapsed >= PROVIDER_DEBOUNCE_MS) {
-        console.log("provider triggering completion; debounce time elapsed:", elapsed);
         trigger();
       } else if (providerDebounceTimeoutRef.current === null) {
         providerDebounceTimeoutRef.current = window.setTimeout(
@@ -129,7 +127,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       setGhostText("");
       pendingCompletionRef.current = "";
       fulfillSuggestion(EMPTY_SUGGESTION);
-      anchorPositionRef.current = null;
       updateCompletionState("idle");
     },
     [fulfillSuggestion, sendAbortRequest, updateCompletionState]
@@ -144,12 +141,19 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
     const maxWindow = 4000;
     const minWindow = 80;
     let start = Math.max(0, offset - maxWindow);
-    let slice = fullText.slice(start, offset);
-    if (slice.length < minWindow) {
+    let beforeSlice = fullText.slice(start, offset);
+    if (beforeSlice.length < minWindow) {
       start = Math.max(0, offset - minWindow);
-      slice = fullText.slice(start, offset);
+      beforeSlice = fullText.slice(start, offset);
     }
-    return slice;
+    const afterSlice = fullText.slice(
+      offset,
+      Math.min(fullText.length, offset + AFTER_CONTEXT_WINDOW)
+    );
+    return {
+      before: beforeSlice,
+      after: afterSlice,
+    };
   }, []);
 
   const startCompletion = useCallback(
@@ -166,11 +170,10 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       if (!fullText || !fullText.length) return;
       if (isInsideSuppressedRegion(fullText, offset)) return;
 
-      const contextSlice = buildContextSlice(fullText, offset);
-      if (!contextSlice.trim()) return;
+      const { before, after } = buildContextSlice(fullText, offset);
+      if (!before.trim() && !after.trim()) return;
 
       cancelActiveStream("restart");
-      anchorPositionRef.current = { lineNumber: position.lineNumber, column: position.column };
       beginSuggestionWait();
 
       const {
@@ -190,7 +193,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       setGhostText("");
       pendingCompletionRef.current = "";
       updateCompletionState("requesting");
-      console.log("Starting completion request; reason:", _trigger);
 
       let firstChunkReceived = false;
 
@@ -199,7 +201,8 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
         cursor: offset,
         request_id: requestId,
         language: mode,
-        context: contextSlice,
+        context_before: before,
+        context_after: after,
       };
 
       const streamUrl = `${import.meta.env.VITE_API_BASE_URL}/compose/complete`;
@@ -230,16 +233,16 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
             activeRequestIdRef.current = null;
             const finalSuggestion = pendingCompletionRef.current;
             pendingCompletionRef.current = "";
-            if (finalSuggestion) {
-              console.log("Setting completed suggestion:", finalSuggestion);
-              ghostTextRef.current = finalSuggestion.trim();
-              fulfillSuggestion({
-                text: ghostTextRef.current,
-                anchor: anchorPositionRef.current,
-              });
+            if (
+              finalSuggestion &&
+              !finalSuggestion.trim().includes("_INSUFFICIENT_CONTEXT_")
+            ) {
+              ghostTextRef.current = finalSuggestion;
+              fulfillSuggestion({ text: finalSuggestion });
               setGhostText(finalSuggestion);
               updateCompletionState("shown");
             } else {
+              console.log("Completion yielded no valid suggestion");
               fulfillSuggestion(EMPTY_SUGGESTION);
               ghostTextRef.current = "";
               setGhostText("");
@@ -303,16 +306,10 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
           const remaining = suggestion.slice(insertedText.length);
           ghostTextRef.current = remaining;
           setGhostText(remaining);
-          const anchor = anchorPositionRef.current;
-          if (anchor) {
-            anchorPositionRef.current = {
-              lineNumber: position.lineNumber,
-              column: position.column,
-            };
-          }
           if (!remaining.length) {
             updateCompletionState("idle");
           }
+          inlineProviderRef.current?.refresh();
           return;
         }
       }
@@ -329,7 +326,9 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
         insertedText === " " &&
         shouldTriggerAfterSpace(fullText, offset, PUNCTUATION_AFTER_SPACE, isInsideSuppressedRegion)
       ) {
-        void startCompletionRef.current?.("punctuation");
+        if (inlineProviderRef.current) {
+          inlineProviderRef.current.refresh();
+        }
       }
     },
     [mode, cancelActiveStream, isInsideSuppressedRegion]
@@ -363,7 +362,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
           editor.trigger("inlineSuggest", "editor.action.inlineSuggest.commit", {});
           ghostTextRef.current = "";
           setGhostText("");
-          anchorPositionRef.current = null;
           updateCompletionState("idle");
           cancelActiveStream("accepted");
           return true;
@@ -372,7 +370,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
 
       editorDisposablesRef.current.push(
         keybindingDisposable, 
-        // cursorDisposable
       );
     },
     [

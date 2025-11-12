@@ -14,7 +14,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from utils.auth import get_user_id_from_token
-from utils.latex_context import clean_context_window
+from utils.latex_context import clean_context_window, clean_context_suffix
 from db.supabase import supabase
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -49,8 +49,8 @@ anthropic_client = anthropic.Anthropic(
     api_key=os.getenv("ANTHROPIC_API_KEY")
 )
 
-COMPOSE_SYSTEM_PROMPT = _load_prompt("compose", "system_prompt.xml").strip()
-COMPOSE_USER_PROMPT_TEMPLATE = _load_prompt("compose", "user_prompt_template.xml")
+COMPOSE_SYSTEM_PROMPT = _load_prompt("compose", "completion_system_prompt.xml").strip()
+COMPOSE_USER_PROMPT_TEMPLATE = _load_prompt("compose", "completion_user_prompt_template.xml")
 
 @dataclass
 class TokenBucket:
@@ -100,7 +100,8 @@ class CompletionRequest(BaseModel):
     cursor: int = Field(..., ge=0, description="Cursor offset within the document")
     request_id: str = Field(..., description="Client-supplied request identifier")
     language: Literal["latex", "markdown", "docx"] = Field("latex", description="Document language")
-    context: str = Field(..., min_length=1, description="Client-provided context window surrounding the cursor")
+    context_before: str = Field(..., description="Client-provided context window preceding the cursor")
+    context_after: str = Field(..., description="Client-provided context window following the cursor")
 
 
 class AbortRequest(BaseModel):
@@ -146,17 +147,20 @@ def _wrap_cdata(text: str) -> str:
     return f"<![CDATA[{safe_text}]]>"
 
 
-def _build_completion_prompt(context_excerpt: str) -> str:
-    trimmed = context_excerpt.strip()
-    context_cdata = _wrap_cdata(trimmed)
-    recent_tokens = " ".join(trimmed.split()[-12:])
+def _build_completion_prompt(context_before: str, context_after: str) -> str:
+    before_trimmed = context_before.strip()
+    after_trimmed = context_after.strip()
+    context_before_cdata = _wrap_cdata(before_trimmed)
+    context_after_cdata = _wrap_cdata(after_trimmed)
+    recent_tokens = " ".join(before_trimmed.split()[-12:])
     recent_instruction = ""
     if recent_tokens:
         recent_instruction = f"    <item>Do not repeat these recent words: {_wrap_cdata(recent_tokens)}</item>"
 
     return COMPOSE_USER_PROMPT_TEMPLATE.format(
-        context_cdata=context_cdata,
-        recent_tokens_instruction=recent_instruction
+        context_before=context_before_cdata,
+        context_after=context_after_cdata,
+        recent_tokens_instruction=recent_instruction,
     )
 
 def _get_user_id(authorization: str) -> str:
@@ -415,9 +419,11 @@ async def stream_completion(
             headers=SSE_HEADERS
         )
 
-    context_meta = clean_context_window(completion_request.context)
-    context_excerpt = context_meta["excerpt"]
-    if not context_excerpt:
+    before_meta = clean_context_window(completion_request.context_before)
+    after_meta = clean_context_suffix(completion_request.context_after)
+    context_before_excerpt = before_meta["excerpt"]
+    context_after_excerpt = after_meta["excerpt"]
+    if not context_before_excerpt and not context_after_excerpt:
         logger.warning(
             "Compose completion missing context",
             extra={
@@ -449,7 +455,7 @@ async def stream_completion(
     )
     ACTIVE_COMPLETIONS.setdefault(user_id, {})[completion_request.request_id] = session
 
-    prompt_payload = _build_completion_prompt(context_excerpt)
+    prompt_payload = _build_completion_prompt(context_before_excerpt, context_after_excerpt)
     anthropic_messages = [{"role": "user", "content": prompt_payload}]
 
     async def event_publisher():

@@ -2,10 +2,9 @@ import type { OnMount } from "@monaco-editor/react";
 
 type Monaco = Parameters<OnMount>[1];
 
-interface SuggestionShape {
+type SuggestionShape = {
     text: string;
-    anchor: { lineNumber: number; column: number } | null;
-}
+};
 
 interface InlineProviderControls {
     refresh(): void;
@@ -23,34 +22,15 @@ export const setupInlineProvider = (
         displayName: "StreamingProvider",
         onDidChangeInlineCompletions: emitter.event,
         provideInlineCompletions: async (_model, position) => {
-            console.log("provider invoked");
-            const { text, anchor } = await getSuggestion();
-            if (
-                !text ||
-                !anchor ||
-                position.lineNumber !== anchor.lineNumber ||
-                position.column < anchor.column
-            ) {
-                console.log("no suggestion available");
-                console.log({
-                    text,
-                    anchor,
-                });
-                return { items: [], dispose() {} };
-            }
-
+            const { text } = await getSuggestion();
             const range = new monacoInstance.Range(
-                anchor.lineNumber,
-                anchor.column,
-                anchor.lineNumber,
-                anchor.column + 1
+                position.lineNumber,
+                position.column,
+                position.lineNumber,
+                position.column
             );
 
-            console.log("providing suggestion:", text);
-            console.log( {
-                anchor,
-                range,
-            });
+            console.log("Providing inline completion:", text);
             return {
                 items: [
                     {

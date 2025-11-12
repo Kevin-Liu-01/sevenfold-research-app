@@ -30,7 +30,7 @@ LATEX_ENVIRONMENTS = [
 ]
 
 
-def clean_context_window(raw_context: str, max_chars: int = 4000) -> Dict[str, object]:
+def _clean_context(raw_context: str, max_chars: int, take_suffix: bool) -> Dict[str, object]:
     """
     Clean a LaTeX context window by removing noisy commands and preserving math blocks.
     Returns a dict with the cleaned excerpt and metadata for logging.
@@ -43,7 +43,7 @@ def clean_context_window(raw_context: str, max_chars: int = 4000) -> Dict[str, o
             "math_blocks_preserved": 0,
         }
 
-    working = raw_context[-max_chars:]
+    working = raw_context[-max_chars:] if take_suffix else raw_context[:max_chars]
     cleaned_chars: List[str] = []
     math_blocks_preserved = 0
     i = 0
@@ -112,3 +112,13 @@ def clean_context_window(raw_context: str, max_chars: int = 4000) -> Dict[str, o
         "paragraph_count": len(paragraphs),
         "math_blocks_preserved": math_blocks_preserved,
     }
+
+
+def clean_context_window(raw_context: str, max_chars: int = 4000) -> Dict[str, object]:
+    """Clean up to max_chars before the cursor (suffix of the string)."""
+    return _clean_context(raw_context, max_chars, take_suffix=True)
+
+
+def clean_context_suffix(raw_context: str, max_chars: int = 1000) -> Dict[str, object]:
+    """Clean up to max_chars after the cursor (prefix of the string)."""
+    return _clean_context(raw_context, max_chars, take_suffix=False)
