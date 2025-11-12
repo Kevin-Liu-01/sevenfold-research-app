@@ -5,7 +5,6 @@ import { useWorkbench } from "../context/WorkbenchContext";
 import Editor from "@monaco-editor/react";
 import { marked } from "marked";
 import "katex/dist/katex.min.css";
-import { InlineMath, BlockMath } from "react-katex";
 import LatexPdfPreview from "../components/ui/LatexPdfPreview";
 import TiptapEditor from "../components/ui/tiptap/TiptapEditor";
 
@@ -300,28 +299,13 @@ function parseSearchResults(resultText: string): SearchResult[] {
 const MarkdownRenderer: React.FC<{ content?: string }> = ({ content }) => {
     if (!content) return null;
 
-    // Split the content by LaTeX delimiters. The regex captures the delimiters
-    // so they are included in the resulting array.
-    const parts = content.split(/(\$\$[\s\S]*?\$\$|\$.*?\$)/g);
+    // Just parse as markdown, no KaTeX rendering
+    const html = marked.parse(content);
 
     return (
         // The `prose` class from Tailwind's typography plugin provides nice styling for rendered HTML.
         <div className="prose prose-xs max-w-none text-gray-800 leading-relaxed text-xs">
-            {parts.map((part, index) => {
-                if (part.startsWith("$$") && part.endsWith("$$")) {
-                    // Render block-level math
-                    return <BlockMath key={index}>{part.slice(2, -2)}</BlockMath>;
-                } else if (part.startsWith("$") && part.endsWith("$")) {
-                    // Render inline math
-                    return <InlineMath key={index}>{part.slice(1, -1)}</InlineMath>;
-                } else {
-                    // This is a regular text part; parse it as Markdown
-                    // Use parseInline for synchronous parsing
-                    const html = marked.parseInline(part) as string;
-                    // Render the HTML. It's safe because 'marked' sanitizes it.
-                    return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
-                }
-            })}
+            <span dangerouslySetInnerHTML={{ __html: html }} />
         </div>
     );
 };
@@ -409,6 +393,8 @@ const WritingAgentChat: React.FC<{
             const messageProposals: EditProposal[] = [];
             let currentSearchQuery: string | null = null;
             let pendingProposalData: any = null; // Store proposal data until tool completes
+            let isStreamingContent = false; // Track if we're actively streaming text content
+            let contentStreamTimeout: NodeJS.Timeout | null = null; // Timeout to detect when streaming pauses
 
             if (reader) {
                 try {
@@ -425,8 +411,21 @@ const WritingAgentChat: React.FC<{
                                     const eventData = JSON.parse(line.slice(6));
 
                                     if (eventData.type === "content") {
-                                        // First content received - stop waiting
+                                        // First content received - stop waiting and mark as streaming
                                         setIsWaitingForResponse(false);
+                                        isStreamingContent = true;
+                                        
+                                        // Clear any existing timeout
+                                        if (contentStreamTimeout) {
+                                            clearTimeout(contentStreamTimeout);
+                                        }
+                                        
+                                        // Set a timeout to detect when streaming stops (agent is thinking/using tools)
+                                        contentStreamTimeout = setTimeout(() => {
+                                            if (hasCreatedMessage) {
+                                                setMessages((prev) => updateLastMessage(prev, { isProposingEdits: true }));
+                                            }
+                                        }, 500); // 500ms without content = show working indicator
 
                                         // Check if we should create a new message (after tool results)
                                         if (shouldCreateNewMessage) {
@@ -452,35 +451,39 @@ const WritingAgentChat: React.FC<{
                                                 setMessages((prev) => updateLastMessage(prev, {
                                                     role: 'assistant',
                                                     content: assistantContent,
+                                                    isProposingEdits: false, // Clear working indicator while streaming
                                                 }));
                                             }
                                         }
                                     } else if (eventData.type === "tool_call") {
+                                        // Clear the timeout since we got the tool call
+                                        if (contentStreamTimeout) {
+                                            clearTimeout(contentStreamTimeout);
+                                            contentStreamTimeout = null;
+                                        }
+                                        
+                                        // If we haven't created a message yet and not streaming, show working indicator
+                                        if (!hasCreatedMessage && !isStreamingContent) {
+                                            setMessages((prev) => [
+                                                ...prev,
+                                                { role: 'assistant', content: '', isProposingEdits: true },
+                                            ]);
+                                            hasCreatedMessage = true;
+                                        }
+                                        
                                         if (eventData.tool === "propose_edits") {
                                             // Store proposal data to process when tool completes
                                             pendingProposalData = eventData.data;
                                             
                                             // Mark as proposing edits (show "Working..." indicator)
-                                            if (!hasCreatedMessage) {
-                                                setMessages((prev) => [
-                                                    ...prev,
-                                                    { role: 'assistant', content: assistantContent, isProposingEdits: true },
-                                                ]);
-                                                hasCreatedMessage = true;
-                                            } else {
+                                            if (hasCreatedMessage) {
                                                 setMessages((prev) => updateLastMessage(prev, { isProposingEdits: true }));
                                             }
                                         } else if (eventData.tool === "search_compositions") {
                                             // Store the search query and mark as searching
                                             currentSearchQuery = eventData.data?.query || 'compositions';
                                             
-                                            if (!hasCreatedMessage) {
-                                                setMessages((prev) => [
-                                                    ...prev,
-                                                    { role: 'assistant', content: assistantContent, isSearching: true },
-                                                ]);
-                                                hasCreatedMessage = true;
-                                            } else {
+                                            if (hasCreatedMessage) {
                                                 setMessages((prev) => updateLastMessage(prev, { isSearching: true }));
                                             }
                                         }
@@ -551,6 +554,11 @@ const WritingAgentChat: React.FC<{
                     }
                 } catch (streamError) {
                     console.error("Stream reading error:", streamError);
+                } finally {
+                    // Clean up the timeout
+                    if (contentStreamTimeout) {
+                        clearTimeout(contentStreamTimeout);
+                    }
                 }
             }
         } catch (error) {
@@ -597,7 +605,7 @@ const WritingAgentChat: React.FC<{
                                         {/* Assistant message content */}
                                         {msg.content && (
                                             <div className="flex justify-start">
-                                                <div className="max-w-[90%] rounded-lg px-2.5 py-1.5 leading-relaxed bg-white border border-gray-200 text-gray-700">
+                                                <div className="rounded-lg px-2.5 py-1.5 leading-relaxed bg-white border border-gray-200 text-gray-700">
                                                     <MarkdownRenderer content={msg.content} />
                                                 </div>
                                             </div>
@@ -638,21 +646,11 @@ const WritingAgentChat: React.FC<{
                                                 </div>
                                             </div>
                                         )}
-                                        
-                                        {/* Show proposing edits indicator */}
-                                        {msg.isProposingEdits && (
-                                            <div className="ml-2 mt-1">
-                                                <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 inline-flex items-center gap-2">
-                                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-purple-300 border-t-purple-600"></div>
-                                                    <span className="text-xs text-purple-700 font-medium">Working...</span>
-                                                </div>
-                                            </div>
-                                        )}
                                     </>
                                 )}
                             </div>
                         ))}
-                        {isWaitingForResponse && (
+                        {(isWaitingForResponse || messages[messages.length - 1]?.isProposingEdits) && (
                             <div className="flex justify-start">
                                 <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 inline-flex items-center gap-2">
                                     <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-300 border-t-gray-600"></div>
