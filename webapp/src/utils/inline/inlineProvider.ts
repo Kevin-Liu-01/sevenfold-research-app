@@ -15,21 +15,27 @@ interface InlineProviderControls {
 export const setupInlineProvider = (
     monacoInstance: Monaco,
     languages: string[],
-    getSuggestion: () => SuggestionShape
+    getSuggestion: () => Promise<SuggestionShape>
 ): InlineProviderControls => {
     const emitter = new monacoInstance.Emitter<void>();
 
     const disposable = monacoInstance.languages.registerInlineCompletionsProvider(languages, {
         displayName: "StreamingProvider",
         onDidChangeInlineCompletions: emitter.event,
-        provideInlineCompletions(_model, position) {
-            const { text, anchor } = getSuggestion();
+        provideInlineCompletions: async (_model, position) => {
+            console.log("provider invoked");
+            const { text, anchor } = await getSuggestion();
             if (
                 !text ||
                 !anchor ||
                 position.lineNumber !== anchor.lineNumber ||
                 position.column < anchor.column
             ) {
+                console.log("no suggestion available");
+                console.log({
+                    text,
+                    anchor,
+                });
                 return { items: [], dispose() {} };
             }
 
@@ -37,9 +43,14 @@ export const setupInlineProvider = (
                 anchor.lineNumber,
                 anchor.column,
                 anchor.lineNumber,
-                anchor.column
+                anchor.column + 1
             );
 
+            console.log("providing suggestion:", text);
+            console.log( {
+                anchor,
+                range,
+            });
             return {
                 items: [
                     {

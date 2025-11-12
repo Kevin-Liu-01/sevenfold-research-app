@@ -6,17 +6,22 @@ import supabase from "../../auth/supabaseClient";
 import { setupInlineProvider } from "./inlineProvider";
 import {
   attachInlineKeybindings,
-  createIdleScheduler,
   shouldTriggerAfterSpace,
 } from "./inlineTriggers";
 
 type MonacoEditor = Parameters<OnMount>[0];
+type SuggestionShape = {
+  text: string;
+  anchor: { lineNumber: number; column: number } | null;
+};
 
 export type CompletionState = "idle" | "requesting" | "streaming" | "shown";
 export type CompletionTrigger = "idle" | "punctuation" | "manual";
 
 const PUNCTUATION_AFTER_SPACE = new Set([".", "?", "!", ";", ":", ")", "]", "}", "$"]);
 const CITATION_SUPPRESS_REGEX = /\\(cite|parencite|ref|footnote)\{[^}]*$/;
+const EMPTY_SUGGESTION: SuggestionShape = { text: "", anchor: null };
+const PROVIDER_DEBOUNCE_MS = 500;
 
 interface UseInlineStreamingArgs {
   mode: "docx" | "latex" | "markdown";
@@ -30,8 +35,16 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
   const activeRequestIdRef = useRef<string | null>(null);
   const startCompletionRef = useRef<((trigger: CompletionTrigger) => void) | null>(null);
   const inlineProviderRef = useRef<{ refresh(): void; dispose(): void } | null>(null);
+  const suggestionDeferredRef = useRef<{
+    promise: Promise<SuggestionShape>;
+    resolve(value: SuggestionShape): void;
+  }>({
+    promise: Promise.resolve(EMPTY_SUGGESTION),
+    resolve: () => {},
+  });
   const editorDisposablesRef = useRef<Array<{ dispose(): void }>>([]);
-  const idleScheduler = useRef(createIdleScheduler(() => startCompletionRef.current?.("idle"), 250));
+  const lastProviderRequestTimeRef = useRef(0);
+  const providerDebounceTimeoutRef = useRef<number | null>(null);
 
   const [ghostText, setGhostText] = useState("");
   const ghostTextRef = useRef("");
@@ -43,50 +56,42 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
     completionStateRef.current = next;
     setCompletionState(next);
   }, []);
-
-  const clearIdleTimer = useCallback(() => {
-    idleScheduler.current.clear();
+  const beginSuggestionWait = useCallback(() => {
+    let resolve!: (value: SuggestionShape) => void;
+    const promise = new Promise<SuggestionShape>((res) => {
+      resolve = res;
+    });
+    suggestionDeferredRef.current = { promise, resolve };
   }, []);
 
-  const scheduleIdleTrigger = useCallback(() => {
-    if (mode !== "latex") return;
-    idleScheduler.current.schedule();
-  }, [mode]);
-
-  const refreshInlineCompletions = useCallback(() => {
-    inlineProviderRef.current?.refresh();
+  const fulfillSuggestion = useCallback((value: SuggestionShape) => {
+    suggestionDeferredRef.current.resolve(value);
+    suggestionDeferredRef.current = {
+      promise: Promise.resolve(value),
+      resolve: () => {},
+    };
   }, []);
 
-  const refreshInlineSuggest = useCallback(
-    (forceTrigger = false) => {
-      const controller = editorRef.current?.getContribution(
-        "editor.contrib.inlineSuggestController"
-      ) as { forceUpdate?(): void } | undefined;
-      controller?.forceUpdate?.();
-      if (forceTrigger) {
-        editorRef.current?.trigger("inlineSuggest", "editor.action.inlineSuggest.trigger", {});
+  const requestSuggestionForProvider = useCallback(() => {
+    if (completionStateRef.current === "idle") {
+      const now = Date.now();
+      const elapsed = now - lastProviderRequestTimeRef.current;
+      const trigger = () => {
+        lastProviderRequestTimeRef.current = Date.now();
+        providerDebounceTimeoutRef.current = null;
+        void startCompletionRef.current?.("manual");
+      };
+      if (elapsed >= PROVIDER_DEBOUNCE_MS) {
+        console.log("provider triggering completion; debounce time elapsed:", elapsed);
+        trigger();
+      } else if (providerDebounceTimeoutRef.current === null) {
+        providerDebounceTimeoutRef.current = window.setTimeout(
+          trigger,
+          PROVIDER_DEBOUNCE_MS - elapsed
+        );
       }
-    },
-    []
-  );
-
-  const triggerInlineCompletionModel = useCallback(() => {
-    const controller = editorRef.current?.getContribution(
-      "editor.contrib.inlineCompletionsController"
-    ) as
-      | {
-        model?: {
-          get?(): {
-            trigger?(tx?: unknown, options?: { noDelay?: boolean }): Promise<void>;
-          } | null;
-        };
-      }
-      | undefined;
-    const model = controller?.model?.get?.();
-    if (model?.trigger) {
-      console.log("Triggering inline completion model");
-      void model.trigger(undefined, { noDelay: true });
     }
+    return suggestionDeferredRef.current.promise;
   }, []);
 
   const sendAbortRequest = useCallback(async (requestId: string) => {
@@ -111,7 +116,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
 
   const cancelActiveStream = useCallback(
     (_reason: string, notifyServer = true) => {
-      clearIdleTimer();
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -124,11 +128,11 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       ghostTextRef.current = "";
       setGhostText("");
       pendingCompletionRef.current = "";
-      refreshInlineCompletions();
+      fulfillSuggestion(EMPTY_SUGGESTION);
       anchorPositionRef.current = null;
       updateCompletionState("idle");
     },
-    [clearIdleTimer, refreshInlineCompletions, sendAbortRequest, updateCompletionState]
+    [fulfillSuggestion, sendAbortRequest, updateCompletionState]
   );
 
   const isInsideSuppressedRegion = useCallback((fullText: string, offset: number) => {
@@ -151,7 +155,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
   const startCompletion = useCallback(
     async (_trigger: CompletionTrigger) => {
       if (mode !== "latex" || !compositionId) return;
-      clearIdleTimer();
       const editor = editorRef.current;
       if (!editor) return;
       const model = editor.getModel();
@@ -168,6 +171,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
 
       cancelActiveStream("restart");
       anchorPositionRef.current = { lineNumber: position.lineNumber, column: position.column };
+      beginSuggestionWait();
 
       const {
         data: { session },
@@ -185,7 +189,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       ghostTextRef.current = "";
       setGhostText("");
       pendingCompletionRef.current = "";
-      refreshInlineCompletions();
       updateCompletionState("requesting");
       console.log("Starting completion request; reason:", _trigger);
 
@@ -229,13 +232,15 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
             pendingCompletionRef.current = "";
             if (finalSuggestion) {
               console.log("Setting completed suggestion:", finalSuggestion);
-              ghostTextRef.current = finalSuggestion;
+              ghostTextRef.current = finalSuggestion.trim();
+              fulfillSuggestion({
+                text: ghostTextRef.current,
+                anchor: anchorPositionRef.current,
+              });
               setGhostText(finalSuggestion);
-              refreshInlineCompletions();
-              triggerInlineCompletionModel();
-              refreshInlineSuggest(true);
               updateCompletionState("shown");
             } else {
+              fulfillSuggestion(EMPTY_SUGGESTION);
               ghostTextRef.current = "";
               setGhostText("");
               updateCompletionState("idle");
@@ -244,6 +249,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
             abortControllerRef.current = null;
             activeRequestIdRef.current = null;
             console.warn("Completion stream error:", data);
+            fulfillSuggestion(EMPTY_SUGGESTION);
             cancelActiveStream("error", false);
           }
         },
@@ -252,6 +258,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
             return;
           }
           console.error("Completion stream failed:", err);
+          fulfillSuggestion(EMPTY_SUGGESTION);
           cancelActiveStream("network", false);
         },
       });
@@ -259,13 +266,11 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
     [
       mode,
       compositionId,
-      clearIdleTimer,
       isInsideSuppressedRegion,
       buildContextSlice,
+      beginSuggestionWait,
+      fulfillSuggestion,
       cancelActiveStream,
-      refreshInlineCompletions,
-      triggerInlineCompletionModel,
-      refreshInlineSuggest,
       updateCompletionState,
     ]
   );
@@ -278,7 +283,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
     (_value?: string, ev?: any) => {
       if (mode !== "latex") return;
       if (!ev) {
-        scheduleIdleTrigger();
         return;
       }
 
@@ -306,11 +310,8 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
               column: position.column,
             };
           }
-          refreshInlineCompletions();
-          triggerInlineCompletionModel();
           if (!remaining.length) {
             updateCompletionState("idle");
-            scheduleIdleTrigger();
           }
           return;
         }
@@ -322,8 +323,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
 
       if (completionStateRef.current !== "idle") {
         cancelActiveStream("typing");
-      } else {
-        clearIdleTimer();
       }
 
       if (
@@ -331,11 +330,9 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
         shouldTriggerAfterSpace(fullText, offset, PUNCTUATION_AFTER_SPACE, isInsideSuppressedRegion)
       ) {
         void startCompletionRef.current?.("punctuation");
-      } else {
-        scheduleIdleTrigger();
       }
     },
-    [mode, scheduleIdleTrigger, cancelActiveStream, clearIdleTimer, isInsideSuppressedRegion]
+    [mode, cancelActiveStream, isInsideSuppressedRegion]
   );
 
   const handleEditorMount = useCallback<OnMount>(
@@ -345,10 +342,11 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       editorDisposablesRef.current.forEach((d) => d.dispose());
       editorDisposablesRef.current = [];
       inlineProviderRef.current?.dispose();
-      inlineProviderRef.current = setupInlineProvider(monacoInstance, ["latex", "plaintext"], () => ({
-        text: ghostTextRef.current,
-        anchor: anchorPositionRef.current,
-      }));
+      inlineProviderRef.current = setupInlineProvider(
+        monacoInstance,
+        ["latex", "plaintext"],
+        requestSuggestionForProvider
+      );
 
       const keybindingDisposable = attachInlineKeybindings(editor, {
         onEscape: () => {
@@ -365,24 +363,12 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
           editor.trigger("inlineSuggest", "editor.action.inlineSuggest.commit", {});
           ghostTextRef.current = "";
           setGhostText("");
-          refreshInlineCompletions();
           anchorPositionRef.current = null;
           updateCompletionState("idle");
           cancelActiveStream("accepted");
-          scheduleIdleTrigger();
           return true;
         },
       });
-
-      // schedule idle trigger on user cursor movement
-      // const cursorDisposable = attachCursorListener(editor, (userInitiated) => {
-      //   if (userInitiated && completionStateRef.current !== "idle") {
-      //     cancelActiveStream("cursor");
-      //   }
-      //   if (userInitiated) {
-      //     scheduleIdleTrigger();
-      //   }
-      // });
 
       editorDisposablesRef.current.push(
         keybindingDisposable, 
@@ -391,14 +377,17 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
     },
     [
       cancelActiveStream,
-      refreshInlineCompletions,
-      scheduleIdleTrigger,
       updateCompletionState,
+      requestSuggestionForProvider,
     ]
   );
 
   useEffect(() => {
     return () => {
+      if (providerDebounceTimeoutRef.current !== null) {
+        window.clearTimeout(providerDebounceTimeoutRef.current);
+        providerDebounceTimeoutRef.current = null;
+      }
       editorDisposablesRef.current.forEach((d) => d.dispose());
       editorDisposablesRef.current = [];
       inlineProviderRef.current?.dispose();
