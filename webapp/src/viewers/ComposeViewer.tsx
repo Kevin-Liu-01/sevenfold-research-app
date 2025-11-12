@@ -219,15 +219,6 @@ const EditorComponent: React.FC = () => {
                                 <span className="material-icons text-base">play_arrow</span>
                                 <span className="font-medium">Compile PDF</span>
                             </button>
-                            <span className="text-xs text-gray-400 min-w-[140px] text-right">
-                                {completionState === "streaming"
-                                    ? "Autocomplete streaming…"
-                                    : completionState === "requesting"
-                                      ? "Requesting suggestion…"
-                                      : completionState === "shown" && ghostText
-                                          ? "Suggestion ready"
-                                          : ""}
-                            </span>
                         </>
                     )}
                     <div>

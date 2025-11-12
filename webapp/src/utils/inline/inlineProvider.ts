@@ -30,7 +30,6 @@ export const setupInlineProvider = (
                 position.column
             );
 
-            console.log("Providing inline completion:", text);
             return {
                 items: [
                     {

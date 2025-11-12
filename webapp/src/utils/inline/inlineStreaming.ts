@@ -242,7 +242,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
               setGhostText(finalSuggestion);
               updateCompletionState("shown");
             } else {
-              console.log("Completion yielded no valid suggestion");
               fulfillSuggestion(EMPTY_SUGGESTION);
               ghostTextRef.current = "";
               setGhostText("");
