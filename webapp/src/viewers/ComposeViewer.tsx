@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { Composition } from "../../../schema/db-types";
 import supabase from "../auth/supabaseClient";
 import { useWorkbench } from "../context/WorkbenchContext";
@@ -6,6 +6,7 @@ import Editor from "@monaco-editor/react";
 import { marked } from "marked";
 import LatexPdfPreview from "../components/ui/LatexPdfPreview";
 import TiptapEditor from "../components/ui/tiptap/TiptapEditor";
+import { useInlineStreaming } from "../utils/inline/inlineStreaming";
 
 const CompositionListPanel: React.FC<{
     compositions: Composition[];
@@ -88,6 +89,18 @@ const EditorComponent: React.FC = () => {
     const [compileCounter, setCompileCounter] = useState(0);
     const [renderedHtml, setRenderedHtml] = useState("");
     const isInitialLoad = useRef(true);
+    const { ghostText, completionState, handleEditorChange, handleEditorMount } = useInlineStreaming({
+        mode,
+        compositionId: selectedComposition.id,
+    });
+
+    const handleLatexEditorChange = useCallback(
+        (value?: string, ev?: Parameters<typeof handleEditorChange>[1]) => {
+            setContent(value || "");
+            handleEditorChange(value, ev);
+        },
+        [handleEditorChange]
+    );
 
     // Update state when selectedComposition changes
     useEffect(() => {
@@ -197,14 +210,16 @@ const EditorComponent: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                     {mode === "latex" && (
-                        <button
-                            onClick={() => setCompileCounter(c => c + 1)}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                            title="Compile LaTeX to PDF (Ctrl+Shift+B)"
-                        >
-                            <span className="material-icons text-base">play_arrow</span>
-                            <span className="font-medium">Compile PDF</span>
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setCompileCounter((c) => c + 1)}
+                                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                title="Compile LaTeX to PDF (Ctrl+Shift+B)"
+                            >
+                                <span className="material-icons text-base">play_arrow</span>
+                                <span className="font-medium">Compile PDF</span>
+                            </button>
+                        </>
                     )}
                     <div>
                         <label htmlFor="mode-select" className="sr-only">
@@ -277,7 +292,8 @@ const EditorComponent: React.FC = () => {
                                 height="100%"
                                 language="latex"
                                 value={content}
-                                onChange={(value) => setContent(value || "")}
+                                onChange={handleLatexEditorChange}
+                                onMount={handleEditorMount}
                                 theme="vs-light"
                                 options={{
                                     minimap: { enabled: false },
@@ -288,6 +304,10 @@ const EditorComponent: React.FC = () => {
                                     scrollBeyondLastLine: false,
                                     automaticLayout: true,
                                     tabSize: 2,
+                                    inlineSuggest: {
+                                        enabled: true,
+                                        mode: "subwordSmart",
+                                    },
                                 }}
                             />
                         </div>
