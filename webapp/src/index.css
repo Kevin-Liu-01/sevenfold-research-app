@@ -79,11 +79,6 @@
 
 /* Keyframes and animation */
 
-.monaco-editor .ghost-text-after {
-    color: #9aa0a6;
-    opacity: 0.85;
-    font-style: normal;
-}
 @layer utilities {
     @keyframes scroll {
         0% {

@@ -93,6 +93,8 @@ class CompletionSession:
 
 ACTIVE_COMPLETIONS: Dict[str, Dict[str, CompletionSession]] = {}
 USER_RATE_LIMITERS: Dict[str, TokenBucket] = {}
+ACTIVE_COMPLETIONS_LOCK = asyncio.Lock()
+RATE_LIMITERS_LOCK = asyncio.Lock()
 
 
 class CompletionRequest(BaseModel):
@@ -112,23 +114,25 @@ def _format_sse(event_type: str, payload: Dict) -> str:
     return f"event: {event_type}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
-def _get_rate_limiter(user_id: str) -> TokenBucket:
-    limiter = USER_RATE_LIMITERS.get(user_id)
-    if limiter is None:
-        limiter = TokenBucket(capacity=RATE_LIMIT_BURST, refill_rate=RATE_LIMIT_REFILL_PER_SEC)
-        USER_RATE_LIMITERS[user_id] = limiter
-    return limiter
+async def _get_rate_limiter(user_id: str) -> TokenBucket:
+    async with RATE_LIMITERS_LOCK:
+        limiter = USER_RATE_LIMITERS.get(user_id)
+        if limiter is None:
+            limiter = TokenBucket(capacity=RATE_LIMIT_BURST, refill_rate=RATE_LIMIT_REFILL_PER_SEC)
+            USER_RATE_LIMITERS[user_id] = limiter
+        return limiter
 
 
-def _cancel_active_sessions_for_user(user_id: str) -> None:
-    user_sessions = ACTIVE_COMPLETIONS.get(user_id)
-    if not user_sessions:
-        return
-    for request_id, session in list(user_sessions.items()):
-        session.cancel()
-        user_sessions.pop(request_id, None)
-    if not user_sessions:
-        ACTIVE_COMPLETIONS.pop(user_id, None)
+async def _cancel_active_sessions_for_user(user_id: str) -> None:
+    async with ACTIVE_COMPLETIONS_LOCK:
+        user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+        if not user_sessions:
+            return
+        for request_id, session in list(user_sessions.items()):
+            session.cancel()
+            user_sessions.pop(request_id, None)
+        if not user_sessions:
+            ACTIVE_COMPLETIONS.pop(user_id, None)
 
 
 async def _rate_limited_stream(request_id: str):
@@ -154,7 +158,7 @@ def _build_completion_prompt(context_before: str, context_after: str) -> str:
     context_after_cdata = _wrap_cdata(after_trimmed)
     recent_tokens = " ".join(before_trimmed.split()[-12:])
     recent_instruction = ""
-    if recent_tokens:
+    if recent_tokens.strip():
         recent_instruction = f"    <item>Do not repeat these recent words: {_wrap_cdata(recent_tokens)}</item>"
 
     return COMPOSE_USER_PROMPT_TEMPLATE.format(
@@ -403,7 +407,7 @@ async def stream_completion(
     """Stream ghost-text completion suggestions for a composition."""
     logger.info("compose completion requested")
     user_id = _get_user_id(authorization)
-    limiter = _get_rate_limiter(user_id)
+    limiter = await _get_rate_limiter(user_id)
     if not limiter.consume():
         logger.warning(
             "Compose completion rate limited",
@@ -446,14 +450,15 @@ async def stream_completion(
             headers=SSE_HEADERS
         )
 
-    _cancel_active_sessions_for_user(user_id)
+    await _cancel_active_sessions_for_user(user_id)
 
     session = CompletionSession(
         user_id=user_id,
         doc_id=completion_request.doc_id,
         request_id=completion_request.request_id,
     )
-    ACTIVE_COMPLETIONS.setdefault(user_id, {})[completion_request.request_id] = session
+    async with ACTIVE_COMPLETIONS_LOCK:
+        ACTIVE_COMPLETIONS.setdefault(user_id, {})[completion_request.request_id] = session
 
     prompt_payload = _build_completion_prompt(context_before_excerpt, context_after_excerpt)
     anthropic_messages = [{"role": "user", "content": prompt_payload}]
@@ -532,11 +537,12 @@ async def stream_completion(
             }
             yield _format_sse("done", done_payload)
         finally:
-            user_sessions = ACTIVE_COMPLETIONS.get(user_id)
-            if user_sessions:
-                user_sessions.pop(completion_request.request_id, None)
-                if not user_sessions:
-                    ACTIVE_COMPLETIONS.pop(user_id, None)
+            async with ACTIVE_COMPLETIONS_LOCK:
+                user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+                if user_sessions:
+                    user_sessions.pop(completion_request.request_id, None)
+                    if not user_sessions:
+                        ACTIVE_COMPLETIONS.pop(user_id, None)
 
     return StreamingResponse(
         event_publisher(),
@@ -552,14 +558,16 @@ async def abort_completion(
 ):
     """Abort an in-flight completion stream."""
     user_id = _get_user_id(authorization)
-    session = ACTIVE_COMPLETIONS.get(user_id, {}).get(abort_request.request_id)
+    async with ACTIVE_COMPLETIONS_LOCK:
+        session = ACTIVE_COMPLETIONS.get(user_id, {}).get(abort_request.request_id)
     if not session:
         return {"status": "not_found"}
 
     session.cancel()
-    user_sessions = ACTIVE_COMPLETIONS.get(user_id)
-    if user_sessions:
-        user_sessions.pop(abort_request.request_id, None)
-        if not user_sessions:
-            ACTIVE_COMPLETIONS.pop(user_id, None)
+    async with ACTIVE_COMPLETIONS_LOCK:
+        user_sessions = ACTIVE_COMPLETIONS.get(user_id)
+        if user_sessions:
+            user_sessions.pop(abort_request.request_id, None)
+            if not user_sessions:
+                ACTIVE_COMPLETIONS.pop(user_id, None)
     return {"status": "aborting"}

@@ -54,7 +54,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
   const updateCompletionState = useCallback((next: CompletionState) => {
     completionStateRef.current = next;
     setCompletionState(next);
-  }, []);
+  }, [setCompletionState]);
   const beginSuggestionWait = useCallback(() => {
     let resolve!: (value: SuggestionShape) => void;
     const promise = new Promise<SuggestionShape>((res) => {
@@ -82,7 +82,10 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
       };
       if (elapsed >= PROVIDER_DEBOUNCE_MS) {
         trigger();
-      } else if (providerDebounceTimeoutRef.current === null) {
+      } else {
+        if (providerDebounceTimeoutRef.current !== null) {
+          window.clearTimeout(providerDebounceTimeoutRef.current);
+        }
         providerDebounceTimeoutRef.current = window.setTimeout(
           trigger,
           PROVIDER_DEBOUNCE_MS - elapsed
@@ -185,6 +188,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
         return;
       }
 
+      // Use crypto.randomUUID when available (browser) but fall back to uuidv4 for SSR/tests where crypto may be undefined.
       const requestId = crypto?.randomUUID?.() ?? uuidv4();
       activeRequestIdRef.current = requestId;
       const controller = new AbortController();
@@ -259,7 +263,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
           if (controller.signal.aborted) {
             return;
           }
-          console.error("Completion stream failed:", err);
+          console.warn("Completion stream failed:", err);
           fulfillSuggestion(EMPTY_SUGGESTION);
           cancelActiveStream("network", false);
         },
@@ -330,7 +334,7 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
         }
       }
     },
-    [mode, cancelActiveStream, isInsideSuppressedRegion]
+    [mode, cancelActiveStream, isInsideSuppressedRegion, updateCompletionState]
   );
 
   const handleEditorMount = useCallback<OnMount>(

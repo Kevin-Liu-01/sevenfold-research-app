@@ -52,19 +52,32 @@ def _clean_context(raw_context: str, max_chars: int, take_suffix: bool) -> Dict[
     def _starts_with_any(prefixes):
         return next((p for p in prefixes if working.startswith(p, i)), None)
 
+    def _is_unescaped_brace(idx: int) -> bool:
+        """Return True if working[idx] is an unescaped brace character."""
+        if working[idx] not in ("{", "}"):
+            return False
+        backslashes = 0
+        j = idx - 1
+        while j >= 0 and working[j] == "\\":
+            backslashes += 1
+            j -= 1
+        return backslashes % 2 == 0
+
     while i < length:
         cmd = _starts_with_any(CLEANABLE_COMMANDS)
         if cmd:
             depth = 1
             i += len(cmd)
             while i < length and depth > 0:
-                if working[i] == "{":
+                if working[i] == "{" and _is_unescaped_brace(i):
                     depth += 1
-                elif working[i] == "}":
+                elif working[i] == "}" and _is_unescaped_brace(i):
                     depth -= 1
                 i += 1
             continue
 
+        # NOTE: We assume LaTeX math delimiters are well-formed/non-nested (e.g., no `$ ... $y$ ... $` cases).
+        # Nested plain `$` markers are invalid in standard LaTeX, so we do not attempt to balance them here.
         math_match = None
         for start, end in MATH_BLOCK_DELIMS:
             if working.startswith(start, i):
