@@ -9,6 +9,9 @@ import sys
 import time
 from typing import Dict, List, Literal, Optional
 
+# Add parent directory to path BEFORE importing schema
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 import anthropic
 from db.supabase import supabase
 from dotenv import load_dotenv
@@ -23,8 +26,6 @@ from utils.auth import get_user_id_from_token
 from utils.latex_context import clean_context_suffix, clean_context_window
 
 load_dotenv()
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 
 logging.basicConfig(level=logging.INFO)

@@ -721,66 +721,88 @@ const CompositionListPanel: React.FC<{
     isCreating: boolean;
     onEditProposalsChange: (proposals: EditProposal[]) => void;
 }> = ({ compositions, selectedComposition, onSelectComposition, onNewComposition, isCreating, onEditProposalsChange }) => {
+    const [activeTab, setActiveTab] = useState<'compositions' | 'chat'>('compositions');
 
     return (
         <div className="w-64 bg-app-outer border-r border-gray-200 flex flex-col h-full">
-            {/* Top Half - Composition List */}
-            <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
-                <h3 className="text-sm font-semibold text-gray-800">Compositions</h3>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-300">
                 <button
-                    onClick={onNewComposition}
-                    disabled={isCreating}
-                    className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90 disabled:opacity-50"
+                    onClick={() => setActiveTab('compositions')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'compositions'
+                            ? 'bg-app-inner text-gray-800 border-b-2 border-gray-800'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                    }`}
                 >
-                    {isCreating ? (
-                        <span className="material-icons text-base animate-spin text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
-                            refresh
-                        </span>
-                    ) : (
-                        <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
-                            add
-                        </span>
-                    )}
-                    <span>{isCreating ? "Creating..." : "New Composition"}</span>
+                    Compositions
                 </button>
+                <button
+                    onClick={() => setActiveTab('chat')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'chat'
+                            ? 'bg-app-inner text-gray-800 border-b-2 border-gray-800'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                    }`}
+                >
+                    Agent
+                </button>
+            </div>
 
-                <div className="flex-1 overflow-y-auto min-h-0">
-                    {compositions.length === 0 ? (
-                        <div className="text-gray-500 text-sm text-center py-4">No compositions found</div>
-                    ) : (
-                        <div className="flex flex-col space-y-2">
-                            {compositions.map((composition) => (
-                                <div
-                                    key={composition.id}
-                                    onClick={() => onSelectComposition(composition)}
-                                    className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
-                                        ${selectedComposition?.id === composition.id ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
-                                    `}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
-                                                {composition.title || "Untitled"}
-                                            </span>
-                                            <span className="text-xs text-gray-500 truncate max-w-[200px]">
-                                                {composition.type?.toUpperCase() || "UNKNOWN"}
-                                            </span>
+            {/* Tab Content */}
+            {activeTab === 'compositions' ? (
+                <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
+                    <button
+                        onClick={onNewComposition}
+                        disabled={isCreating}
+                        className="group inline-flex items-center space-x-1 bg-[var(--color-off-black)] text-[var(--color-app-inner)] text-sm font-medium px-2 py-1 rounded-md transition hover:opacity-90 disabled:opacity-50"
+                    >
+                        {isCreating ? (
+                            <span className="material-icons text-base animate-spin text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                                refresh
+                            </span>
+                        ) : (
+                            <span className="material-icons text-base text-[var(--color-app-inner)] transition-transform duration-200 group-hover:scale-[1.15]">
+                                add
+                            </span>
+                        )}
+                        <span>{isCreating ? "Creating..." : "New Composition"}</span>
+                    </button>
+
+                    <div className="flex-1 overflow-y-auto min-h-0">
+                        {compositions.length === 0 ? (
+                            <div className="text-gray-500 text-sm text-center py-4">No compositions found</div>
+                        ) : (
+                            <div className="flex flex-col space-y-2">
+                                {compositions.map((composition) => (
+                                    <div
+                                        key={composition.id}
+                                        onClick={() => onSelectComposition(composition)}
+                                        className={`flex items-center justify-between p-2 bg-app-inner rounded-md cursor-pointer transition
+                                            ${selectedComposition?.id === composition.id ? "bg-gray-150 shadow" : "hover:bg-gray-300"}
+                                        `}
+                                    >
+                                        <div className="flex items-center space-x-1">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-800 truncate max-w-[200px]">
+                                                    {composition.title || "Untitled"}
+                                                </span>
+                                                <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                    {composition.type?.toUpperCase() || "UNKNOWN"}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-gray-300"></div>
-
-            {/* Bottom Half - Writing Agent Chat */}
-            <div className="h-1/2 flex flex-col min-h-0">
-                <WritingAgentChat onEditProposalsChange={onEditProposalsChange} />
-            </div>
+            ) : (
+                <div className="flex-1 flex flex-col min-h-0">
+                    <WritingAgentChat onEditProposalsChange={onEditProposalsChange} />
+                </div>
+            )}
         </div>
     );
 };
