@@ -72,12 +72,12 @@ export default function Faqs() {
     <section className="py-20">
       <Container className="grid gap-12 md:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
         <div className="flex flex-col gap-4 max-w-md">
-          <p className="inline-flex w-fit items-center rounded-full border border-accent bg-accent px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-background">
+          <p className="mb-3 text-base font-bold uppercase tracking-wider text-accent">
             FAQs
           </p>
           <EmbossedHeading
             as="h2"
-            className="text-3xl font-semibold tracking-tight text-zinc-700 sm:text-4xl"
+            className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
           >
             Have Questions?
           </EmbossedHeading>

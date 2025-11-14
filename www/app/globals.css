@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Diatype";
+  src: url("/fonts/abc-diatype-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --site-pad: 3.75rem;
   --site-maxw: 1377px;
+  --font-diatype: "Diatype", sans-serif;
 }
 
 @theme inline {
-  --color-background: theme(colors.zinc.100);
+  --color-background: theme(colors.white);
   --color-foreground: theme(colors.zinc.800);
   --color-muted-foreground: theme(colors.zinc.600);
   --color-accent: #e36414;
@@ -17,7 +26,7 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-manrope), sans-serif;
 }
 
 @keyframes hero-word-in {
@@ -48,4 +57,12 @@ body {
 
 .hero-fade {
   animation: hero-fade-in 0.65s ease forwards;
+}
+
+.font-inter {
+  font-family: var(--font-inter), sans-serif;
+}
+
+.font-diatype {
+  font-family: var(--font-diatype);
 }

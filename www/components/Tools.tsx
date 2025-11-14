@@ -18,7 +18,7 @@ export default function Tools() {
         <div>
           <EmbossedHeading
             as="h2"
-            className="text-3xl font-semibold tracking-tight text-zinc-700 sm:text-4xl"
+            className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
           >
             Replace Existing Tools
           </EmbossedHeading>
