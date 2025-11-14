@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Contextualized Search",
+    "body": "Index every brief, notebook, and source with graph-aware recall so answers arrive with citations and teammates attached."
+  },
+  {
+    "title": "Interactive Assistant",
+    "body": "Pair with a live project co-pilot that keeps chat grounded in the doc you are reviewing right now."
+  },
+  {
+    "title": "Intelligent Annotations",
+    "body": "Auto-tag insights, decisions, and blockers directly in the canvas so nothing gets lost in handoff."
+  },
+  {
+    "title": "Paper Reviewer",
+    "body": "Automate QA passes on new research drops, flagging shaky claims and surfacing missing citations instantly."
+  },
+  {
+    "title": "Writing Agent",
+    "body": "Co-author memos, briefs, and updates that feel human—blending your best artifacts, tone, and decision history.",
+    "span": "md:col-span-2"
+  }
+]

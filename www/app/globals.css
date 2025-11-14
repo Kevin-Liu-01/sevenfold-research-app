@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --bg: theme(colors.zinc.100);
+  --fg: theme(colors.zinc.800);
+  --muted-fg: theme(colors.zinc.600);
+  --accent: #e36414;
+  --site-pad: 3.75rem;
+  --site-maxw: 1377px;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@keyframes hero-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-word {
+  animation: hero-word-in 0.65s ease forwards;
+}
+
+.hero-fade {
+  animation: hero-fade-in 0.65s ease forwards;
+}
