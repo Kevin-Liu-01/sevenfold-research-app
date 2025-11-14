@@ -424,8 +424,7 @@ When suggesting edits, be specific about what should change and why."""
                         tool_name = event.get("name", "unknown")
                         tool_input = event.get("data", {}).get("input", {})
                         
-                        yield f"""
-                        data: {json.dumps({
+                        yield f"""data: {json.dumps({
                             'type': 'tool_call',
                             'tool': tool_name,
                             'data': tool_input
@@ -437,21 +436,19 @@ When suggesting edits, be specific about what should change and why."""
                         tool_output = event.get("data", {}).get("output")
                         
                         # Convert tool output to string if it's not already
-                        if (type(tool_output) == ToolMessage):
-                            # Extract content from ToolMessage
+                        if isinstance(tool_output, ToolMessage):
+                            # It's a ToolMessage object
                             tool_result = tool_output.content
                         elif isinstance(tool_output, str):
                             tool_result = tool_output
                         else:
                             tool_result = str(tool_output)
                         
-                        yield f"""
-                        data: {json.dumps({
+                        yield f"""data: {json.dumps({
                             'type': 'tool_result',
                             'tool': tool_name,
                             'result': tool_result
-                        })}\n\n
-                        """
+                        })}\n\n"""
             else:
                 # Ask mode - no tools
                 async for chunk in llm.astream(lc_messages):
