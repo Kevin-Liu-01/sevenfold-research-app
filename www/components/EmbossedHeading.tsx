@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
+import { type ElementType, type ReactNode } from "react";
 
 type EmbossedHeadingProps = {
-  as?: keyof JSX.IntrinsicElements;
+  as?: ElementType;              // no JSX.IntrinsicElements needed
   className?: string;
   children: ReactNode;
 };
@@ -22,7 +22,7 @@ export default function EmbossedHeading({
   className = "",
   children,
 }: EmbossedHeadingProps) {
-  const Tag = as;
+  const Tag = as as ElementType;
   const classes = ["relative inline-block", className].filter(Boolean).join(" ");
 
   return (
