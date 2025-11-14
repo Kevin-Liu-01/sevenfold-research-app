@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sevenfold — Integrated research workspace",
+  title: "Sevenfold | Research Environment",
   description:
     "Sevenfold unifies every part of the research workflow with project-aware agents, so teams can find, digest, and produce insights without the busywork.",
 };
