@@ -11,7 +11,7 @@ from db.supabase import supabase
 
 # LangChain imports
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 
 load_dotenv()
 
@@ -429,17 +429,16 @@ When suggesting edits, be specific about what should change and why."""
                             'type': 'tool_call',
                             'tool': tool_name,
                             'data': tool_input
-                        })}\n\n
-                        """
-                        
+                        })}\n\n"""
+
                     # Tool execution completed
                     elif kind == "on_tool_end":
                         tool_name = event.get("name", "unknown")
                         tool_output = event.get("data", {}).get("output")
                         
                         # Convert tool output to string if it's not already
-                        if hasattr(tool_output, 'content'):
-                            # It's a ToolMessage object
+                        if (type(tool_output) == ToolMessage):
+                            # Extract content from ToolMessage
                             tool_result = tool_output.content
                         elif isinstance(tool_output, str):
                             tool_result = tool_output
