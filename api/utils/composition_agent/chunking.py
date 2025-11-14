@@ -21,7 +21,6 @@ def compute_content_hash(content: str) -> str:
 
 def embed_text(text: str) -> List[float]:
     """Generate embedding for text using GTE-base."""
-    print(f"[embed_text] Input text length: {len(text)} chars")
     with torch.no_grad():
         inputs = tokenizer(
             text,
@@ -30,15 +29,12 @@ def embed_text(text: str) -> List[float]:
             return_tensors="pt",
             max_length=512,
         )
-        print(f"[embed_text] Tokenized input shape: {inputs['input_ids'].shape}")
         outputs = embed_model(**inputs)
         # Use mean pooling over token embeddings
         embeddings = outputs.last_hidden_state.mean(dim=1)
-        print(f"[embed_text] Embeddings shape before norm: {embeddings.shape}")
         # Normalize
         embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
         result = embeddings.squeeze(0).tolist()
-        print(f"[embed_text] Final embedding dimension: {len(result)}")
         return result
 
 
@@ -106,9 +102,6 @@ def update_composition_chunks(project_id: str) -> dict:
     Returns:
         Dict with statistics about the update operation
     """
-    print(f"\n=== UPDATE COMPOSITION CHUNKS ===")
-    print(f"Project ID: {project_id}")
-    
     # Get all compositions in the project
     compositions_resp = (
         supabase
@@ -118,11 +111,7 @@ def update_composition_chunks(project_id: str) -> dict:
         .execute()
     )
     
-    print(f"Found {len(compositions_resp.data) if compositions_resp.data else 0} compositions")
-    
     if not compositions_resp.data:
-        print("No compositions found")
-        print("=== UPDATE COMPLETE ===\n")
         return {
             "total_compositions": 0,
             "updated": 0,
@@ -140,17 +129,13 @@ def update_composition_chunks(project_id: str) -> dict:
         comp_project_id = comp["project_id"]
         contents = comp.get("contents", "")
         
-        print(f"\nProcessing composition: {composition_id}")
-        
         # Skip if no content
         if not contents or not contents.strip():
-            print("  -> Skipped (no content)")
             skipped_count += 1
             continue
         
         # Compute hash of current content
         current_hash = compute_content_hash(contents)
-        print(f"  Current hash: {current_hash[:16]}...")
         
         # Check if chunks exist and if hash matches
         existing_chunks_resp = (
@@ -165,30 +150,22 @@ def update_composition_chunks(project_id: str) -> dict:
         needs_update = False
         if not existing_chunks_resp.data:
             # No chunks exist
-            print("  -> No existing chunks")
             needs_update = True
         else:
             # Check if hash matches
             existing_hash = existing_chunks_resp.data[0].get("content_hash")
-            print(f"  Existing hash: {existing_hash[:16] if existing_hash else 'None'}...")
             if existing_hash != current_hash:
-                print("  -> Hash mismatch, needs update")
                 needs_update = True
-            else:
-                print("  -> Hash matches, skipping")
         
         if not needs_update:
             skipped_count += 1
             continue
         
         # Delete existing chunks for this composition
-        print("  Deleting old chunks...")
         supabase.table("composition_chunks").delete().eq("composition_id", composition_id).execute()
         
         # Create new chunks
-        print("  Creating new chunks...")
         chunks = chunk_by_paragraphs(contents)
-        print(f"  Generated {len(chunks)} raw chunks")
         
         if not chunks:
             skipped_count += 1
@@ -199,10 +176,8 @@ def update_composition_chunks(project_id: str) -> dict:
         for i, (chunk_text, start_line, end_line) in enumerate(chunks):
             # Skip very short chunks
             if len(chunk_text.strip()) < 50:
-                print(f"    Chunk {i+1}: Skipped (too short)")
                 continue
             
-            print(f"    Chunk {i+1}: Lines {start_line}-{end_line}, {len(chunk_text)} chars")
             embedding = embed_text(chunk_text)
             
             chunks_to_insert.append({
@@ -216,11 +191,9 @@ def update_composition_chunks(project_id: str) -> dict:
             })
         
         if chunks_to_insert:
-            print(f"  Inserting {len(chunks_to_insert)} chunks into database...")
             supabase.table("composition_chunks").insert(chunks_to_insert).execute()
             updated_count += 1
             total_chunks_created += len(chunks_to_insert)
-            print(f"  -> Success!")
     
     result = {
         "total_compositions": len(compositions),
@@ -228,9 +201,5 @@ def update_composition_chunks(project_id: str) -> dict:
         "skipped": skipped_count,
         "chunks_created": total_chunks_created
     }
-    
-    print(f"\n=== UPDATE COMPLETE ===")
-    print(f"Total: {result['total_compositions']}, Updated: {result['updated']}, Skipped: {result['skipped']}, Chunks created: {result['chunks_created']}")
-    print()
     
     return result
