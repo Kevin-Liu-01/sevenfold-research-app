@@ -209,7 +209,7 @@ export default function AsciiDemo() {
   return (
     <section className="pb-16">
       <Container>
-        <div className="min-h-[34rem] w-full overflow-hidden bg-[var(--fg)] shadow-[0_20px_65px_rgba(15,15,15,0.12)]">
+        <div className="min-h-[34rem] w-full overflow-hidden bg-foreground shadow-[0_20px_65px_rgba(15,15,15,0.12)]">
           <div
             ref={hostRef}
             className="relative flex h-full w-full items-center justify-center overflow-hidden bg-black"

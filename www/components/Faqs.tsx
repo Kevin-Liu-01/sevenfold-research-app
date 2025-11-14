@@ -34,12 +34,12 @@ function FaqItem({ question, answer }: Faq) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 text-left text-xl font-semibold text-[var(--fg)]"
+        className="flex w-full items-center justify-between gap-4 text-left text-xl font-semibold text-foreground"
         aria-expanded={open}
       >
         <span>{question}</span>
         <span
-          className="text-[var(--accent)] transition-transform"
+          className="text-accent transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
         >
           <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
@@ -72,7 +72,7 @@ export default function Faqs() {
     <section className="py-20">
       <Container className="grid gap-12 md:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
         <div className="flex flex-col gap-4 max-w-md">
-          <p className="inline-flex w-fit items-center rounded-full border border-[var(--accent)] bg-[var(--accent)] px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--bg)]">
+          <p className="inline-flex w-fit items-center rounded-full border border-accent bg-accent px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-background">
             FAQs
           </p>
           <EmbossedHeading

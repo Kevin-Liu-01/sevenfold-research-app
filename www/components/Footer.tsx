@@ -40,13 +40,13 @@ export default function Footer() {
               height={48}
               className="mb-4"
             />
-            <p className="pt-2 text-lg font-semibold text-[var(--fg)]">Sevenfold</p>
+            <p className="pt-2 text-lg font-semibold text-foreground">Sevenfold</p>
             <p className="mt-1 text-sm text-zinc-600">Pushing the scientific frontier.</p>
           </div>
           <div className="grid gap-6 text-right sm:grid-cols-3 lg:w-1/2">
             {footerGroups.map((group) => (
               <div key={group.title} className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--fg)]">
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-foreground">
                   {group.title}
                 </p>
                 <div className="space-y-2">
@@ -54,7 +54,7 @@ export default function Footer() {
                     <Link
                       key={link.label}
                       href={link.href}
-                      className="block text-sm text-zinc-600 transition hover:text-[var(--fg)]"
+                      className="block text-sm text-zinc-600 transition hover:text-foreground"
                     >
                       {link.label}
                     </Link>

@@ -16,7 +16,7 @@ export default function Features() {
     <section className="py-16">
       <Container>
         <div className="flex flex-col gap-3">
-          <p className="inline-flex w-fit items-center rounded-full border border-[var(--accent)] bg-[var(--accent)] px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--bg)]">
+          <p className="inline-flex w-fit items-center rounded-full border border-accent bg-accent px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-background">
             Features
           </p>
           <EmbossedHeading
@@ -33,7 +33,7 @@ export default function Features() {
               className={`${baseCardClass} ${feature.span ?? ""}`}
             >
               <div className="relative flex h-full flex-col justify-between">
-                <h3 className="text-2xl font-semibold text-[var(--fg)]">
+                <h3 className="text-2xl font-semibold text-foreground">
                   {feature.title}
                 </h3>
                 <p className="mt-4 text-sm text-zinc-600">{feature.body}</p>

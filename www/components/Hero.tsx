@@ -41,7 +41,7 @@ export default function Hero() {
             })}
           </EmbossedHeading>
           <p
-            className="hero-fade text-lg text-[var(--muted-fg)] opacity-0 sm:text-xl"
+            className="hero-fade text-lg text-muted-foreground opacity-0 sm:text-xl"
             style={{ animationDelay: `${headlineWords.length * 0.08 + 0.4}s` }}
           >
             {SUBHEAD}
