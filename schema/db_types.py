@@ -21,3 +21,45 @@ class CompositionResponse(BaseModel):
     type: str
     title: Optional[str]
     contents: Optional[str]
+
+
+class CompositionChunkCreate(BaseModel):
+    composition_id: str
+    project_id: str
+    content_hash: str
+    chunk_text: str
+    start_line: int
+    end_line: int
+    embedding: Optional[list[float]] = None
+
+
+class CompositionChunkResponse(BaseModel):
+    id: str
+    composition_id: str
+    project_id: str
+    content_hash: str
+    chunk_text: str
+    start_line: int
+    end_line: int
+    embedding: Optional[list[float]]
+    created_at: str
+    updated_at: str
+
+
+class PaperChunkCreate(BaseModel):
+    paper_id: str
+    chunk_text: str
+    start_line: int
+    end_line: int
+    embedding: Optional[list[float]] = None
+
+
+class PaperChunkResponse(BaseModel):
+    id: str
+    paper_id: str
+    chunk_text: str
+    start_line: int
+    end_line: int
+    embedding: Optional[list[float]]
+    created_at: str
+    updated_at: str

@@ -407,8 +407,6 @@ export const useInlineStreaming = ({ mode, compositionId }: UseInlineStreamingAr
   }, [compositionId, cancelActiveStream]);
 
   return {
-    ghostText,
-    completionState,
     handleEditorChange,
     handleEditorMount,
   };
