@@ -287,7 +287,7 @@ const LibraryHomeView: React.FC = () => {
         processFormData.append("pages_spec", pages_spec);
 
         const processResponse = await fetch(
-            `${import.meta.env.VITE_API_BASE_URL}/papers/process-pdf`,
+            `${import.meta.env.VITE_API_BASE_URL}/papers/extract-metadata`,
             {
                 method: "POST",
                 headers: { Authorization: `Bearer ${session.access_token}` },
@@ -320,7 +320,7 @@ const LibraryHomeView: React.FC = () => {
             formData.append("project_id", projectId);
             formData.append("file", file);
 
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/papers/link-paper`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/papers/link-pdf-public`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${session.access_token}` },
                 body: formData,
@@ -373,7 +373,7 @@ const LibraryHomeView: React.FC = () => {
             uploadFormData.append("metadata_json", JSON.stringify(finalMetadata));
 
             const uploadResponse = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/papers/upload-pdf`,
+                `${import.meta.env.VITE_API_BASE_URL}/papers/upload-private`,
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${session.access_token}` },

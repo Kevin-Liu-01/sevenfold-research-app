@@ -5,7 +5,7 @@ WORKDIR /code
 
 # Set PYTHONPATH so Python can find modules in the /code directory
 ENV PYTHONPATH=/code
-
+    
 # Copy only the requirements file first to leverage Docker layer caching
 COPY api/requirements.txt requirements.txt
 

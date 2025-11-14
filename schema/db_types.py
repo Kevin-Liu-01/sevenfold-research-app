@@ -4,7 +4,7 @@ from typing import Optional, Literal
 
 class CompositionCreate(BaseModel):
     project_id: str
-    type: Literal["latex", "markdown"]
+    type: Literal["docx", "latex", "markdown"]
     title: Optional[str] = None
     contents: Optional[str] = None
 
@@ -12,7 +12,7 @@ class CompositionCreate(BaseModel):
 class CompositionUpdate(BaseModel):
     title: Optional[str] = None
     contents: Optional[str] = None
-    type: Optional[Literal["latex", "markdown"]] = None
+    type: Optional[Literal["docx", "latex", "markdown"]] = None
 
 
 class CompositionResponse(BaseModel):

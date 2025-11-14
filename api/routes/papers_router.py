@@ -52,8 +52,8 @@ def _load_prompt(*relative_parts: str) -> str:
 SYSTEM_INSTRUCTIONS = _load_prompt("papers", "metadata_system_prompt.xml")
 PROMPT_TEXT = _load_prompt("papers", "metadata_user_prompt.xml")
 
-@router.post("/process-pdf")
-async def process_pdf(
+@router.post("/extract-metadata")
+async def extract_metadata(
     file: UploadFile,
     project_id: str = Form(...),
     pages_spec: str = Form("1,2"),
@@ -249,7 +249,7 @@ async def process_pdf(
                 if existing_link.data:
                     existing_paper_info["message"] = "Paper already linked to project"
                 else:
-                    existing_paper_info["message"] = "Found existing paper, use link-paper endpoint to add to project"
+                    existing_paper_info["message"] = "Found existing paper, use link-pdf-public endpoint to add to project"
                     
         except Exception as e:
             # Log error but don't fail the entire request
@@ -264,10 +264,10 @@ async def process_pdf(
 
 
 # ===============
-# 2) /upload-pdf
+# 2) /upload-private
 # ===============
-@router.post("/upload-pdf", status_code=201)
-async def upload_pdf(
+@router.post("/upload-private", status_code=201)
+async def upload_private(
     file: UploadFile,
     project_id: str = Form(...),
     metadata_json: str = Form(...),
@@ -444,8 +444,8 @@ async def upload_annotations(
         "annotations": annotations,
     }
 
-@router.post("/link-paper", status_code=201)
-async def link_paper_to_project(
+@router.post("/link-pdf-public", status_code=201)
+async def link_pdf_public(
     file: UploadFile,
     paper_id: str = Form(...),
     project_id: str = Form(...),
