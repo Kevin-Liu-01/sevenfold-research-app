@@ -14,9 +14,11 @@ A standalone microservice for compiling LaTeX documents to PDF using the Tectoni
 ## API Endpoints
 
 ### `GET /health`
+
 Health check endpoint that verifies the service and Tectonic are running.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -26,9 +28,11 @@ Health check endpoint that verifies the service and Tectonic are running.
 ```
 
 ### `POST /compile`
+
 Compile LaTeX source code to PDF.
 
 **Request Body:**
+
 ```json
 {
   "tex_content": "\\documentclass{article}\\begin{document}Hello World\\end{document}",
@@ -40,6 +44,7 @@ Compile LaTeX source code to PDF.
 **Response:** PDF file (`application/pdf`)
 
 **Error Response:**
+
 ```json
 {
   "detail": "LaTeX compilation failed:\n=== Compilation Errors ===\n..."
@@ -49,15 +54,18 @@ Compile LaTeX source code to PDF.
 ## Running Locally
 
 ### Prerequisites
+
 - Python 3.11+
 - Tectonic LaTeX engine
 
 ### Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Run the Service
+
 ```bash
 python main.py
 ```
@@ -67,24 +75,34 @@ The service will start on `http://localhost:8081`
 ## Running with Docker
 
 ### Build the Image
+
 ```bash
 docker build -t latex-service:latest .
 ```
 
 ### Run the Container
+
 ```bash
 docker run -d -p 8081:8081 --name latex-service latex-service:latest
 ```
 
 ### Test the Service
+
 ```bash
 # Health check
 curl http://localhost:8081/health
 
-# Compile LaTeX
+# Compile LaTeX (using example.tex file)
+# Method 1: Using jq (recommended - handles escaping properly)
 curl -X POST http://localhost:8081/compile \
   -H "Content-Type: application/json" \
-  -d '{"tex_content": "\\documentclass{article}\\begin{document}Hello World\\end{document}"}' \
+  -d "$(jq -n --rawfile tex example.tex '{"tex_content": $tex}')" \
+  --output test.pdf
+
+# Method 2: Alternative without jq (requires Python)
+curl -X POST http://localhost:8081/compile \
+  -H "Content-Type: application/json" \
+  -d "$(python3 -c "import json, sys; print(json.dumps({'tex_content': open('example.tex').read()}))")" \
   --output test.pdf
 ```
 
@@ -101,13 +119,13 @@ LATEX_SERVICE_URL = os.getenv("LATEX_SERVICE_URL", "http://localhost:8081")
 @router.post("/compile-latex/{composition_id}")
 async def compile_latex(composition_id: str, authorization: str = Header(...)):
     # ... get composition and verify access ...
-    
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{LATEX_SERVICE_URL}/compile",
             json={"tex_content": tex_content, "timeout": 30}
         )
-        
+
         if response.status_code == 200:
             return Response(
                 content=response.content,
