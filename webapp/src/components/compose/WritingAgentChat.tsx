@@ -15,6 +15,7 @@ type ChatMessage = {
     isProposingEdits?: boolean;
 };
 
+// Utility to mutate the last chat message with new status/content.
 const updateLastMessage = (prevMessages: ChatMessage[], updates: Partial<ChatMessage>): ChatMessage[] => {
     const newMessages = [...prevMessages];
     const lastMsg = newMessages[newMessages.length - 1];
@@ -25,7 +26,7 @@ const updateLastMessage = (prevMessages: ChatMessage[], updates: Partial<ChatMes
     return newMessages;
 };
 
-// Helper function to parse search results from tool output
+// Parses LLM tool output into structured search results.
 function parseSearchResults(resultText: string): SearchResult[] {
     const results: SearchResult[] = [];
     
@@ -79,6 +80,7 @@ interface ToolProposalData {
     rationale: string;
 }
 
+// Chat panel that streams agent replies and surfaces edit proposals/searches.
 const WritingAgentChat: React.FC<{
     onEditProposalsChange: (proposals: EditProposal[]) => void;
 }> = ({ onEditProposalsChange }) => {

@@ -2,6 +2,7 @@ import { getAuthSession } from "../utils/authSession";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// Fetch a composition record by id with auth headers included.
 export const fetchComposition = async (compositionId: string) => {
     const session = await getAuthSession();
     const res = await fetch(`${API_BASE_URL}/compose/${compositionId}`, {
@@ -23,6 +24,7 @@ interface UpdateCompositionPayload {
     type?: "docx" | "latex" | "markdown";
 }
 
+// Persist a composition’s contents/title/mode to the backend.
 export const updateComposition = async (compositionId: string, payload: UpdateCompositionPayload) => {
     const session = await getAuthSession();
     const res = await fetch(`${API_BASE_URL}/compose/update/${compositionId}`, {
@@ -48,6 +50,7 @@ interface CreateCompositionPayload {
     contents: string;
 }
 
+// Create a new composition for a project with default content.
 export const createComposition = async (payload: CreateCompositionPayload) => {
     const session = await getAuthSession();
     const res = await fetch(`${API_BASE_URL}/compose/new_composition`, {

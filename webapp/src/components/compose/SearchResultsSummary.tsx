@@ -6,6 +6,7 @@ interface SearchResultsSummaryProps {
     onResultClick?: (compositionId: string, line: number) => void;
 }
 
+// Displays expandable agent search results in chat.
 const SearchResultsSummary: React.FC<SearchResultsSummaryProps> = ({ searchData, onResultClick }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 

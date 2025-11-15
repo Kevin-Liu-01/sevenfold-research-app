@@ -9,6 +9,7 @@ interface UseCompositionContentArgs {
     refreshCompositions: () => void;
 }
 
+// Handles loading, rendering, and autosaving of the active composition.
 export const useCompositionContent = ({
     selectedComposition,
     refreshCompositions,

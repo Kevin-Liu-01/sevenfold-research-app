@@ -15,6 +15,7 @@ interface UseProposalPreviewArgs {
     onRejectProposal: (id: string) => void;
 }
 
+// Builds read-only editor content reflecting pending proposals and applies decorations/widgets.
 export const useProposalPreview = ({
     selectedComposition,
     pendingProposals,

@@ -9,6 +9,7 @@ interface CompositionListPanelProps {
     isCreating: boolean;
 }
 
+// Simple list of compositions with a create button.
 const CompositionListPanel: React.FC<CompositionListPanelProps> = ({
     compositions,
     selectedComposition,

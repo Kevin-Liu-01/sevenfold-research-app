@@ -6,6 +6,7 @@ interface InlineDiffSummaryProps {
     compositionName: string;
 }
 
+// Shows the +/- summary for a proposed edit block in chat.
 const InlineDiffSummary: React.FC<InlineDiffSummaryProps> = ({ proposal, compositionName }) => {
     const addedLines = proposal.operations.reduce((sum, op) => {
         if (op.type === "insert" || op.type === "replace") {

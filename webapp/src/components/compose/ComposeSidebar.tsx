@@ -13,6 +13,7 @@ interface ComposeSidebarProps {
     onEditProposalsChange: (proposals: EditProposal[]) => void;
 }
 
+// Sidebar hosting the composition list and agent tab.
 const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
     compositions,
     selectedComposition,

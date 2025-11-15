@@ -13,6 +13,7 @@ import {
     MONACO_EDITOR_OPTIONS,
 } from "../../constants/compose";
 
+// Inject Monaco decoration styles once per page load for proposal highlighting.
 if (typeof document !== "undefined" && !document.getElementById(EDITOR_DECORATION_STYLE_ID)) {
     const styleElement = document.createElement("style");
     styleElement.id = EDITOR_DECORATION_STYLE_ID;
@@ -26,6 +27,7 @@ interface ComposeEditorProps {
     onRejectProposal: (id: string) => void;
 }
 
+// Renders the main composition editor area, wiring mode switching, autosave, and proposal overlays.
 const ComposeEditor: React.FC<ComposeEditorProps> = ({ pendingProposals, onAcceptProposal, onRejectProposal }) => {
     const { selectedComposition, refreshCompositions } = useWorkbench();
     const {
