@@ -87,6 +87,30 @@ export interface Composition {
   contents: string | null;
 }
 
+export interface CompositionChunk {
+  id: UUID;
+  composition_id: UUID; // FK → compositions.id
+  project_id: UUID; // FK → projects.id
+  content_hash: string; // Hash of composition contents to detect changes
+  chunk_text: string;
+  start_line: number;
+  end_line: number;
+  embedding: Vector768 | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaperChunk {
+  id: UUID;
+  paper_id: UUID; // FK → paper_attrs.id
+  chunk_text: string;
+  start_line: number;
+  end_line: number;
+  embedding: Vector768 | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UploadedPaperPayload {
   file: File;
   title?: string;
