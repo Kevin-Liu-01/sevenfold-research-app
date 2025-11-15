@@ -39,7 +39,7 @@ EXPOSE 8081
 
 # Health check to verify service is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
+    CMD curl -f http://localhost:8081/health || exit 1
 
 # Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
