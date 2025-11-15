@@ -1,11 +1,8 @@
 import Image from "next/image";
+import { APP_URL, SIGN_UP_URL } from "@/app/env";
 import Link from "next/link";
 import Container from "./Container";
 import { ButtonLink } from "./Buttons";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-const OPEN_APP_URL = APP_URL ?? "/app";
-const SIGN_UP_URL = APP_URL ? `${APP_URL}/signup` : "/signup";
 
 export default function Navbar() {
   return (
@@ -24,7 +21,7 @@ export default function Navbar() {
             Sign Up
           </ButtonLink>
           <ButtonLink
-            href={OPEN_APP_URL}
+            href={APP_URL}
             variant="solid"
             size="sm"
             className="rounded-full"

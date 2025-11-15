@@ -1,4 +1,5 @@
 import React from "react";
+import { APP_URL, CONTACT_EMAIL } from "@/app/env";
 import Container from "./Container";
 import { ButtonLink } from "./Buttons";
 import EmbossedHeading from "./EmbossedHeading";
@@ -6,10 +7,6 @@ import EmbossedHeading from "./EmbossedHeading";
 const HEADLINE = "Your Integrated Agentic Research Environment";
 const SUBHEAD =
   "Sevenfold helps you find, digest, and produce research in one centralized workplace, using project-aware intelligence to eliminate paper-chasing.";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-const OPEN_APP_URL = APP_URL ?? "/app";
-const CONTACT_EMAIL = "mailto:athan@sevenfold.so";
 
 export default function Hero() {
   const headlineWords = HEADLINE.split(" ");
@@ -76,8 +73,8 @@ export default function Hero() {
             className="hero-fade flex flex-wrap gap-3 pt-2 opacity-0"
             style={{ animationDelay: `${buttonsDelay}s` }}
           >
-            <ButtonLink href={OPEN_APP_URL} variant="solid" size="lg">
-              Open App
+            <ButtonLink href={APP_URL} variant="solid" size="lg">
+              Try It Out Now
             </ButtonLink>
             <ButtonLink href={CONTACT_EMAIL} variant="accent" size="lg">
               Get A Demo

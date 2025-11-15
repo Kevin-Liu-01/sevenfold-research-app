@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from "@/app/env";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "./Container";
@@ -21,7 +22,7 @@ const footerGroups = [
     title: "Support",
     links: [
       { label: "Discord", href: "https://discord.com" },
-      { label: "Email Founder", href: "mailto:athan@sevenfold.so" },
+      { label: "Email Founder", href: CONTACT_EMAIL },
     ],
   },
 ];
