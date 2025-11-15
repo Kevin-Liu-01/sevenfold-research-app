@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Composition } from "../../../schema/db-types";
+import type { Composition } from "../../../../schema/db-types";
 import CompositionListPanel from "./CompositionListPanel";
 import WritingAgentChat from "./WritingAgentChat";
 import type { EditProposal } from "../../types/compose";
