@@ -4,27 +4,15 @@
     "answer": "Sevenfold is an integrated agentic research environment for reading, organizing, and writing academic work, it brings your literature, notes, and drafts into one place, and its agents use the evolving context of your projects to help you move from finding papers to producing polished outputs."
   },
   {
-    "question": "Who is Sevenfold built for?",
-    "answer": "Sevenfold serves individual researchers, full course or lab groups, and private labs, if you regularly consume or produce academic publications, Sevenfold gives you a shared context so that solo work and collaboration both feel smooth and consistent."
+    "question": "Who is Sevenfold for?",
+    "answer": "Sevenfold serves individual researchers, lab groups, and industry teams. If you regularly consume or produce academic publications, Sevenfold gives you a unified workspace so that finding ideas and writing papers becomes easy."
   },
   {
-    "question": "How does Sevenfold actually help with research?",
-    "answer": "You work in a single workspace where agents remember what you are studying, what you have already read, and what you are writing, they summarize papers with your project goals in mind, propose related readings, generate outlines that reflect your sources, and keep track of citations so your writing stays grounded and reproducible."
-  },
-  {
-    "question": "What does context aware mean in practice?",
-    "answer": "Context aware means the system maintains a living picture of your projects, papers, annotations, and drafts, when you ask a question or start writing, agents draw on that picture, for example, if your project focuses on transformer pruning, the system will prioritize relevant sections from your existing library, highlight prior notes you wrote, and suggest experiments that match your current methodology."
-  },
-  {
-    "question": "How does Sevenfold learn from everyone while respecting workspace boundaries?",
-    "answer": "Sevenfold improves its recommendations by learning general patterns about how researchers read, connect, and synthesize information, this includes common paper structures, typical citation flows, and successful editing steps, the learning is applied as high level heuristics that help all users, while private content and project specifics remain scoped to each workspace."
-  },
-  {
-    "question": "Can I use my own models or existing AI tools with Sevenfold?",
-    "answer": "Yes, you can configure the workspace to call the model providers you already prefer, you can also compose Sevenfold agents from reusable tools such as search, summarization, outlining, code assistance, and citation management, this lets you tailor performance, cost, and behavior to your research style."
+    "question": "What is context awareness in Sevenfold?",
+    "answer": "Context aware means the system uses your projects, papers, annotations, and drafts to produce smarter results. For example, if you're searching for papers, the system will prioritize relevant sections to your quesy from your existing library and incorporate prior notes you wrote."
   },
   {
     "question": "When can I start using Sevenfold?",
-    "answer": "We are inviting early researchers and labs in waves, you can join the waitlist, and we will notify you when your workspace is ready, early users will help guide features like advanced citation workflows, long form drafting, and cross project recommendations."
+    "answer": "We are inviting early researchers and labs in waves, you can join the waitlist, and we will notify you when your workspace is ready."
   }
 ]

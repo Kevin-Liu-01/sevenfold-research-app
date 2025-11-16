@@ -1,23 +1,23 @@
 [
   {
     "title": "Contextualized Search",
-    "body": "Index every brief, notebook, and source with graph-aware recall so answers arrive with citations and teammates attached."
+    "body": "Sevenfold draws on your entire workspace to deliver the most relevant results."
   },
   {
     "title": "Interactive Assistant",
-    "body": "Pair with a live project co-pilot that keeps chat grounded in the doc you are reviewing right now."
+    "body": "Pair with a project chatbot that keeps converesations grounded in the papers you are reading right now."
   },
   {
     "title": "Intelligent Annotations",
-    "body": "Auto-tag insights, decisions, and blockers directly in the canvas so nothing gets lost in handoff."
+    "body": "Discover granular insights in papers sourced from how other researchers have annotated them."
   },
   {
     "title": "Paper Reviewer",
-    "body": "Automate QA passes on new research drops, flagging shaky claims and surfacing missing citations instantly."
+    "body": "Automatically get the most detailed reviews of your manuscript to get your project into that top-tier journal."
   },
   {
     "title": "Writing Agent",
-    "body": "Co-author memos, briefs, and updates that feel human—blending your best artifacts, tone, and decision history.",
+    "body": "Write your manuscript with a live co-pilot that automates data entry, formatting, outlining, and impact optimization, with a single prompt. Our agent makes the writing process frictionless, with easy revision and iteration workflows.",
     "span": "md:col-span-2"
   }
 ]
