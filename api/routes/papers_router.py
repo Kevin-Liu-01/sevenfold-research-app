@@ -483,12 +483,7 @@ async def link_pdf_public(
     if not paper_in_corpus.data:
         raise HTTPException(status_code=404, detail="Paper not found in public corpus")
     
-    # 3. Validate and read PDF
-    pdf_bytes = await file.read()
-    if not pdf_bytes.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
-    
-    # 4. Check if already linked
+    # 3. Check if already linked
     existing_link = (
         supabase.table("project_paper_links")
         .select("*")
@@ -496,6 +491,11 @@ async def link_pdf_public(
         .eq("paper_id", paper_id)
         .execute()
     )
+    
+    # 4. Validate and read PDF
+    pdf_bytes = await file.read()
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
     
     if existing_link.data:
         return {

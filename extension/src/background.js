@@ -368,6 +368,7 @@ async function handleProjectsListWithDefault() {
 async function handleMetadataLookup(payload) {
   console.log('[metadata] lookup requested', payload);
   const doi = typeof payload?.doi === 'string' ? payload.doi.trim() : '';
+
   if (!doi) {
     throw new Error('DOI required for metadata lookup');
   }
@@ -385,9 +386,10 @@ async function handleMetadataLookup(payload) {
     throw new Error('Sign in to fetch metadata');
   }
 
+  // verify the paper exists in paper_attrs and has a publ_corpus entry
   const { data, error } = await supabase
     .from('paper_attrs')
-    .select('id')
+    .select('id,publ_corpus!inner(paper_id)')
     .eq('doi', doi)
     .maybeSingle();
 
@@ -482,6 +484,7 @@ async function handleUploadRequest(payload, senderTabId) {
       metadataInput.doi = doi;
     }
     const cachedPaperId = doi ? getCachedPaperId(doi) : null;
+    const shouldUpdateCache = Boolean(doi) && !cachedPaperId;
     let response;
     if (doi && cachedPaperId) {
       // link the paper ID to this project
@@ -523,13 +526,14 @@ async function handleUploadRequest(payload, senderTabId) {
         },
         body: formData
       });
-      // update cache with new paper ID
-      const newPaperId = response.ok ? (await response.json())?.paper_id ?? null : null;
-      if (doi && newPaperId) {
+    }
+    const responseBody = await parseJsonSafe(response.clone());
+    if (shouldUpdateCache && response.ok) {
+      const newPaperId = responseBody?.paper_id ?? null;
+      if (newPaperId) {
         setCachedPaperId(doi, newPaperId);
       }
     }
-    const responseBody = await parseJsonSafe(response);
     if (!response.ok) {
       const message = responseBody?.detail || responseBody?.error || response.statusText;
       throw new Error(message || 'Upload failed');
