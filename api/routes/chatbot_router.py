@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import anthropic
+import logging
 import os
 import json
 import base64
@@ -14,6 +15,9 @@ from db.supabase import supabase
 from utils.auth import get_user_id_from_token
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 PROMPTS_ROOT = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -403,6 +407,7 @@ async def send_chat_message(
             yield f"data: {json.dumps(final_data)}\n\n"
 
         except Exception as e:
+            logger.error(f"Error during chat message processing: {str(e)}")
             yield f"data: {json.dumps({'type': 'error', 'message': f'Error generating response: {str(e)}'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
