@@ -420,10 +420,14 @@ async def compile_latex(
             detail=f"LaTeX service unavailable: {str(e)}"
         )
 
-
-# ============================================================================
-# Writing Agent Chat Endpoint
-# ============================================================================
+def _add_line_numbers(content: str) -> str:
+    """Add line numbers to content for better context in prompts."""
+    if not content:
+        return "No content yet"
+    
+    lines = content.split('\n')
+    numbered_lines = [f"{i+1:4d} | {line}" for i, line in enumerate(lines)]
+    return '\n'.join(numbered_lines)
 
 @router.post("/agent/chat")
 async def writing_agent_chat(
@@ -448,52 +452,21 @@ async def writing_agent_chat(
     user_id = _get_user_id(authorization)
     composition = _verify_composition_access(composition_id, user_id)
     
-    # Build system prompt based on mode
+    # Prepare composition content with line numbers
+    content_with_line_numbers = _add_line_numbers(composition.get('contents', ''))
+    
+    # Load appropriate prompt template
     if mode == "agent":
-        system_prompt = f"""You are an agentic writing assistant for academic and technical writing.
-
-You have access to the user's current composition:
-
-**Title:** {composition.get('title', 'Untitled')}
-**Type:** {composition.get('type', 'unknown')}
-
-**Current Content:**
-{composition.get('contents', 'No content yet')}
-
-Your role is to:
-- Answer questions and provide helpful advice about the writing
-- Suggest improvements when specifically asked or when there are significant issues
-- Use the `propose_edits` tool ONLY when the user explicitly requests edits or changes
-- Help improve structure, flow, clarity, and academic rigor through discussion
-- Assist with LaTeX/Markdown syntax when relevant
-
-Guidelines:
-- For general questions, provide advice and suggestions in your response
-- Only use propose_edits when the user asks you to make specific changes
-- Be conversational and helpful rather than automatically proposing formal edits
-- Focus on teaching and explaining rather than just editing
-
-Document type: {composition.get('type', 'unknown')}"""
-    else:  # ask mode
-        system_prompt = f"""You are a helpful writing assistant for academic and technical writing.
-
-You have access to the user's current composition:
-
-**Title:** {composition.get('title', 'Untitled')}
-**Type:** {composition.get('type', 'unknown')}
-
-**Current Content:**
-{composition.get('contents', 'No content yet')}
-
-Your role is to:
-- Answer questions about the composition
-- Provide writing suggestions and improvements
-- Help with formatting, structure, and clarity
-- Assist with LaTeX/Markdown syntax when relevant
-
-Be concise, helpful, and focused on improving the user's writing.
-
-When suggesting edits, be specific about what should change and why."""
+        prompt_template = _load_prompt("compose", "agent_system_prompt.xml")
+    else:
+        prompt_template = _load_prompt("compose", "ask_system_prompt.xml")
+    
+    # Format the system prompt with composition details
+    system_prompt = prompt_template.format(
+        title=composition.get('title', 'Untitled'),
+        doc_type=composition.get('type', 'unknown'),
+        content_with_line_numbers=content_with_line_numbers
+    )
 
     # Build conversation messages
     messages = []
