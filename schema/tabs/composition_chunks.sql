@@ -30,8 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_composition_chunks_hash
 
 -- Index for vector similarity search
 CREATE INDEX IF NOT EXISTS idx_composition_chunks_embedding 
-    ON composition_chunks USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
+    ON composition_chunks USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
 
 -- Index for line number queries
 CREATE INDEX IF NOT EXISTS idx_composition_chunks_lines 
