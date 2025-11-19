@@ -33,7 +33,9 @@ body {
 
 main {
   position: fixed;
-  inset: 48px 24px 24px auto;
+  top: auto;
+  right: 24px;
+  bottom: 24px;
   width: 340px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;

@@ -96,6 +96,13 @@ function detectPdf() {
 
   const isPdf = Boolean(endsWithPdf || contentTypePdf || hostRulePdf || embeddedPdf);
 
+  // ignore localhost and app.sevenfold.so URLs
+  const isLocalhost = url.hostname === 'localhost';
+  const isSevenfoldApp = url.hostname === 'app.sevenfold.so';
+  if (isLocalhost || isSevenfoldApp) {
+    return;
+  }
+
   if (isPdf !== state.isPdf || window.location.href !== state.lastUrlNotified) {
     state.isPdf = isPdf;
 
