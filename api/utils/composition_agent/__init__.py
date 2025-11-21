@@ -1,1 +1,0 @@
-# Composition Agent Package
