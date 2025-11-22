@@ -142,7 +142,8 @@ export default function ParticleWave() {
     };
 
     // Update strip positions with wave motion and mouse interaction
-    const updateStrips = (width: number, height: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const updateStrips = (width: number, _height: number) => {
       stripsRef.current.forEach((strip, stripIndex) => {
         const wavePhase = timeRef.current * WAVE_PHASE_SPEED + strip.x * 0.005;
         const waveAmplitude = 50 + Math.abs(strip.z) * 0.2;

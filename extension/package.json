@@ -1,6 +1,7 @@
 {
   "name": "chrome-extension",
   "version": "0.1.0",
+  "type": "module",
   "description": "Chrome extension for collecting research PDFs and uploading to Supabase.",
   "scripts": {
     "build": "vite build",
