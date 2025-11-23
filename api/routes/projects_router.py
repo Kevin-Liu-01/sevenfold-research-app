@@ -1,14 +1,19 @@
 from uuid import UUID
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, Header
 from pydantic import BaseModel
 
+from db.supabase import supabase
 
-class CreateProjectPayload(BaseModel):
-    """Request payload for creating a new project."""
+from types.projects_types import (
+    CreateProjectPayload,
+    ProjectCreate
+)
 
-    name: str
-
+from utils.auth import (
+    get_user_id,
+    verify_project_access
+)
 
 router = APIRouter(prefix="/api", tags=["Projects"])
 
@@ -18,14 +23,21 @@ router = APIRouter(prefix="/api", tags=["Projects"])
     summary="List projects",
     description="Returns all projects for the single local user.",
 )
-async def list_projects():
-    pass
+async def list_projects(
+    authorization: str = Header(...)
+):
+    # authenticate
+    user_id = get_user_id(authorization)
+
+    response = supabase.table("projects").select("*").eq("owner_id", user_id).execute()
+
+    return response.data
 
 
 @router.post(
     "/projects",
     summary="Create project",
-    description="Creates a new project and corresponding storage directory.",
+    description="Creates a new project.",
 )
 async def create_project(payload: CreateProjectPayload):
     pass
