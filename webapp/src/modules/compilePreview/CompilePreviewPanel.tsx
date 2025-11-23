@@ -6,7 +6,7 @@ export const CompilePreviewPanel = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">Compilation</p>
           <p className="text-base font-semibold text-text-primary">Tectonic · entry file: main.tex</p>
         </div>
-        <button type="button" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-accent/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+        <button type="button" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" style={{ outlineStyle: 'solid' }}>
           Compile
         </button>
       </div>

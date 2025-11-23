@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 7001,
+    port: 3001,
+    strictPort: false, // Allow Vite to use next available port if 3001 is taken
   },
 });

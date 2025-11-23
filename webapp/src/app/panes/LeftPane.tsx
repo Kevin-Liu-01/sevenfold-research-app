@@ -1,4 +1,4 @@
-import { FileTreePanel } from "@/modules/fileExplorer/FileTreePanel"
+import { FileTreePanel } from "@/modules/fileTree/FileTreePanel"
 import { LibraryPanel } from "@/modules/library/LibraryPanel"
 import { useAppStore } from "@/shared/state/appStore"
 import { PaneToggleGroup } from "@/shared/components/ui/PaneToggleGroup"
@@ -31,4 +31,3 @@ export const LeftPane = () => {
     </div>
   )
 }
-

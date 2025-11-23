@@ -48,6 +48,7 @@
   }
 
   .ghost-button:focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-accent;
+    @apply outline-2 outline-offset-2 outline-accent;
+    outline-style: solid;
   }
 }

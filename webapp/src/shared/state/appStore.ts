@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { Session, User } from "@supabase/supabase-js";
 import type {
   CenterPaneView,
   LeftPaneView,
@@ -7,29 +8,44 @@ import type {
 } from "@/shared/types/domain";
 
 interface AppState {
+  // Auth state
+  session: Session | null;
+  user: User | null;
+  setSession: (session: Session | null) => void;
+  setUser: (user: User | null) => void;
+
+  // Project state
   projects: ProjectSummary[];
   activeProjectId: string;
+  setProjects: (projects: ProjectSummary[]) => void;
+  setActiveProjectId: (projectId: string) => void;
+
+  // UI state
   leftPaneView: LeftPaneView;
   centerPaneView: CenterPaneView;
   rightPaneView: RightPaneView;
-  setActiveProjectId: (projectId: string) => void;
   setLeftPaneView: (view: LeftPaneView) => void;
   setCenterPaneView: (view: CenterPaneView) => void;
   setRightPaneView: (view: RightPaneView) => void;
 }
 
-const demoProjects: ProjectSummary[] = [
-  { id: "proj-sample-001", name: "Sample Dissertation" },
-  { id: "proj-sample-002", name: "Quantum Notes" },
-];
-
 export const useAppStore = create<AppState>((set) => ({
-  projects: demoProjects,
-  activeProjectId: demoProjects[0]?.id ?? "",
+  // Auth state
+  session: null,
+  user: null,
+  setSession: (session) => set({ session }),
+  setUser: (user) => set({ user }),
+
+  // Project state
+  projects: [],
+  activeProjectId: "",
+  setProjects: (projects) => set({ projects }),
+  setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
+
+  // UI state
   leftPaneView: "files",
   centerPaneView: "writing",
   rightPaneView: "synthesis",
-  setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
   setLeftPaneView: (view) => set({ leftPaneView: view }),
   setCenterPaneView: (view) => set({ centerPaneView: view }),
   setRightPaneView: (view) => set({ rightPaneView: view }),
