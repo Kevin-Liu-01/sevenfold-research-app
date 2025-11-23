@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { projectsApi } from "./api/projectsApi";
 import { useAppStore } from "@/shared/state/appStore";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/shared/components/ui/button";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 
 export function ProjectsPage() {
   const { projects, setProjects } = useAppStore();
+  const { signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -46,14 +48,16 @@ export function ProjectsPage() {
       <header className="border-b border-border-soft bg-surface-panel px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-accent text-white flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold shadow">
-              SF
-            </div>
-            <h1 className="text-xl font-semibold">My Projects</h1>
+            <img src="/logo-long.png" alt="Sevenfold" className="h-8" />
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            Create New Project
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setShowCreateDialog(true)} className="p-2">
+              Create New Project
+            </Button>
+            <Button variant="outline" onClick={signOut} className="p-2">
+              Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -67,7 +71,7 @@ export function ProjectsPage() {
         {projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <p className="mb-4 text-text-muted">No projects yet</p>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} className="p-2">
               Create your first project
             </Button>
           </div>

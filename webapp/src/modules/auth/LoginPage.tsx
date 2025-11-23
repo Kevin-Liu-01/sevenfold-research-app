@@ -58,10 +58,7 @@ export function LoginPage() {
     <div className="bg-surface-panel flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <Link to="/" className="flex items-center gap-2 self-center font-medium">
-          <div className="bg-accent text-white flex size-6 items-center justify-center rounded-md">
-            SF
-          </div>
-          Sevenfold
+          <img src="/logo-long.png" alt="Sevenfold" className="h-8" />
         </Link>
         <Card>
           <CardHeader className="text-center">
@@ -106,7 +103,7 @@ export function LoginPage() {
                   <div className="text-sm text-red-600">{error}</div>
                 )}
                 <Field>
-                  <Button type="submit" disabled={loading} className="w-full">
+                  <Button type="submit" disabled={loading} className="w-full p-2">
                     {loading ? "Signing in..." : "Sign in"}
                   </Button>
                   <FieldDescription className="text-center">
