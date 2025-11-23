@@ -1,3 +1,8 @@
 .env
 !.env.template
 venv/
+
+**__pycache__/
+
+*.pyc
+*.log
