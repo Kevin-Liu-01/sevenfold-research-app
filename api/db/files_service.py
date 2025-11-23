@@ -63,7 +63,7 @@ class FilesService:
 
     def get_presigned_upload_url(self, id: UUID, project_id: UUID) -> str:
         """Generate a presigned URL for uploading a file to Supabase Storage."""
-        file_path = f"{project_id}/{id}"
+        file_path = self._get_storage_path(project_id, id)
         response = supabase.storage.from_(self.storage_bucket).create_signed_url(
             file_path, 3600, method="PUT"
         )
@@ -74,7 +74,7 @@ class FilesService:
 
     def get_presigned_download_url(self, id: UUID, project_id: UUID) -> str:
         """Generate a presigned URL for downloading a file from Supabase Storage."""
-        file_path = f"{project_id}/{id}"
+        file_path = self._get_storage_path(self, project_id, id)
         response = supabase.storage.from_(self.storage_bucket).create_signed_url(
             file_path, 3600, method="GET"
         )
@@ -82,3 +82,12 @@ class FilesService:
             logger.error(f"Error generating presigned URL: {response.error.message}")
             raise Exception("Failed to generate presigned URL")
         return response.signed_url
+
+# -------------------------------------------------------------------------------------------------
+# Helpers
+# -------------------------------------------------------------------------------------------------
+
+    def _get_storage_path(self, project_id: UUID, file_id: UUID) -> str:
+        """Construct the storage path for a given file."""
+        return f"{project_id}/{file_id}"
+
