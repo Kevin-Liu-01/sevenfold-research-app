@@ -1,11 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, File, UploadFile, Header
+from fastapi import APIRouter, File, UploadFile, Header, HTTPException
 from pydantic import BaseModel
 
 from db.supabase import supabase
 
-from types.projects_types import (
+from dto.projects_types import (
     CreateProjectPayload,
     ProjectCreate
 )
@@ -39,8 +39,25 @@ async def list_projects(
     summary="Create project",
     description="Creates a new project.",
 )
-async def create_project(payload: CreateProjectPayload):
-    pass
+async def create_project(
+    payload: CreateProjectPayload,
+    authorization: str = Header(...)
+):
+    # authenticate
+    user_id = get_user_id(authorization)
+
+    # Create project in database
+    project_data = {
+        "name": payload.name,
+        "owner_id": user_id,
+    }
+
+    response = supabase.table("projects").insert(project_data).execute()
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Failed to create project")
+
+    return response.data[0]
 
 
 @router.get(
@@ -48,8 +65,30 @@ async def create_project(payload: CreateProjectPayload):
     summary="Get project metadata",
     description="Fetches metadata for the specified project.",
 )
-async def get_project(project_id: UUID):
-    pass
+async def get_project(
+    project_id: UUID,
+    authorization: str = Header(...)
+):
+    # authenticate
+    user_id = get_user_id(authorization)
+
+    # Verify project access
+    verify_project_access(user_id, str(project_id))
+
+    # Fetch project
+    response = (
+        supabase
+        .table("projects")
+        .select("*")
+        .eq("id", str(project_id))
+        .single()
+        .execute()
+    )
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return response.data
 
 
 @router.delete(

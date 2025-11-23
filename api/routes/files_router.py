@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException
 from db.supabase import supabase
 from db.files_service import FilesService
 
-from types.files_types import (
+from dto.files_types import (
     FileCreate,
     FileMetadataResponse,
     CreateFilePayload,
@@ -31,18 +31,18 @@ files_service = FilesService(supabase)
 
 @router.get(
     "/projects/{project_id}/files",
-    summary="List project files",
+    summary="Get file tree",
     description="Returns the project file listing as a hierarchical tree.",
 )
 async def get_file_tree(
         project_id: UUID,
         authorization: str = Header(...)
 ):
-    # authenticate and authorize
+    # Authenticate and authorize
     user_id = get_user_id(authorization)
     verify_project_access(user_id, project_id)
 
-    # fetch files and build tree
+    # Fetch files and build tree
     file_list = files_service.list_files(project_id)
     file_tree = build_file_tree(file_list)
     response = FileTreeResponse(project_id=project_id, file_tree=file_tree)

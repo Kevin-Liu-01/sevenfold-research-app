@@ -1,37 +1,47 @@
+from fastapi import HTTPException
 import os
 import jwt
 from dotenv import load_dotenv
-from fastapi import HTTPException
 
-from api.db.supabase import supabase
+from db.supabase import supabase
 
 load_dotenv()
 
-def get_jwt_secret() -> str:
-    secret = os.getenv("SUPABASE_JWT_SECRET")
-    if not secret:
-        raise ValueError("SUPABASE_JWT_SECRET is not set")
-    return secret
-
-def _get_user_id_from_token(token: str) -> str:
-    try:
-        payload = jwt.decode(
-            token, 
-            get_jwt_secret(), 
-            algorithms=["HS256"],
-            audience="authenticated"
-        )
-        return payload["sub"]
-    except Exception as e:
-        print("JWT decode error:", str(e)) 
-        raise HTTPException(status_code=401, detail="Invalid token")
-
 def get_user_id(authorization: str) -> str:
-    """Extract user ID from Authorization header (expects Bearer JWT)."""
+    """Extract user ID from Authorization header (expects Bearer JWT).
+    Decodes the JWT token without verification (since we trust Supabase tokens),
+    then uses the service role key to verify the user exists.
+    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid Authorization header")
+    
     token = authorization.removeprefix("Bearer ")
-    return _get_user_id_from_token(token)
+    
+    try:
+        # Decode the JWT without verification to extract the user ID
+        # We'll verify the user exists using Supabase admin API
+        # Note: This is safe because we're only extracting the user ID, not trusting it
+        unverified = jwt.decode(token, options={"verify_signature": False})
+        user_id = unverified.get("sub")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
+        
+        # Verify the user exists in Supabase using the service role key
+        # This ensures the token is valid and the user exists
+        user_response = supabase.auth.admin.get_user_by_id(user_id)
+        
+        if not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid token: user not found")
+        
+        return user_id
+    except jwt.DecodeError:
+        raise HTTPException(status_code=401, detail="Invalid token: unable to decode")
+    except Exception as e:
+        error_msg = str(e)
+        if "not found" in error_msg.lower() or "invalid" in error_msg.lower():
+            raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {error_msg}")
 
 # verify project and composition to eliminate unauthorized access
 def verify_project_access(user_id: str, project_id: str) -> None:

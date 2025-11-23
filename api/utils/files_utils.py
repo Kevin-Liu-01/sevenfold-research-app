@@ -1,6 +1,6 @@
 from typing import List
 
-from types.files_types import ( 
+from dto.files_types import ( 
     FileTreeNode,
     FileRecord
 )

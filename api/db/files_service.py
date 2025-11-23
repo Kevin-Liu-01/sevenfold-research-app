@@ -4,7 +4,7 @@ from db.supabase import supabase
 from dotenv import load_dotenv
 from uuid import UUID
 
-from types.files_types import FileCreate, FileRecord
+from dto.files_types import FileCreate, FileRecord
 
 load_dotenv()
 
@@ -74,7 +74,7 @@ class FilesService:
 
     def get_presigned_download_url(self, id: UUID, project_id: UUID) -> str:
         """Generate a presigned URL for downloading a file from Supabase Storage."""
-        file_path = self._get_storage_path(self, project_id, id)
+        file_path = self._get_storage_path(project_id, id)
         response = supabase.storage.from_(self.storage_bucket).create_signed_url(
             file_path, 3600, method="GET"
         )
