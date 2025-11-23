@@ -1,7 +1,7 @@
 .PHONY: webapp www api api-setup
 
 webapp:
-	cd webapp && pnpm dev
+	cd webapp && pnpm dev --port 3001 --host
 
 www:
 	cd www && pnpm dev
@@ -11,5 +11,5 @@ api-setup:
 	cd api && . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
 
 api:
-	cd api && . venv/bin/activate && uvicorn main:app --reload --port 7000
+	cd api && . venv/bin/activate && uvicorn main:app --reload --port 8000
 
