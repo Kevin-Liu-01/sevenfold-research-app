@@ -1,0 +1,30 @@
+from typing import List
+
+from types.files_types import ( 
+    FileTreeNode,
+    FileRecord
+)
+
+def build_file_tree(file_list: List[FileRecord]) -> FileTreeNode:
+    """Builds a hierarchical file tree from a flat list of file records."""
+    file_dict = dict()
+    tree = []
+
+    # First, create all nodes and store them in a dictionary
+    for file in file_list:
+        node = FileTreeNode(
+            id=file.id,
+            name=file.name,
+            asset_type=file.asset_type,
+            children=[]
+        )
+        file_dict[file.id] = node
+
+    # Then, link nodes to their parents. If no parent, it's a root node.
+    for file in file_list:
+        if file.parent_id is None:
+            tree.append(file_dict[file.id])
+        else:
+            file_dict[file.parent_id].children.append(file_dict[file.id])
+
+    return tree

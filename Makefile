@@ -7,5 +7,5 @@ www:
 	cd www && pnpm dev
 
 api:
-	cd api && uvicorn api.main:app --reload --port 7000
+	cd api && uvicorn main:app --reload --port 7000
 

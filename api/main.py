@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
-from api.agents_router import router as agents_router
-from api.files_router import router as files_router
-from api.health_router import router as health_router
-from api.projects_router import router as projects_router
+from routes.agents_router import router as agents_router
+from routes.files_router import router as files_router
+from routes.health_router import router as health_router
+from routes.projects_router import router as projects_router
 
 
 app = FastAPI(
