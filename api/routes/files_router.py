@@ -25,6 +25,11 @@ from utils.auth import (
     get_user_id
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 router = APIRouter(prefix="/api", tags=["Files"])
 
 files_service = FilesService(supabase)
@@ -103,16 +108,20 @@ async def update_file(
 
     if payload.new_name:
         updates["name"] = payload.new_name
-    if payload.new_parent_id:
-        verify_file_access(project_id, payload.new_parent_id)
-        new_parent_record = files_service.get_file_record(payload.new_parent_id)
-        if new_parent_record.asset_type != "folder":
-            raise HTTPException(status_code=400, detail="New parent must be a folder")
-        updates["parent_id"] = payload.new_parent_id
+    if "new_parent_id" in payload.model_dump():
+        if payload.new_parent_id is None:
+            updates["parent_id"] = None
+        else:
+            verify_file_access(project_id, payload.new_parent_id)
+            new_parent_record = files_service.get_file_record(payload.new_parent_id)
+            if new_parent_record.asset_type != "folder":
+                raise HTTPException(status_code=400, detail="New parent must be a folder")
+            updates["parent_id"] = str(payload.new_parent_id)
 
     if not updates:
         raise HTTPException(status_code=400, detail="No updates provided")
 
+    logger.info("Updating file %s with %s", file_id, updates)
     updated_record = files_service.update_file_record(file_id, updates)
     response = FileMetadataResponse(**updated_record.model_dump())
 

@@ -12,12 +12,7 @@ def build_file_tree(file_list: List[FileRecord]) -> FileTreeNode:
 
     # First, create all nodes and store them in a dictionary
     for file in file_list:
-        node = FileTreeNode(
-            id=file.id,
-            name=file.name,
-            asset_type=file.asset_type,
-            children=[]
-        )
+        node = FileTreeNode(**file.model_dump(), children=[])
         file_dict[file.id] = node
 
     # Then, link nodes to their parents. If no parent, it's a root node.
@@ -26,5 +21,7 @@ def build_file_tree(file_list: List[FileRecord]) -> FileTreeNode:
             tree.append(file_dict[file.id])
         else:
             file_dict[file.parent_id].children.append(file_dict[file.id])
+
+    tree.sort(key=lambda x: x.asset_type=="folder", reverse=True)
 
     return tree

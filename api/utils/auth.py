@@ -62,7 +62,7 @@ def verify_file_access(project_id: str, file_id: str) -> None:
     """Ensure the file exists and belongs to this project."""
     file_rec = (
         supabase
-        .table("files")
+        .table("project_files")
         .select("id")
         .eq("id", file_id)
         .eq("project_id", project_id)

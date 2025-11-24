@@ -54,12 +54,9 @@ class FileMetadataResponse(FileRecord):
     download_url: Optional[str] = None
 
 
-class FileTreeNode(BaseModel):
+class FileTreeNode(FileRecord):
     """Node in the file tree structure."""
 
-    id: UUID
-    name: str
-    asset_type: Literal["folder", "file"]
     children: Optional[List['FileTreeNode']] = None
 
  

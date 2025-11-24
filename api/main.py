@@ -6,7 +6,6 @@ from routes.files_router import router as files_router
 from routes.health_router import router as health_router
 from routes.projects_router import router as projects_router
 
-
 app = FastAPI(
     title="Sevenfold API",
     version="0.1.0",
