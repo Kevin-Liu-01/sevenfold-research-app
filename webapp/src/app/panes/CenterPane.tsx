@@ -8,7 +8,7 @@ export const CenterPane = () => {
   const { centerPaneView, setCenterPaneView } = useAppStore()
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 p-2">
       <div className="flex items-center justify-between">
         <p className="text-text-muted text-xs font-semibold uppercase tracking-[0.2em]">
           Authoring
