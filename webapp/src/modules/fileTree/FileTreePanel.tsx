@@ -158,7 +158,11 @@ const renameNodeInTree = (nodes: FileNode[], targetId: string, name: string): Fi
 const FileTreeNodeRow = ({ node, style, dragHandle }: NodeRendererProps<FileNode>) => {
   const [draftName, setDraftName] = useState(node.data.name);
   const isFolder = node.data.assetType === "folder";
-  const iconSrc = isFolder ? "/filetree_folder.svg" : "/filetree_file.svg";
+  const iconSrc = isFolder
+    ? node.isOpen
+      ? "/filetree_folder.svg"
+      : "/filetree_closed_folder.svg"
+    : "/filetree_file.svg";
 
   const handleToggle = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -232,7 +236,7 @@ const FileTreeNodeRow = ({ node, style, dragHandle }: NodeRendererProps<FileNode
       <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded text-xs text-text-secondary hover:bg-surface-contrast"
+          className="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-black/10"
           aria-label="Rename"
           onClick={(e) => {
             e.stopPropagation();
@@ -241,11 +245,11 @@ const FileTreeNodeRow = ({ node, style, dragHandle }: NodeRendererProps<FileNode
           }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          ✎
+          <img src="/filetree_edit.svg" alt="" className="h-4 w-4" aria-hidden />
         </button>
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded text-xs text-text-secondary hover:bg-surface-contrast"
+          className="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-black/10"
           aria-label="Delete"
           onClick={(e) => {
             e.stopPropagation();
@@ -253,7 +257,7 @@ const FileTreeNodeRow = ({ node, style, dragHandle }: NodeRendererProps<FileNode
           }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          🗑
+          <img src="/filetree-delete.svg" alt="" className="h-4 w-4" aria-hidden />
         </button>
       </div>
     </div>
@@ -504,7 +508,7 @@ export const FileTreePanel = () => {
               aria-label="New folder"
               className="border-border-soft bg-surface-panel hover:border-border-medium hover:bg-surface-contrast"
             >
-              <img src="/filetree_folder.svg" alt="" className="h-5 w-5" />
+              <img src="/filetree_closed_folder.svg" alt="" className="h-5 w-5" />
             </Button>
             <Button
               shape="icon"
