@@ -64,7 +64,7 @@ export const SevenfoldApp = () => {
           <LeftPane />
         </Panel>
         <PanelResizeHandle className="w-0.5 bg-border-soft hover:bg-border-medium transition-colors cursor-col-resize" />
-        <Panel minSize={40} className="pane-surface overflow-hidden">
+        <Panel minSize={40} className="pane-surface">
           <CenterPane />
         </Panel>
         <PanelResizeHandle className="w-0.5 bg-border-soft hover:bg-border-medium transition-colors cursor-col-resize" />

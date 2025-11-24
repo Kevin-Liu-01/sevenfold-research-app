@@ -35,7 +35,7 @@
 
 @layer components {
   .pane-surface {
-    @apply flex h-full flex-col gap-4 bg-surface-panel text-text-primary;
+    @apply flex h-full flex-col overflow-hidden bg-surface-panel text-text-primary;
   }
 
   .ghost-button {
