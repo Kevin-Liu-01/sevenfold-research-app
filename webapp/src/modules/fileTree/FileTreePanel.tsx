@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
+import type { NodeRendererProps } from "react-arborist";
+import { Tree } from "react-arborist";
 
 import { filesApi } from "@/modules/fileTree/api/filesApi";
 import { FileTreeModals } from "@/modules/fileTree/FileTreeModals";
 import { Button } from "@/shared/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 import { useAppStore } from "@/shared/state/appStore";
 import type { FileNode } from "@/shared/types/domain";
 
@@ -51,11 +55,6 @@ const placeholderTree: FileNode[] = [
   },
 ];
 
-const typeToColor: Record<FileNode["assetType"], string> = {
-  folder: "text-amber-700",
-  file: "text-emerald-700",
-};
-
 const addNodeToTree = (nodes: FileNode[], parentId: string | null | undefined, newNode: FileNode): FileNode[] => {
   if (!parentId) {
     return [...nodes, newNode];
@@ -75,22 +74,49 @@ const addNodeToTree = (nodes: FileNode[], parentId: string | null | undefined, n
   });
 };
 
-const renderNode = (node: FileNode, depth = 0) => (
-  <li
-    key={node.id}
-    className={`group flex flex-col rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-contrast ${typeToColor[node.assetType]}`}
-    style={{ marginLeft: `${depth * 12}px` }}
-  >
-    <div className="flex items-center gap-2">
-      <span className="text-text-primary group-hover:text-accent font-medium">{node.name}</span>
+const FileTreeNodeRow = ({ node, style, dragHandle }: NodeRendererProps<FileNode>) => {
+  const isFolder = node.data.assetType === "folder";
+  const iconSrc = isFolder ? "/filetree_folder.svg" : "/filetree_file.svg";
+
+  const handleToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (isFolder) {
+      node.toggle();
+    }
+  };
+
+  return (
+    <div
+      ref={dragHandle}
+      style={style}
+      className={cn(
+        "flex h-[32px] items-center gap-2 rounded-md px-2 text-sm text-text-primary transition",
+        node.isSelected ? "bg-surface-panel" : "hover:bg-surface-contrast",
+      )}
+      onClick={(event) => node.handleClick(event)}
+      onDoubleClick={() => {
+        if (isFolder) {
+          node.toggle();
+        }
+      }}
+    >
+      {isFolder ? (
+        <button
+          type="button"
+          className="flex h-5 w-5 items-center justify-center rounded text-xs text-text-secondary hover:bg-surface-contrast"
+          aria-label={node.isOpen ? "Collapse folder" : "Expand folder"}
+          onClick={handleToggle}
+        >
+          {node.isOpen ? "▾" : "▸"}
+        </button>
+      ) : (
+        <span className="w-5" />
+      )}
+      <img src={iconSrc} alt="" className="h-4 w-4" aria-hidden />
+      <span className="truncate font-medium">{node.data.name}</span>
     </div>
-    {node.children?.length ? (
-      <ul className="mt-1 space-y-1">
-        {node.children.map((child) => renderNode(child, depth + 1))}
-      </ul>
-    ) : null}
-  </li>
-);
+  );
+};
 
 export const FileTreePanel = () => {
   const { activeProjectId } = useAppStore();
@@ -100,6 +126,8 @@ export const FileTreePanel = () => {
   const [showNewLatex, setShowNewLatex] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [treeHeight, setTreeHeight] = useState(0);
+  const treeContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -130,10 +158,41 @@ export const FileTreePanel = () => {
     };
   }, [activeProjectId]);
 
+  useEffect(() => {
+    const container = treeContainerRef.current;
+    if (!container) return;
+
+    const updateHeight = () => {
+      setTreeHeight(container.clientHeight);
+    };
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (entry) {
+          setTreeHeight(entry.contentRect.height);
+        }
+      });
+      observer.observe(container);
+    } else {
+      updateHeight();
+    }
+
+    updateHeight();
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [activeProjectId, loading]);
+
   const handleAddNode = (node: FileNode) => {
     setTree((prev) => addNodeToTree(prev, node.parentId ?? null, node));
   };
 
+  const arboristHeight = treeHeight || 320;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4 text-sm">
@@ -185,15 +244,33 @@ export const FileTreePanel = () => {
               <img src="/filetree_upload.svg" alt="" className="h-5 w-5" />
             </Button>
           </div>
-          <ul className="mt-3 space-y-2">
-            {tree.map((node) => renderNode(node))}
-          </ul>
+          <div className="mt-3 flex-1 min-h-0">
+            <div
+              ref={treeContainerRef}
+              className="flex h-full flex-col overflow-hidden rounded-xl border border-border-soft bg-surface-panel"
+            >
+              <Tree
+                data={tree}
+                height={arboristHeight}
+                width="100%"
+                indent={20}
+                rowHeight={32}
+                paddingTop={8}
+                paddingBottom={8}
+                disableMultiSelection
+                openByDefault
+                className="h-full"
+              >
+                {FileTreeNodeRow}
+              </Tree>
+            </div>
+          </div>
         </>
       )}
 
       <div className="mt-auto rounded-xl border border-dashed border-border-soft p-3 text-xs text-text-secondary">
-        Placeholder view; will be replaced by a react-arborist tree with drag-and-drop, context
-        menus, and depth enforcement once the API is wired.
+        React-arborist powers the tree view; drag-and-drop, inline rename, and context menus will be
+        layered in once the backend endpoints are wired.
       </div>
 
       <FileTreeModals
