@@ -2,7 +2,7 @@ import { useAppStore } from "@/shared/state/appStore"
 import { PaneToggleGroup } from "@/shared/components/ui/PaneToggleGroup"
 import { EditorWorkspace } from "@/modules/editorWorkspace/EditorWorkspace"
 import { CompilePreviewPanel } from "@/modules/compilePreview/CompilePreviewPanel"
-import { PdfReaderPane } from "@/modules/pdfReader/PdfReaderPane"
+import { PdfViewerPane } from "@/modules/pdfViewer/PdfViewerPane"
 
 export const CenterPane = () => {
   const { centerPaneView, setCenterPaneView } = useAppStore()
@@ -28,7 +28,9 @@ export const CenterPane = () => {
           <CompilePreviewPanel />
         </div>
       ) : (
-        <PdfReaderPane />
+        <div className="flex-1 overflow-hidden min-h-0">
+          <PdfViewerPane />
+        </div>
       )}
     </div>
   )

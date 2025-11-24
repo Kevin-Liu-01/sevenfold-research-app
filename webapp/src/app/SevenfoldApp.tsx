@@ -56,13 +56,13 @@ export const SevenfoldApp = () => {
   }
 
   return (
-    <div className="bg-surface-base text-text-primary flex min-h-screen flex-col">
+    <div className="bg-surface-base text-text-primary flex h-screen flex-col overflow-hidden">
       <ProjectContextBar />
-      <div className="grid flex-1 grid-cols-[minmax(200px,250px)_minmax(0,1fr)_minmax(240px,300px)]">
+      <div className="grid flex-1 grid-cols-[minmax(200px,250px)_minmax(0,1fr)_minmax(240px,300px)] overflow-hidden">
         <section className="pane-surface">
           <LeftPane />
         </section>
-        <section className="pane-surface">
+        <section className="pane-surface overflow-hidden">
           <CenterPane />
         </section>
         <section className="pane-surface">

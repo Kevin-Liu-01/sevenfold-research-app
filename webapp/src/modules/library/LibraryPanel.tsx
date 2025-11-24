@@ -7,7 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 
 export const LibraryPanel = () => {
-  const { activeProjectId } = useAppStore();
+  const { activeProjectId, selectedLibraryDocument, setSelectedLibraryDocument, setCenterPaneView } = useAppStore();
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +57,11 @@ export const LibraryPanel = () => {
     setFilter("");
   };
 
+  const handleDocumentClick = (doc: LibraryDocument) => {
+    setSelectedLibraryDocument(doc);
+    setCenterPaneView("reading");
+  };
+
   const renderContent = () => {
     if (!activeProjectId) {
       return <p className="text-sm text-text-secondary">Select a project to view its library.</p>;
@@ -89,7 +94,11 @@ export const LibraryPanel = () => {
         {filteredDocuments.map((doc) => (
           <li
             key={doc.id}
-            className="px-3 py-2 text-sm transition-colors hover:bg-surface-contrast"
+            onClick={() => handleDocumentClick(doc)}
+            className={`px-3 py-2 text-sm transition-colors cursor-pointer ${selectedLibraryDocument?.id === doc.id
+                ? "bg-accent/10 text-accent font-medium"
+                : "hover:bg-surface-contrast"
+              }`}
           >
             {doc.title}
           </li>

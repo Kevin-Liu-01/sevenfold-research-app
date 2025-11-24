@@ -28,7 +28,7 @@ src/
     library/LibraryPanel.tsx
     editorWorkspace/EditorWorkspace.tsx
     compilePreview/CompilePreviewPanel.tsx
-    pdfReader/PdfReaderPane.tsx
+    pdfViewer/PdfViewerPane.tsx
     agents/...        # Synthesis + Review panes
   shared/
     components/layout/TriptychShell.tsx
