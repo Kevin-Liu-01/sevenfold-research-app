@@ -550,11 +550,6 @@ export const FileTreePanel = () => {
         </>
       )}
 
-      <div className="mt-auto rounded-xl border border-dashed border-border-soft p-3 text-xs text-text-secondary">
-        React-arborist powers the tree view; drag-and-drop, inline rename, and context menus will be
-        layered in once the backend endpoints are wired.
-      </div>
-
       <FileTreeModals
         activeProjectId={activeProjectId}
         showNewLatex={showNewLatex}
