@@ -22,4 +22,6 @@ def build_file_tree(file_list: List[FileRecord]) -> FileTreeNode:
         else:
             file_dict[file.parent_id].children.append(file_dict[file.id])
 
+    tree.sort(key=lambda x: x.asset_type=="folder", reverse=True)
+
     return tree

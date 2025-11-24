@@ -9,20 +9,27 @@ from dto.files_types import FileCreate, FileRecord
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 STORAGE_BUCKET = os.getenv("FILES_BUCKET", "files")
+FILES_TABLE = os.getenv("FILES_TABLE", "project_files")
 
 
 class FilesService:
-    def __init__(self, supabase_client, storage_bucket: str = STORAGE_BUCKET):
+    def __init__(
+        self, 
+        supabase_client,
+        storage_bucket: str = STORAGE_BUCKET,
+        files_table: str = FILES_TABLE
+    ):
         self.supabase = supabase_client
         self.storage_bucket = storage_bucket
+        self.files_table = files_table
 
     def create_file_record(self, record: FileCreate) -> FileRecord:
         """Insert a file record in the database."""
         try:
-            response = self.supabase.table("files").insert(record.model_dump(mode='json')).execute()
+            response = self.supabase.table(self.files_table).insert(record.model_dump(mode='json')).execute()
             data = response.data[0]
             return FileRecord(**data)
         except Exception as exc:
@@ -32,7 +39,7 @@ class FilesService:
     def get_file_record(self, file_id: UUID) -> FileRecord:
         """Fetch a file record from the database."""
         try:
-            response = self.supabase.table("files").select("*").eq("id", str(file_id)).execute()
+            response = self.supabase.table(self.files_table).select("*").eq("id", str(file_id)).execute()
             data = response.data[0]
             return FileRecord(**data)
         except Exception as exc:
@@ -42,7 +49,7 @@ class FilesService:
     def update_file_record(self, file_id: UUID, updates: dict) -> FileRecord:
         """Update a file record in the database."""
         try:
-            response = self.supabase.table("files").update(updates).eq("id", str(file_id)).execute()
+            response = self.supabase.table(self.files_table).update(updates).eq("id", str(file_id)).execute()
             data = response.data[0]
             return FileRecord(**data)
         except Exception as exc:
@@ -52,7 +59,7 @@ class FilesService:
     def delete_file_record(self, file_id: UUID) -> None:
         """Delete a file record in the database."""
         try:
-            self.supabase.table("files").delete().eq("id", str(file_id)).execute()
+            self.supabase.table(self.files_table).delete().eq("id", str(file_id)).execute()
         except Exception as exc:
             logger.error("Error deleting file record: %s", exc)
             raise Exception("Failed to delete file record") from exc
@@ -61,7 +68,7 @@ class FilesService:
         """List all file records for a given project."""
         try:
             response = (
-                self.supabase.table("files").select("*").eq("project_id", str(project_id)).execute()
+                self.supabase.table(self.files_table).select("*").eq("project_id", str(project_id)).execute()
             )
             return [FileRecord(**item) for item in response.data]
         except Exception as exc:
