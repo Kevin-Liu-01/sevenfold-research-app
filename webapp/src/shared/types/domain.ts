@@ -10,6 +10,11 @@ export interface ProjectSummary {
 export interface FileNode {
   id: string;
   name: string;
-  depth: number;
-  fileType: "folder" | "latex" | "pdf_source" | "asset";
+  assetType: "folder" | "file";
+  mimeType?: string;
+  isInline?: boolean;
+  content?: string;
+  parentId?: string | null;
+  downloadUrl?: string | null;
+  children?: FileNode[];
 }

@@ -108,7 +108,7 @@ async def update_file(
         new_parent_record = files_service.get_file_record(payload.new_parent_id)
         if new_parent_record.asset_type != "folder":
             raise HTTPException(status_code=400, detail="New parent must be a folder")
-        updates["parent_id"] = payload.new_parent_id
+        updates["parent_id"] = str(payload.new_parent_id)
 
     if not updates:
         raise HTTPException(status_code=400, detail="No updates provided")
