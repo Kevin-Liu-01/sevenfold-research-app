@@ -52,7 +52,6 @@ def verify_project_access(user_id: str, project_id: str) -> None:
         .select("id")
         .eq("id", project_id)
         .eq("owner_id", user_id)
-        .single()
         .execute()
     )
     if not proj.data:
@@ -66,7 +65,6 @@ def verify_file_access(project_id: str, file_id: str) -> None:
         .select("id")
         .eq("id", file_id)
         .eq("project_id", project_id)
-        .single()
         .execute()
     )
     if not file_rec.data:

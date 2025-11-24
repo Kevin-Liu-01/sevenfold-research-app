@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Tree } from "react-arborist";
 
 import { filesApi } from "@/modules/fileTree/api/filesApi";
@@ -20,6 +20,16 @@ export const FileTreePanel = () => {
   const [treeHeight, setTreeHeight] = useState(0);
   const treeContainerRef = useRef<HTMLDivElement | null>(null);
   const lastServerState = useRef<FileNode[] | null>(null);
+  const refreshTree = useCallback(async () => {
+    if (!activeProjectId) return;
+    try {
+      const fresh = await filesApi.fetchTree(activeProjectId);
+      setTree(fresh);
+      lastServerState.current = fresh;
+    } catch (err) {
+      console.error("Failed to refresh file tree", err);
+    }
+  }, [activeProjectId]);
   const {
     handleAddNode,
     handleMove,
@@ -184,6 +194,7 @@ export const FileTreePanel = () => {
         onCloseNewFolder={() => setShowNewFolder(false)}
         onCloseUpload={() => setShowUpload(false)}
         onAddNode={handleAddNode}
+        onRefreshTree={refreshTree}
         onError={(message) => setError(message)}
       />
     </div>

@@ -9,6 +9,7 @@ type RawFileNode = {
   is_inline?: boolean;
   parent_id?: string | null;
   download_url?: string | null;
+  upload_status?: "pending" | "done" | "failed";
   children?: RawFileNode[];
 };
 
@@ -40,6 +41,7 @@ const mapRawNode = (node: RawFileNode): FileNode => ({
   isInline: node.is_inline,
   parentId: node.parent_id ?? null,
   downloadUrl: node.download_url,
+  uploadStatus: node.upload_status,
   children: node.children?.map(mapRawNode) ?? [],
 });
 
@@ -51,6 +53,7 @@ const mapMetadata = (node: RawFileNode): FileMetadata => ({
   isInline: node.is_inline,
   parentId: node.parent_id ?? null,
   downloadUrl: node.download_url,
+  uploadStatus: node.upload_status,
 });
 
 export const filesApi = {
@@ -85,6 +88,41 @@ export const filesApi = {
       fileMetadata: mapMetadata(rawMetadata),
       uploadUrl: body?.upload_url ?? null,
     };
+  },
+
+  async uploadToSignedUrl(uploadUrl: string, file: Blob): Promise<void> {
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(detail || "Failed to upload file to storage");
+    }
+  },
+
+  async finalizeUpload(
+    projectId: string,
+    fileId: string,
+    status: "done" | "failed",
+  ): Promise<FileMetadata> {
+    const response = await fetchWithAuth(
+      `/api/projects/${projectId}/files/${fileId}/upload-status`,
+      {
+        method: "POST",
+        body: JSON.stringify({ status }),
+      },
+    );
+
+    const rawMetadata: RawFileNode | undefined = await response.json();
+    if (!rawMetadata) {
+      throw new Error("Upload status response missing file metadata");
+    }
+    return mapMetadata(rawMetadata);
   },
 
   async updateFileMetadata(
