@@ -20,6 +20,13 @@ export interface FileNode {
   children?: FileNode[];
 }
 
+export interface ActiveFile {
+  id: string;
+  name: string;
+  mimeType?: string;
+  isInline?: boolean;
+}
+
 export interface LibraryDocument {
   id: string;
   project_id: string;

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 import type {
+  ActiveFile,
   CenterPaneView,
   LeftPaneView,
   LibraryDocument,
@@ -32,6 +33,10 @@ interface AppState {
   // Library state
   selectedLibraryDocument: LibraryDocument | null;
   setSelectedLibraryDocument: (document: LibraryDocument | null) => void;
+
+  // Editor state
+  activeFile: ActiveFile | null;
+  setActiveFile: (file: ActiveFile | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -59,4 +64,8 @@ export const useAppStore = create<AppState>((set) => ({
   selectedLibraryDocument: null,
   setSelectedLibraryDocument: (document) =>
     set({ selectedLibraryDocument: document }),
+
+  // Editor state
+  activeFile: null,
+  setActiveFile: (file) => set({ activeFile: file }),
 }));
