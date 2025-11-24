@@ -1,13 +1,18 @@
 from uuid import UUID
 
 from fastapi import APIRouter, File, UploadFile, Header, HTTPException
-from pydantic import BaseModel
 
 from db.supabase import supabase
+from db.library_service import LibraryService
 
 from dto.projects_types import (
     CreateProjectPayload,
     ProjectCreate
+)
+from dto.library_types import (
+    LibraryDocumentsResponse,
+    LibraryDocument,
+    LibraryDocumentUpdatePayload
 )
 
 from utils.auth import (
@@ -16,6 +21,7 @@ from utils.auth import (
 )
 
 router = APIRouter(prefix="/api", tags=["Projects"])
+library_service = LibraryService(supabase)
 
 
 @router.get(
@@ -100,14 +106,91 @@ async def delete_project(project_id: UUID):
     pass
 
 
+@router.get(
+    "/projects/{project_id}/library",
+    summary="List library documents",
+    response_model=LibraryDocumentsResponse,
+)
+async def list_library_documents(
+    project_id: UUID,
+    authorization: str = Header(...)
+):
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, str(project_id))
+
+    documents = library_service.list_documents(project_id)
+    return LibraryDocumentsResponse(project_id=project_id, documents=documents)
+
+
 @router.post(
     "/projects/{project_id}/upload-pdf",
     summary="Upload library PDF",
-    description="Stores the PDF under library_pdfs and schedules indexing.",
+    description="Stores the PDF in Supabase Storage and records metadata.",
     tags=["Library"],
+    response_model=LibraryDocument
 )
-async def upload_pdf(project_id: UUID, pdf: UploadFile = File(...)):
-    pass
+async def upload_pdf(
+    project_id: UUID,
+    pdf: UploadFile = File(...),
+    authorization: str = Header(...)
+):
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, str(project_id))
+
+    if pdf.content_type not in ("application/pdf", "application/x-pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
+
+    file_bytes = await pdf.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    document = library_service.create_document_from_upload(
+        project_id=project_id,
+        upload_bytes=file_bytes,
+        original_filename=pdf.filename or "document.pdf",
+        content_type=pdf.content_type or "application/pdf",
+    )
+    return document
+
+
+@router.patch(
+    "/projects/{project_id}/library/{document_id}",
+    summary="Rename library document",
+    tags=["Library"],
+    response_model=LibraryDocument
+)
+async def rename_library_document(
+    project_id: UUID,
+    document_id: UUID,
+    payload: LibraryDocumentUpdatePayload,
+    authorization: str = Header(...)
+):
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, str(project_id))
+
+    updated = library_service.rename_document(
+        project_id=project_id,
+        document_id=document_id,
+        title=payload.title,
+    )
+    return updated
+
+
+@router.delete(
+    "/projects/{project_id}/library/{document_id}",
+    summary="Delete library document",
+    tags=["Library"],
+    status_code=204
+)
+async def delete_library_document(
+    project_id: UUID,
+    document_id: UUID,
+    authorization: str = Header(...)
+):
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, str(project_id))
+
+    library_service.delete_document(project_id=project_id, document_id=document_id)
 
 
 @router.post(

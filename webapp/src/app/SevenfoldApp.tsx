@@ -58,7 +58,7 @@ export const SevenfoldApp = () => {
   return (
     <div className="bg-surface-base text-text-primary flex min-h-screen flex-col">
       <ProjectContextBar />
-      <div className="grid flex-1 grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(280px,360px)]">
+      <div className="grid flex-1 grid-cols-[minmax(200px,250px)_minmax(0,1fr)_minmax(240px,300px)]">
         <section className="pane-surface">
           <LeftPane />
         </section>
