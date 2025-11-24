@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { filesApi } from "@/modules/fileTree/api/filesApi";
+import { FileTreeModals } from "@/modules/fileTree/FileTreeModals";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
-import { Modal } from "@/shared/components/ui/modal";
 import { useAppStore } from "@/shared/state/appStore";
 import type { FileNode } from "@/shared/types/domain";
 
@@ -101,11 +100,6 @@ export const FileTreePanel = () => {
   const [showNewLatex, setShowNewLatex] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [newLatexName, setNewLatexName] = useState("main.tex");
-  const [newFolderName, setNewFolderName] = useState("new-folder");
-  const [uploadFileName, setUploadFileName] = useState("");
-  const [creatingLatex, setCreatingLatex] = useState(false);
-  const [creatingFolder, setCreatingFolder] = useState(false);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -136,71 +130,10 @@ export const FileTreePanel = () => {
     };
   }, [activeProjectId]);
 
-  const handleCreateLatex = async () => {
-    if (!activeProjectId) return;
-    try {
-      setCreatingLatex(true);
-      const result = await filesApi.createFile(activeProjectId, {
-        parentId: null,
-        name: newLatexName,
-        assetType: "file",
-        mimeType: "text/x-tex",
-        isInline: true,
-      });
-
-      const meta = result.fileMetadata;
-      const node: FileNode = {
-        id: meta.id,
-        name: meta.name,
-        assetType: meta.assetType,
-        mimeType: meta.mimeType,
-        isInline: meta.isInline,
-        parentId: meta.parentId,
-        downloadUrl: meta.downloadUrl,
-        children: [],
-      };
-
-      setTree((prev) => addNodeToTree(prev, meta.parentId ?? null, node));
-      setShowNewLatex(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create file");
-    } finally {
-      setCreatingLatex(false);
-    }
+  const handleAddNode = (node: FileNode) => {
+    setTree((prev) => addNodeToTree(prev, node.parentId ?? null, node));
   };
 
-const handleCreateFolder = async () => {
-  if (!activeProjectId) return;
-  try {
-    setCreatingFolder(true);
-    const result = await filesApi.createFile(activeProjectId, {
-      parentId: null,
-      name: newFolderName,
-      assetType: "folder",
-      mimeType: "inode/directory",
-      isInline: false,
-    });
-
-    const meta = result.fileMetadata;
-    const node: FileNode = {
-      id: meta.id,
-      name: meta.name,
-      assetType: meta.assetType,
-      mimeType: meta.mimeType,
-      isInline: meta.isInline,
-      parentId: meta.parentId,
-      downloadUrl: meta.downloadUrl,
-      children: [],
-    };
-
-    setTree((prev) => addNodeToTree(prev, meta.parentId ?? null, node));
-    setShowNewFolder(false);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Failed to create folder");
-  } finally {
-    setCreatingFolder(false);
-  }
-};
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4 text-sm">
@@ -263,95 +196,17 @@ const handleCreateFolder = async () => {
         menus, and depth enforcement once the API is wired.
       </div>
 
-      <Modal
-        open={showNewLatex}
-        onClose={() => setShowNewLatex(false)}
-        title="Create LaTeX file"
-        description="Name your new .tex file and choose the parent folder once tree selection is wired."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowNewLatex(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateLatex} disabled={!newLatexName || !activeProjectId || creatingLatex}>
-              {creatingLatex ? "Creating…" : "Create"}
-            </Button>
-          </>
-        }
-      >
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-text-secondary">File name</span>
-          <Input
-            value={newLatexName}
-            onChange={(e) => setNewLatexName(e.target.value)}
-            placeholder="main.tex"
-          />
-        </label>
-        <p className="mt-3 text-xs text-text-secondary">
-          File will be created inline; upload flow will be used for non-inline assets.
-        </p>
-      </Modal>
-
-      <Modal
-        open={showNewFolder}
-        onClose={() => setShowNewFolder(false)}
-        title="Create folder"
-        description="Pick a name for the new folder. Parent selection will come from the tree."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowNewFolder(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateFolder}
-              disabled={!newFolderName || !activeProjectId || creatingFolder}
-            >
-              {creatingFolder ? "Creating…" : "Create"}
-            </Button>
-          </>
-        }
-      >
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-text-secondary">Folder name</span>
-          <Input
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="chapters"
-          />
-        </label>
-      </Modal>
-
-      <Modal
-        open={showUpload}
-        onClose={() => setShowUpload(false)}
-        title="Upload file"
-        description="Upload PDFs or assets; we’ll show an upload URL and status once wired."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowUpload(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setShowUpload(false)}>Upload</Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-2 text-sm">
-          <label className="flex flex-col gap-1">
-            <span className="text-text-secondary">Select file</span>
-            <input
-              type="file"
-              onChange={(e) => setUploadFileName(e.target.files?.[0]?.name ?? "")}
-              className="text-sm"
-            />
-            {uploadFileName ? (
-              <span className="text-xs text-text-secondary">Chosen: {uploadFileName}</span>
-            ) : null}
-          </label>
-          <p className="text-xs text-text-secondary">
-            Folder selection and presigned upload handling will be wired to the API.
-          </p>
-        </div>
-      </Modal>
+      <FileTreeModals
+        activeProjectId={activeProjectId}
+        showNewLatex={showNewLatex}
+        showNewFolder={showNewFolder}
+        showUpload={showUpload}
+        onCloseNewLatex={() => setShowNewLatex(false)}
+        onCloseNewFolder={() => setShowNewFolder(false)}
+        onCloseUpload={() => setShowUpload(false)}
+        onAddNode={handleAddNode}
+        onError={(message) => setError(message)}
+      />
     </div>
   );
 };
