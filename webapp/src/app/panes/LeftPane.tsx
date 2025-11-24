@@ -14,7 +14,7 @@ export const LeftPane = () => {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 p-2">
       <PaneToggleGroup
         value={leftPaneView}
         onChange={setLeftPaneView}
@@ -25,7 +25,7 @@ export const LeftPane = () => {
         density="compact"
         fullWidth
       />
-      <div className="flex-1 overflow-hidden rounded-sm border border-border-soft bg-surface-contrast">
+      <div className="flex-1 overflow-hidden bg-surface-contrast">
         {panelContent}
       </div>
     </div>

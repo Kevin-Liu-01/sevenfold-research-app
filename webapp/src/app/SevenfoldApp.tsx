@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"
 import { LeftPane } from "@/app/panes/LeftPane"
 import { CenterPane } from "@/app/panes/CenterPane"
 import { RightPane } from "@/app/panes/RightPane"
@@ -56,19 +57,21 @@ export const SevenfoldApp = () => {
   }
 
   return (
-    <div className="bg-surface-base text-text-primary flex min-h-screen flex-col">
+    <div className="bg-surface-base text-text-primary flex h-screen flex-col overflow-hidden">
       <ProjectContextBar />
-      <div className="grid flex-1 grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(280px,360px)]">
-        <section className="pane-surface">
+      <PanelGroup direction="horizontal" className="flex-1 overflow-hidden">
+        <Panel defaultSize={15} minSize={10} maxSize={20} className="pane-surface">
           <LeftPane />
-        </section>
-        <section className="pane-surface">
+        </Panel>
+        <PanelResizeHandle className="w-0.5 bg-border-soft hover:bg-border-medium transition-colors cursor-col-resize" />
+        <Panel minSize={40} className="pane-surface">
           <CenterPane />
-        </section>
-        <section className="pane-surface">
+        </Panel>
+        <PanelResizeHandle className="w-0.5 bg-border-soft hover:bg-border-medium transition-colors cursor-col-resize" />
+        <Panel defaultSize={20} minSize={15} maxSize={30} className="pane-surface">
           <RightPane />
-        </section>
-      </div>
+        </Panel>
+      </PanelGroup>
     </div>
   )
 }

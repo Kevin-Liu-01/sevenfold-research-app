@@ -106,3 +106,17 @@ class FilesService:
     def _get_storage_path(self, project_id: UUID, file_id: UUID) -> str:
         """Construct the storage path for a given file."""
         return f"{project_id}/{file_id}"
+
+    @staticmethod
+    def _extract_signed_url(response):
+        if isinstance(response, dict):
+            return (
+                response.get("signedUrl")
+                or response.get("signedURL")
+                or response.get("signed_url")
+            )
+
+        return getattr(response, "signed_url", None) or getattr(
+            response, "signedUrl", None
+        )
+

@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import type {
   CenterPaneView,
   LeftPaneView,
+  LibraryDocument,
   ProjectSummary,
   RightPaneView,
 } from "@/shared/types/domain";
@@ -27,6 +28,10 @@ interface AppState {
   setLeftPaneView: (view: LeftPaneView) => void;
   setCenterPaneView: (view: CenterPaneView) => void;
   setRightPaneView: (view: RightPaneView) => void;
+
+  // Library state
+  selectedLibraryDocument: LibraryDocument | null;
+  setSelectedLibraryDocument: (document: LibraryDocument | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -49,4 +54,9 @@ export const useAppStore = create<AppState>((set) => ({
   setLeftPaneView: (view) => set({ leftPaneView: view }),
   setCenterPaneView: (view) => set({ centerPaneView: view }),
   setRightPaneView: (view) => set({ rightPaneView: view }),
+
+  // Library state
+  selectedLibraryDocument: null,
+  setSelectedLibraryDocument: (document) =>
+    set({ selectedLibraryDocument: document }),
 }));

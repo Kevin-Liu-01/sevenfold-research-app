@@ -2,13 +2,13 @@ import { useAppStore } from "@/shared/state/appStore"
 import { PaneToggleGroup } from "@/shared/components/ui/PaneToggleGroup"
 import { EditorWorkspace } from "@/modules/editorWorkspace/EditorWorkspace"
 import { CompilePreviewPanel } from "@/modules/compilePreview/CompilePreviewPanel"
-import { PdfReaderPane } from "@/modules/pdfReader/PdfReaderPane"
+import { PdfViewerPane } from "@/modules/pdfViewer/PdfViewerPane"
 
 export const CenterPane = () => {
   const { centerPaneView, setCenterPaneView } = useAppStore()
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 p-2">
       <div className="flex items-center justify-between">
         <p className="text-text-muted text-xs font-semibold uppercase tracking-[0.2em]">
           Authoring
@@ -28,7 +28,9 @@ export const CenterPane = () => {
           <CompilePreviewPanel />
         </div>
       ) : (
-        <PdfReaderPane />
+        <div className="flex-1 overflow-hidden min-h-0">
+          <PdfViewerPane />
+        </div>
       )}
     </div>
   )
