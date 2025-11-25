@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # Service configuration
     app_name: str = "LaTeX Compiler Service"
     app_version: str = "1.0.0"
-    port: int = 8081
+    port: int = 8001
     host: str = "0.0.0.0"
     
     # Logging
@@ -36,7 +36,6 @@ class Settings(BaseSettings):
     default_timeout: int = 30
     
     class Config:
-        env_prefix = "LATEX_SERVICE_"
         case_sensitive = False
 
 

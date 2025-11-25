@@ -1,14 +1,21 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
-from typing import Optional, Dict, Union
 import logging
 import sys
-import base64
-from latex_compiler import compile_latex_to_pdf, check_tectonic_available
+from typing import Optional
+from uuid import UUID
+
+from fastapi import FastAPI, HTTPException, Request, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
+
+from compiler_orchestrator import compile_project_asset
 from config import settings
-from middleware import request_id_middleware, auth_middleware, rate_limit_middleware
+from db.files_service import FilesService
+from db.supabase import supabase
+from middleware import auth_middleware, rate_limit_middleware, request_id_middleware
+from utils.auth import get_user_id, verify_file_access, verify_project_access
+from latex_compiler import check_tectonic_available
+
 
 # Configure structured logging with custom formatter
 class RequestIDFormatter(logging.Formatter):
@@ -62,70 +69,14 @@ app.add_middleware(
 
 
 class CompileRequest(BaseModel):
-    """Request model for LaTeX compilation."""
-    tex_content: str = Field(
-        ...,
-        min_length=1,
-        max_length=settings.max_tex_content_size,
-        description="LaTeX source code to compile"
-    )
-    assets: Optional[Dict[str, Union[str, bytes]]] = Field(
-        None,
-        description="Optional dictionary of asset files (filename -> base64-encoded string or bytes)"
-    )
+    """Request model for project/asset-based compilation."""
+
     timeout: Optional[int] = Field(
         default=settings.default_timeout,
         ge=settings.min_timeout,
         le=settings.max_timeout,
-        description=f"Compilation timeout in seconds (min: {settings.min_timeout}, max: {settings.max_timeout})"
+        description=f"Compilation timeout in seconds (min: {settings.min_timeout}, max: {settings.max_timeout})",
     )
-    
-    @validator('tex_content')
-    def validate_content(cls, v):
-        """Validate that LaTeX content is not empty."""
-        if not v or not v.strip():
-            raise ValueError("LaTeX content cannot be empty")
-        return v
-    
-    @validator('assets')
-    def validate_and_decode_assets(cls, v):
-        """Validate assets and decode base64 strings to bytes."""
-        if not v:
-            return v
-        
-        decoded_assets = {}
-        total_size = 0
-        
-        for filename, content in v.items():
-            # Decode base64 strings to bytes
-            if isinstance(content, str):
-                try:
-                    content = base64.b64decode(content)
-                except Exception as e:
-                    raise ValueError(f"Invalid base64 encoding for asset '{filename}': {str(e)}")
-            elif not isinstance(content, bytes):
-                raise ValueError(f"Asset '{filename}' must be base64-encoded string or bytes")
-            
-            decoded_assets[filename] = content
-            total_size += len(content)
-        
-        # Validate total size
-        if total_size > settings.max_assets_total_size:
-            raise ValueError(
-                f"Total assets size ({total_size} bytes) exceeds maximum "
-                f"({settings.max_assets_total_size} bytes)"
-            )
-        
-        return decoded_assets
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "tex_content": "\\documentclass{article}\\begin{document}Hello World\\end{document}",
-                "assets": None,
-                "timeout": 30
-            }
-        }
 
 
 class HealthResponse(BaseModel):
@@ -155,76 +106,56 @@ async def health_check():
     )
 
 
-@app.post("/compile")
-async def compile_latex(
+@app.post("/compile/{project_id}/{asset_id}")
+async def compile_latex_project_asset(
+    project_id: UUID,
+    asset_id: UUID,
+    request: CompileRequest,
     http_request: Request,
-    request: CompileRequest
+    authorization: str = Header(...),
 ):
     """
-    Compile LaTeX source code to PDF.
-    
-    Args:
-        request: Compilation request with LaTeX content, optional assets, and timeout
-        http_request: FastAPI request object for accessing request ID
-        body: Raw request body for size validation
-    
-    Returns:
-        PDF file as application/pdf or error details
-    
-    Raises:
-        HTTPException: If compilation fails or service is unavailable
+    Compile a project asset by resolving its dependencies and invoking Tectonic.
     """
-    request_id = getattr(http_request.state, 'request_id', 'unknown')
-    logger.info(
-        f"Received LaTeX compilation request",
-        extra={"request_id": request_id, "content_length": len(request.tex_content)}
-    )
-    
-    # Check if Tectonic is available
+    request_id = getattr(http_request.state, "request_id", "unknown")
+
+    # authZ
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, str(project_id))
+    verify_file_access(str(project_id), str(asset_id))
+
+    logger.info(f"Starting compilation for project {project_id}, asset {asset_id}", extra={"request_id": request_id})
+
     if not check_tectonic_available():
         logger.error("Tectonic not available", extra={"request_id": request_id})
-        raise HTTPException(
-            status_code=503,
-            detail="Tectonic LaTeX engine is not available"
-        )
-    
-    # Compile the LaTeX to PDF
+        raise HTTPException(status_code=503, detail="Tectonic LaTeX engine is not available")
+
+    files_service = FilesService(supabase)
+
     try:
-        pdf_bytes, error = compile_latex_to_pdf(
-            request.tex_content,
-            assets=request.assets,
-            timeout=request.timeout or settings.default_timeout,
-            request_id=request_id
+        pdf_bytes, error = compile_project_asset(
+            project_id, asset_id, files_service, timeout=request.timeout or settings.default_timeout
         )
-        
-        if error:
-            # Sanitize error message to prevent information leakage
+
+        if error or not pdf_bytes:
             error_id = f"ERR-{request_id[:8]}"
             logger.error(
                 f"LaTeX compilation failed: {error_id}",
-                extra={"request_id": request_id, "error_id": error_id}
+                extra={"request_id": request_id, "error_id": error_id, "detail": error},
             )
-            
-            # Truncate long error messages
-            error_detail = error[:1000] + "..." if len(error) > 1000 else error
+            detail = error[:1000] + "..." if error and len(error) > 1000 else (error or "Unknown error")
             raise HTTPException(
                 status_code=400,
-                detail=f"LaTeX compilation failed (Error ID: {error_id}):\n{error_detail}"
+                detail=f"LaTeX compilation failed (Error ID: {error_id}):\n{detail}",
             )
-        
-        logger.info(
-            f"LaTeX compilation successful",
-            extra={"request_id": request_id, "pdf_size": len(pdf_bytes)}
-        )
-        
-        # Return PDF directly
+
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
                 "Content-Disposition": 'inline; filename="compiled.pdf"',
-                "X-Request-ID": request_id
-            }
+                "X-Request-ID": request_id,
+            },
         )
     except HTTPException:
         raise
@@ -233,11 +164,11 @@ async def compile_latex(
         logger.error(
             f"Unexpected error during compilation: {str(e)}",
             extra={"request_id": request_id, "error_id": error_id},
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Internal server error (Error ID: {error_id})"
+            detail=f"Internal server error (Error ID: {error_id})",
         )
 
 

@@ -33,6 +33,11 @@ COPY main.py .
 COPY latex_compiler.py .
 COPY config.py .
 COPY middleware.py .
+COPY compiler_orchestrator.py .
+COPY .env .
+COPY dto/ ./dto/
+COPY db/ ./db/
+COPY utils/ ./utils/
 
 # Expose the port the service runs on
 EXPOSE 8081
@@ -42,4 +47,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

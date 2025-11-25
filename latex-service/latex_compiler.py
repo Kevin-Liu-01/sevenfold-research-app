@@ -7,7 +7,6 @@ Designed to work in a microservice architecture.
 
 import subprocess
 import tempfile
-import os
 from pathlib import Path
 from typing import Tuple, Optional, Dict
 import logging

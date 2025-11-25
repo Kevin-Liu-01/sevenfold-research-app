@@ -1,4 +1,7 @@
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 pydantic==2.10.2
-pydantic-settings==2.6.1
+pydantic_settings>=2.0.0
+python-dotenv>=1.0.0
+pylatexenc==2.10
+supabase>=2.0.0
