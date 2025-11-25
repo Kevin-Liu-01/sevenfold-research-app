@@ -39,7 +39,7 @@ export const CompilePreviewPanel = () => {
   }, [activeFile, activeProjectId]);
 
   return (
-    <section className="rounded-2xl border border-border-soft bg-surface-contrast p-4">
+    <section className="flex min-h-[85vh] flex-shrink-0 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">Compilation</p>
@@ -53,15 +53,17 @@ export const CompilePreviewPanel = () => {
           {loading ? "Compiling…" : "Compile"}
         </Button>
       </div>
-      <div className="mt-4 rounded-xl border border-dashed border-border-soft bg-surface-panel p-4 text-sm text-text-primary">
+      <div className="mt-4 flex-1 rounded-xl border border-dashed border-border-soft bg-surface-panel p-4 text-sm text-text-primary">
         {error ? (
           <div className="text-red-600">{error}</div>
         ) : pdfUrl ? (
-          <iframe
-            src={pdfUrl}
-            title="Compiled PDF"
-            className="h-[480px] w-full rounded border border-border-soft"
-          />
+          <div className="flex h-full w-full items-stretch">
+            <iframe
+              src={pdfUrl}
+              title="Compiled PDF"
+              className="h-full w-full rounded border border-border-soft"
+            />
+          </div>
         ) : (
           <div className="text-text-secondary">{status}</div>
         )}

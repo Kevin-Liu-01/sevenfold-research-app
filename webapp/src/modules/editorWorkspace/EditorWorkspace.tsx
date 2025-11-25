@@ -215,7 +215,7 @@ export const EditorWorkspace = () => {
   }
 
   return (
-    <section className="flex flex-1 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4 overflow-hidden">
+    <section className="flex min-h-[85vh] flex-shrink-0 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4 overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border-soft pb-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">
