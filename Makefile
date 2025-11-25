@@ -13,9 +13,5 @@ api-setup:
 api:
 	cd api && . venv/bin/activate && uvicorn main:app --reload --port 8000
 
-latex-service-setup:
-	cd latex-service && python3 -m venv venv || python -m venv venv
-	cd latex-service && . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
-
 latex-service:
-	cd latex-service && . venv/bin/activate && uvicorn main:app --reload --port 8001
+	docker build -t latex-service ./latex-service && docker run -p 8001:8001 latex-service
