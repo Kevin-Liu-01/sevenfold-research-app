@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Tree } from "react-arborist";
+import type { NodeApi } from "react-arborist";
 
 import { filesApi } from "@/modules/fileTree/api/filesApi";
 import { FileTreeModals } from "@/modules/fileTree/FileTreeModals";
@@ -9,8 +10,23 @@ import { Button } from "@/shared/components/ui/button";
 import { useAppStore } from "@/shared/state/appStore";
 import type { FileNode } from "@/shared/types/domain";
 
+const isLatexFile = (file: FileNode) => {
+  if (file.assetType !== "file") return false;
+  const mime = file.mimeType?.toLowerCase() ?? "";
+  const name = file.name.toLowerCase();
+  const isTex = mime.includes("tex") || name.endsWith(".tex");
+  return isTex && file.isInline !== false;
+};
+
+const isImageFile = (file: FileNode) => {
+  if (file.assetType !== "file") return false;
+  const mime = file.mimeType?.toLowerCase() ?? "";
+  const name = file.name.toLowerCase();
+  return mime.startsWith("image/") || /\.(png|jpe?g|gif|svg|bmp|webp)$/i.test(name);
+};
+
 export const FileTreePanel = () => {
-  const { activeProjectId } = useAppStore();
+  const { activeProjectId, setActiveFile } = useAppStore();
   const [tree, setTree] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +36,16 @@ export const FileTreePanel = () => {
   const [treeHeight, setTreeHeight] = useState(0);
   const treeContainerRef = useRef<HTMLDivElement | null>(null);
   const lastServerState = useRef<FileNode[] | null>(null);
+  const refreshTree = useCallback(async () => {
+    if (!activeProjectId) return;
+    try {
+      const fresh = await filesApi.fetchTree(activeProjectId);
+      setTree(fresh);
+      lastServerState.current = fresh;
+    } catch (err) {
+      console.error("Failed to refresh file tree", err);
+    }
+  }, [activeProjectId]);
   const {
     handleAddNode,
     handleMove,
@@ -32,6 +58,10 @@ export const FileTreePanel = () => {
     setError,
     lastServerState,
   });
+
+  useEffect(() => {
+    setActiveFile(null);
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -61,7 +91,7 @@ export const FileTreePanel = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeProjectId]);
+  }, [activeProjectId, setActiveFile]);
 
   useEffect(() => {
     const container = treeContainerRef.current;
@@ -94,6 +124,34 @@ export const FileTreePanel = () => {
   }, [activeProjectId, loading]);
 
   const arboristHeight = treeHeight || 320;
+
+  const handleSelect = useCallback(
+    (nodes: NodeApi<FileNode>[]) => {
+      const target = nodes[nodes.length - 1] ?? null;
+
+      if (!target) {
+        setActiveFile(null);
+        return;
+      }
+
+      const file = target.data;
+      if (file.assetType !== "file") {
+        return;
+      }
+
+      if (isLatexFile(file) || isImageFile(file)) {
+        setActiveFile({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          isInline: file.isInline,
+        });
+      } else {
+        setActiveFile(null);
+      }
+    },
+    [setActiveFile],
+  );
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4 text-sm">
@@ -164,6 +222,7 @@ export const FileTreePanel = () => {
                 openByDefault={false}
                 className="h-full"
                 onMove={handleMove}
+                onSelect={handleSelect}
                 disableDrop={isDropDisabled}
                 onRename={handleRename}
                 onDelete={handleDelete}
@@ -184,6 +243,7 @@ export const FileTreePanel = () => {
         onCloseNewFolder={() => setShowNewFolder(false)}
         onCloseUpload={() => setShowUpload(false)}
         onAddNode={handleAddNode}
+        onRefreshTree={refreshTree}
         onError={(message) => setError(message)}
       />
     </div>

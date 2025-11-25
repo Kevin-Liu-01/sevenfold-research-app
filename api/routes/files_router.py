@@ -12,7 +12,8 @@ from dto.files_types import (
     CreateFileResponse,
     UpdateFilePayload,
     FileContentPayload,
-    FileTreeResponse
+    FileTreeResponse,
+    FileUploadStatusPayload
 )
 
 from utils.files_utils import (
@@ -70,12 +71,19 @@ async def create_file(
     user_id = get_user_id(authorization)
     verify_project_access(user_id, project_id)
     
-    file_create_request = FileCreate(project_id=project_id, **payload.model_dump())
+    requires_upload = not payload.is_inline and payload.asset_type != "folder"
+    initial_status = "pending" if requires_upload else "done"
+
+    file_create_request = FileCreate(
+        project_id=project_id,
+        upload_status=initial_status,
+        **payload.model_dump()
+    )
 
     file_record = files_service.create_file_record(file_create_request)
 
     # if not inline, generate a presigned upload URL
-    if payload.is_inline or payload.asset_type == "folder":
+    if not requires_upload:
         upload_url = None
     else:
         upload_url = files_service.get_presigned_upload_url(file_record.id, project_id)
@@ -144,6 +152,7 @@ async def delete_file(
     verify_project_access(user_id, project_id)
     verify_file_access(project_id, file_id)
 
+    files_service.delete_file_from_storage(project_id, file_id)
     files_service.delete_file_record(file_id)
     
 
@@ -171,6 +180,42 @@ async def get_file_metadata(
 
     response = FileMetadataResponse(
         **file_record.model_dump(),
+        download_url=download_url
+    )
+
+    return response
+
+
+@router.post(
+    "/projects/{project_id}/files/{file_id}/upload-status",
+    summary="Finalize upload status",
+    description="Marks a pending upload as completed or failed.",
+    response_model=FileMetadataResponse
+)
+async def update_upload_status(
+        project_id: UUID,
+        file_id: UUID,
+        payload: FileUploadStatusPayload,
+        authorization: str = Header(...)
+):
+    user_id = get_user_id(authorization)
+    verify_project_access(user_id, project_id)
+    verify_file_access(project_id, file_id)
+
+    file_record = files_service.get_file_record(file_id)
+    current_status = file_record.upload_status or "pending"
+
+    if current_status != "pending":
+        raise HTTPException(status_code=400, detail="Upload status is already finalized")
+
+    updated_record = files_service.update_file_record(file_id, {"upload_status": payload.status})
+
+    download_url = None
+    if not updated_record.is_inline and updated_record.asset_type != "folder":
+        download_url = files_service.get_presigned_download_url(file_id, project_id)
+
+    response = FileMetadataResponse(
+        **updated_record.model_dump(),
         download_url=download_url
     )
 

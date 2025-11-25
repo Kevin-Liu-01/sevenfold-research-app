@@ -11,6 +11,7 @@ class FileCreate(BaseModel):
     is_inline:  bool
     parent_id: Optional[UUID]
     name: str
+    upload_status: Optional[Literal["pending", "done", "failed"]] = None
 
 
 class FileRecord(FileCreate):
@@ -40,6 +41,12 @@ class UpdateFilePayload(BaseModel):
 
     new_parent_id: Optional[UUID] = None
     new_name: Optional[str] = None
+
+
+class FileUploadStatusPayload(BaseModel):
+    """Request payload for finalizing a file upload."""
+
+    status: Literal["done", "failed"]
 
 
 class FileContentPayload(BaseModel):

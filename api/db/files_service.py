@@ -64,6 +64,22 @@ class FilesService:
             logger.error("Error deleting file record: %s", exc)
             raise Exception("Failed to delete file record") from exc
 
+    def delete_file_from_storage(self, project_id: UUID, file_id: UUID) -> None:
+        """Delete a file from Supabase Storage."""
+        try:
+            file_path = self._get_storage_path(project_id, file_id)
+            # check if file exists before deleting
+            items = self.supabase.storage.from_(self.storage_bucket).list(str(project_id))
+            for item in items:
+                if item['name'] == str(file_id):
+                    self.supabase.storage.from_(self.storage_bucket).remove([file_path])
+                    return
+
+            logger.warning("File %s not found in storage for deletion", file_path)
+        except Exception as exc:
+            logger.error("Error deleting file from storage: %s", exc)
+            raise Exception("Failed to delete file from storage") from exc
+
     def list_files(self, project_id: UUID) -> list[FileRecord]:
         """List all file records for a given project."""
         try:
@@ -79,10 +95,8 @@ class FilesService:
         """Generate a presigned URL for uploading a file to Supabase Storage."""
         try:
             file_path = self._get_storage_path(project_id, id)
-            response = self.supabase.storage.from_(self.storage_bucket).create_signed_url(
-                file_path, 3600, method="PUT"
-            )
-            return response.signed_url
+            response = self.supabase.storage.from_(self.storage_bucket).create_signed_upload_url(file_path)
+            return self._extract_signed_url(response)
         except Exception as exc:
             logger.error("Error generating presigned upload URL: %s", exc)
             raise Exception("Failed to generate presigned upload URL") from exc
@@ -91,10 +105,8 @@ class FilesService:
         """Generate a presigned URL for downloading a file from Supabase Storage."""
         try:
             file_path = self._get_storage_path(project_id, id)
-            response = self.supabase.storage.from_(self.storage_bucket).create_signed_url(
-                file_path, 3600, method="GET"
-            )
-            return response.signed_url
+            response = self.supabase.storage.from_(self.storage_bucket).create_signed_url(file_path, 3600)
+            return self._extract_signed_url(response)
         except Exception as exc:
             logger.error("Error generating presigned download URL: %s", exc)
             raise Exception("Failed to generate presigned download URL") from exc

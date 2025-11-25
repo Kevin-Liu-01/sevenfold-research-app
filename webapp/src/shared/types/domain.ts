@@ -16,7 +16,15 @@ export interface FileNode {
   content?: string;
   parentId?: string | null;
   downloadUrl?: string | null;
+  uploadStatus?: "pending" | "done" | "failed";
   children?: FileNode[];
+}
+
+export interface ActiveFile {
+  id: string;
+  name: string;
+  mimeType?: string;
+  isInline?: boolean;
 }
 
 export interface LibraryDocument {

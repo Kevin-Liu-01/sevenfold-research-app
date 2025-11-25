@@ -15,6 +15,7 @@ type FileTreeModalsProps = {
   onCloseNewFolder: () => void
   onCloseUpload: () => void
   onAddNode: (node: FileNode) => void
+  onRefreshTree: () => Promise<void>
   onError: (errorMessage: string) => void
 }
 
@@ -27,6 +28,7 @@ export const FileTreeModals = ({
   onCloseNewFolder,
   onCloseUpload,
   onAddNode,
+  onRefreshTree,
   onError,
 }: FileTreeModalsProps) => {
   const [newLatexName, setNewLatexName] = useState("main.tex")
@@ -34,6 +36,77 @@ export const FileTreeModals = ({
   const [uploadFileName, setUploadFileName] = useState("")
   const [creatingLatex, setCreatingLatex] = useState(false)
   const [creatingFolder, setCreatingFolder] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  const resetUploadState = () => {
+    setSelectedFile(null)
+    setUploadFileName("")
+    setUploadError(null)
+  }
+
+  const handleCloseUploadModal = () => {
+    resetUploadState()
+    onCloseUpload()
+  }
+
+  const handleUploadConfirm = async () => {
+    if (!activeProjectId) return
+    if (!selectedFile) {
+      setUploadError("Select a file to upload")
+      return
+    }
+
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      const result = await filesApi.createFile(activeProjectId, {
+        parentId: null,
+        name: selectedFile.name,
+        assetType: "file",
+        mimeType: selectedFile.type || "application/octet-stream",
+        isInline: false,
+      })
+
+      const meta = result.fileMetadata
+      const node: FileNode = {
+        id: meta.id,
+        name: meta.name,
+        assetType: meta.assetType,
+        mimeType: meta.mimeType,
+        isInline: meta.isInline,
+        parentId: meta.parentId,
+        downloadUrl: meta.downloadUrl,
+        uploadStatus: meta.uploadStatus,
+        children: [],
+      }
+
+      onAddNode(node)
+
+      if (result.uploadUrl) {
+        try {
+          await filesApi.uploadToSignedUrl(result.uploadUrl, selectedFile)
+          await filesApi.finalizeUpload(activeProjectId, meta.id, "done")
+        } catch (uploadErr) {
+          await filesApi.finalizeUpload(activeProjectId, meta.id, "failed").catch(() => {})
+          throw uploadErr instanceof Error
+            ? uploadErr
+            : new Error("Failed to upload file")
+        }
+      }
+
+      await onRefreshTree().catch(() => {})
+      handleCloseUploadModal()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to upload file"
+      setUploadError(message)
+      onError(message)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleCreateLatex = async () => {
     if (!activeProjectId) return
@@ -56,6 +129,7 @@ export const FileTreeModals = ({
         isInline: meta.isInline,
         parentId: meta.parentId,
         downloadUrl: meta.downloadUrl,
+        uploadStatus: meta.uploadStatus,
         children: [],
       }
 
@@ -89,6 +163,7 @@ export const FileTreeModals = ({
         isInline: meta.isInline,
         parentId: meta.parentId,
         downloadUrl: meta.downloadUrl,
+        uploadStatus: meta.uploadStatus,
         children: [],
       }
 
@@ -163,15 +238,20 @@ export const FileTreeModals = ({
 
       <Modal
         open={showUpload}
-        onClose={onCloseUpload}
+        onClose={handleCloseUploadModal}
         title="Upload file"
-        description="Upload PDFs or assets; we’ll show an upload URL and status once wired."
+        description="Create metadata and stream the file via the presigned upload URL."
         footer={
           <>
-            <Button variant="ghost" onClick={onCloseUpload}>
+            <Button variant="ghost" onClick={handleCloseUploadModal} disabled={uploading}>
               Cancel
             </Button>
-            <Button onClick={onCloseUpload}>Upload</Button>
+            <Button
+              onClick={handleUploadConfirm}
+              disabled={!selectedFile || !activeProjectId || uploading}
+            >
+              {uploading ? "Uploading…" : "Upload"}
+            </Button>
           </>
         }
       >
@@ -180,16 +260,24 @@ export const FileTreeModals = ({
             <span className="text-text-secondary">Select file</span>
             <input
               type="file"
-              onChange={(e) => setUploadFileName(e.target.files?.[0]?.name ?? "")}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setSelectedFile(file)
+                setUploadFileName(file?.name ?? "")
+                setUploadError(null)
+              }}
               className="text-sm"
+              disabled={uploading}
             />
             {uploadFileName ? (
               <span className="text-xs text-text-secondary">Chosen: {uploadFileName}</span>
             ) : null}
           </label>
           <p className="text-xs text-text-secondary">
-            Folder selection and presigned upload handling will be wired to the API.
+            Uploads create pending metadata, stream the binary to Supabase Storage, then finalize
+            the status.
           </p>
+          {uploadError ? <p className="text-xs text-red-600">{uploadError}</p> : null}
         </div>
       </Modal>
     </>

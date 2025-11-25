@@ -5,13 +5,7 @@ import { PaneToggleGroup } from "@/shared/components/ui/PaneToggleGroup"
 
 export const LeftPane = () => {
   const { leftPaneView, setLeftPaneView } = useAppStore()
-
-  let panelContent
-  if (leftPaneView === "files") {
-    panelContent = <FileTreePanel />
-  } else {
-    panelContent = <LibraryPanel />
-  }
+  const panelContent = leftPaneView === "files" ? <FileTreePanel /> : <LibraryPanel />
 
   return (
     <div className="flex h-full flex-col gap-4 p-2">
@@ -25,9 +19,7 @@ export const LeftPane = () => {
         density="compact"
         fullWidth
       />
-      <div className="flex-1 overflow-hidden bg-surface-contrast">
-        {panelContent}
-      </div>
+      <div className="flex-1 overflow-hidden bg-surface-contrast">{panelContent}</div>
     </div>
   )
 }
