@@ -12,6 +12,7 @@ from typing import Tuple, Optional, Dict
 import logging
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def _validate_asset_path(base_path: Path, asset_path: Path) -> Path:
@@ -44,8 +45,8 @@ def _validate_asset_path(base_path: Path, asset_path: Path) -> Path:
 
 
 def compile_latex_to_pdf(
-    tex_content: str, 
-    assets: Optional[Dict[str, bytes]] = None,
+    work_dir: Path,
+    entrypoint: str = "main.tex",
     timeout: int = 30,
     request_id: Optional[str] = None
 ) -> Tuple[Optional[bytes], Optional[str]]:
@@ -64,114 +65,88 @@ def compile_latex_to_pdf(
         - If failed: (None, error_message)
     """
     log_extra = {"request_id": request_id} if request_id else {}
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmppath = Path(tmpdir)
+    tmppath = Path(work_dir)
+    logger.debug(f"Compiling in existing temp directory {tmppath}", extra=log_extra)
+
+    try:
+        tex_file = tmppath / entrypoint
+        if not tex_file.exists():
+            error_msg = f"Entrypoint {entrypoint} not found in work directory"
+            logger.error(error_msg, extra=log_extra)
+            return None, error_msg
+
+        result = subprocess.run(
+            ["tectonic", "-X", "compile", entrypoint, "--print"],
+            cwd=tmppath,
+            capture_output=True,
+            timeout=timeout,
+            text=True,
+        )
+
+        if result.returncode == 0:
+            pdf_path = tmppath / "build" / Path(entrypoint).with_suffix(".pdf").name
+            if not pdf_path.exists():
+                pdf_path = tmppath / Path(entrypoint).with_suffix(".pdf").name
+
+            if pdf_path.exists():
+                pdf_bytes = pdf_path.read_bytes()
+                logger.info(
+                    f"Successfully compiled PDF ({len(pdf_bytes)} bytes)",
+                    extra=log_extra,
+                )
+                return pdf_bytes, None
+            else:
+                error_msg = "Compilation succeeded but PDF not found"
+                logger.error(error_msg, extra=log_extra)
+                return None, error_msg
+
+        error_output = _format_compilation_error(result.stderr, result.stdout)
+        logger.warning(
+            f"Compilation failed: {error_output[:200]}...",
+            extra=log_extra,
+        )
+        return None, error_output
+            
+    except subprocess.TimeoutExpired:
+        error_msg = f"Compilation timeout ({timeout}s exceeded). Document may be too complex."
+        logger.error(error_msg, extra=log_extra)
+        return None, error_msg
         
-        try:
-            # Write main .tex file
-            tex_file = tmppath / "main.tex"
-            tex_file.write_text(tex_content, encoding='utf-8')
-            logger.debug(f"Wrote main.tex ({len(tex_content)} chars)", extra=log_extra)
-            
-            # Write additional assets (images, bibliography files, etc.)
-            if assets:
-                for filename, content in assets.items():
-                    # Validate filename to prevent path traversal
-                    if not filename or not isinstance(filename, str):
-                        raise ValueError(f"Invalid asset filename: {filename}")
-                    
-                    # Validate and sanitize path
-                    asset_path = _validate_asset_path(tmppath, Path(filename))
-                    
-                    # Ensure subdirectories exist
-                    asset_path.parent.mkdir(parents=True, exist_ok=True)
-                    asset_path.write_bytes(content)
-                    logger.debug(
-                        f"Wrote asset: {filename} ({len(content)} bytes)",
-                        extra=log_extra
-                    )
-            
-            # Run Tectonic compilation
-            # -X compile: Use modern compilation mode
-            # --keep-logs: Preserve log files for debugging
-            result = subprocess.run(
-                ["tectonic", "-X", "compile", "main.tex", "--keep-logs"],
-                cwd=tmppath,
-                capture_output=True,
-                timeout=timeout,
-                text=True
-            )
-            
-            # Check if compilation was successful
-            if result.returncode == 0:
-                # Tectonic outputs to build/ directory by default in -X mode
-                pdf_path = tmppath / "build" / "main.pdf"
-                
-                if not pdf_path.exists():
-                    # Fallback: check root directory
-                    pdf_path = tmppath / "main.pdf"
-                
-                if pdf_path.exists():
-                    pdf_bytes = pdf_path.read_bytes()
-                    logger.info(
-                        f"Successfully compiled PDF ({len(pdf_bytes)} bytes)",
-                        extra=log_extra
-                    )
-                    return pdf_bytes, None
-                else:
-                    error_msg = "Compilation succeeded but PDF not found"
-                    logger.error(error_msg, extra=log_extra)
-                    return None, error_msg
-            
-            # Compilation failed - extract error information
-            error_output = _format_compilation_error(result.stderr, result.stdout)
-            logger.warning(
-                f"Compilation failed: {error_output[:200]}...",
-                extra=log_extra
-            )
-            return None, error_output
-            
-        except subprocess.TimeoutExpired:
-            error_msg = f"Compilation timeout ({timeout}s exceeded). Document may be too complex."
-            logger.error(error_msg, extra=log_extra)
-            return None, error_msg
-            
-        except FileNotFoundError:
-            error_msg = (
-                "Tectonic not found. Please ensure Tectonic is installed.\n\n"
-                "Installation:\n"
-                "- macOS: brew install tectonic\n"
-                "- Linux: curl --proto '=https' --tlsv1.2 -fsSL "
-                "https://drop-sh.fullyjustified.net | sh\n"
-                "- Docker: Already included in Dockerfile"
-            )
-            logger.error(error_msg, extra=log_extra)
-            return None, error_msg
-            
-        except ValueError as e:
-            # Path validation errors
-            error_msg = f"Invalid asset path: {str(e)}"
-            logger.error(error_msg, extra=log_extra)
-            return None, error_msg
-            
-        except subprocess.SubprocessError as e:
-            # Subprocess-specific errors
-            error_msg = f"Subprocess error during compilation: {str(e)}"
-            logger.error(error_msg, extra=log_extra, exc_info=True)
-            return None, error_msg
-            
-        except OSError as e:
-            # File system errors
-            error_msg = f"File system error during compilation: {str(e)}"
-            logger.error(error_msg, extra=log_extra, exc_info=True)
-            return None, error_msg
-            
-        except Exception as e:
-            # Catch-all for unexpected errors
-            error_msg = f"Unexpected compilation error: {str(e)}"
-            logger.error(error_msg, extra=log_extra, exc_info=True)
-            return None, error_msg
+    except FileNotFoundError:
+        error_msg = (
+            "Tectonic not found. Please ensure Tectonic is installed.\n\n"
+            "Installation:\n"
+            "- macOS: brew install tectonic\n"
+            "- Linux: curl --proto '=https' --tlsv1.2 -fsSL "
+            "https://drop-sh.fullyjustified.net | sh\n"
+            "- Docker: Already included in Dockerfile"
+        )
+        logger.error(error_msg, extra=log_extra)
+        return None, error_msg
+        
+    except ValueError as e:
+        # Path validation errors
+        error_msg = f"Invalid asset path: {str(e)}"
+        logger.error(error_msg, extra=log_extra)
+        return None, error_msg
+        
+    except subprocess.SubprocessError as e:
+        # Subprocess-specific errors
+        error_msg = f"Subprocess error during compilation: {str(e)}"
+        logger.error(error_msg, extra=log_extra, exc_info=True)
+        return None, error_msg
+        
+    except OSError as e:
+        # File system errors
+        error_msg = f"File system error during compilation: {str(e)}"
+        logger.error(error_msg, extra=log_extra, exc_info=True)
+        return None, error_msg
+        
+    except Exception as e:
+        # Catch-all for unexpected errors
+        error_msg = f"Unexpected compilation error: {str(e)}"
+        logger.error(error_msg, extra=log_extra, exc_info=True)
+        return None, error_msg
 
 
 def _format_compilation_error(stderr: str, stdout: str, max_length: int = 5000) -> str:

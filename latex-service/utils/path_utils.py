@@ -7,6 +7,9 @@ from uuid import UUID
 from dto.files_types import FileRecord
 from utils.dependency_parser import extract_dependencies
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def build_path_map(files: List[FileRecord]) -> Dict[str, FileRecord]:
     """
@@ -75,4 +78,5 @@ def resolve_all_dependencies(
                 missing.append(dep_path)
 
     walk(root)
+    logger.debug(f"Resolved dependencies: {[f.name for f in resolved]}")
     return resolved, missing

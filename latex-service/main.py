@@ -53,6 +53,8 @@ app = FastAPI(
     version=settings.app_version
 )
 
+files_service = FilesService(supabase)
+
 # Add middleware
 app.middleware("http")(request_id_middleware)
 app.middleware("http")(auth_middleware)
@@ -130,8 +132,6 @@ async def compile_latex_project_asset(
         logger.error("Tectonic not available", extra={"request_id": request_id})
         raise HTTPException(status_code=503, detail="Tectonic LaTeX engine is not available")
 
-    files_service = FilesService(supabase)
-
     try:
         pdf_bytes, error = compile_project_asset(
             project_id, asset_id, files_service, timeout=request.timeout or settings.default_timeout
@@ -170,6 +170,9 @@ async def compile_latex_project_asset(
             status_code=500,
             detail=f"Internal server error (Error ID: {error_id})",
         )
+    finally:
+        # delete tmp
+        logger.info(f"Finished compilation request {request_id}", extra={"request_id": request_id})
 
 
 if __name__ == "__main__":

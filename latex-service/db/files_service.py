@@ -52,9 +52,7 @@ class FilesService:
         try:
             storage_path = self._get_storage_path(project_id, file_id)
             response = self.supabase.storage.from_(self.storage_bucket).download(storage_path)
-            if response.error:
-                raise Exception(response.error.message)
-            return response.data
+            return response
         except Exception as exc:
             logger.error("Error downloading file: %s", exc)
             raise Exception("Failed to download file") from exc

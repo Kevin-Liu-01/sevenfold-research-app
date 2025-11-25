@@ -1,4 +1,4 @@
-.PHONY: webapp www api api-setup latex-service latex-service-setup
+.PHONY: webapp www api api-setup latex-service
 
 webapp:
 	cd webapp && pnpm dev --port 3001 --host
