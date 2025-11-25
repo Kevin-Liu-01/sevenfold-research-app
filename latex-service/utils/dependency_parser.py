@@ -26,10 +26,29 @@ MACROS_WITH_PATH_ARG = {
     "bibliography": 1,
     "addbibresource": 1,
     "addbibresource*": 1,
-    # "usepackage": 1,  # for local .sty files
-    # "documentclass": 1,  # for local .cls files
+    # "usepackage": 1,
+    # "documentclass": 1,
 }
 
+# Default extensions for macros when the user omits them
+DEFAULT_EXTENSIONS = {
+    "input": ".tex",
+    "include": ".tex",
+    "includeonly": ".tex",
+    "bibliography": ".bib",
+    "addbibresource": ".bib",
+    "addbibresource*": ".bib",
+    # "documentclass": ".cls",
+    # "usepackage": ".sty",
+}
+
+def _normalize_path(macro: str, path: str) -> str:
+    """Add default extensions for certain macros if missing."""
+    if macro in DEFAULT_EXTENSIONS:
+        ext = DEFAULT_EXTENSIONS[macro]
+        if not path.endswith(ext):
+            return f"{path}{ext}"
+    return path
 
 def _extract_arg_text(node: LatexMacroNode, arg_index: int) -> str | None:
     if not node.nodeargd or not node.nodeargd.argnlist:
@@ -58,18 +77,14 @@ def extract_dependencies(tex_source: str) -> List[str]:
     walker = LatexWalker(tex_source, tolerant_parsing=True)
     nodes, _, _ = walker.get_latex_nodes()
 
-    logger.debug(f"Parsing LaTeX source for dependencies, found {len(nodes)} top-level nodes")
-
     deps: Set[str] = set()
 
     def walk(node):
         if isinstance(node, LatexMacroNode):
             macro = node.macroname
             if macro in MACROS_WITH_PATH_ARG:
-                logger.debug(f"Found macro: \\{macro}")
                 arg_idx = MACROS_WITH_PATH_ARG[macro] - 1  # zero-based
                 arg_text = _extract_arg_text(node, arg_idx)
-                logger.debug(f"Extracted argument text: {arg_text}")
                 if arg_text:
                     # graphicspath may contain braces-separated list; split on spaces/braces
                     if macro == "graphicspath":
@@ -77,7 +92,7 @@ def extract_dependencies(tex_source: str) -> List[str]:
                             if part:
                                 deps.add(part)
                     else:
-                        deps.add(arg_text)
+                        deps.add(_normalize_path(macro, arg_text))
         for child in getattr(node, "nodelist", []) or []:
             walk(child)
 

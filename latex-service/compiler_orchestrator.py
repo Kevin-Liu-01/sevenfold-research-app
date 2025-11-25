@@ -91,10 +91,8 @@ def compile_project_asset(
             target = base / rel_path
             target.parent.mkdir(parents=True, exist_ok=True)
             if file.is_inline and file.id in file_contents:
-                logger.debug(f"Writing text file {rel_path} for compilation")
                 target.write_text(file_contents[file.id], encoding="utf-8")
             elif file.id in file_bytes:
-                logger.debug(f"Writing binary file {rel_path} for compilation")
                 target.write_bytes(file_bytes[file.id])
 
         return compile_latex_to_pdf(base, entrypoint="main.tex", timeout=timeout)
