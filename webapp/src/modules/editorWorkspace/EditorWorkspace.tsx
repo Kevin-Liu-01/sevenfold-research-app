@@ -1,4 +1,6 @@
-import Editor from "@monaco-editor/react"
+import CodeMirror from "@uiw/react-codemirror"
+import { latex } from "codemirror-lang-latex"
+import { EditorView } from "@codemirror/view"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { editorApi } from "@/modules/editorWorkspace/api/editorApi"
@@ -67,7 +69,6 @@ export const EditorWorkspace = () => {
         if (cancelled) return
         setFileId(file.id)
         setFileName(file.name)
-        console.log("Loaded file:", file)
         if (file.isInline && latexCapable) {
           setContent(file.content)
           setInitialContent(file.content)
@@ -129,6 +130,24 @@ export const EditorWorkspace = () => {
     return "text-text-secondary"
   }, [errorMessage, hasUnsavedChanges, saving])
 
+  const editorExtensions = useMemo(
+    () => [
+      latex({
+        autoCloseTags: true,
+        autoCloseBrackets: true,
+        enableAutocomplete: true,
+        enableTooltips: true,
+      }),
+      EditorView.lineWrapping,
+      EditorView.theme({
+        "&": {
+          fontSize: "14px",
+        },
+      }),
+    ],
+    [],
+  )
+
   const renderBody = () => {
     if (!activeProjectId) {
       return (
@@ -156,26 +175,14 @@ export const EditorWorkspace = () => {
 
     if (mode === "latex" && fileId) {
       return (
-        <Editor
-          language="latex"
+        <CodeMirror
           value={content}
+          height="100%"
+          extensions={editorExtensions}
           onChange={(value) => {
-            setContent(value ?? "")
+            setContent(value)
             setStatus("Unsaved changes")
           }}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            wordWrap: "on",
-            automaticLayout: true,
-          }}
-          theme="vs-light"
-          loading={
-            <div className="flex h-full items-center justify-center text-sm text-text-secondary">
-              Booting Monaco…
-            </div>
-          }
-          height="100%"
         />
       )
     }
