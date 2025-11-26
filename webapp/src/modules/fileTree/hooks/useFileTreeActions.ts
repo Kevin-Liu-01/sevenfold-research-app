@@ -109,11 +109,46 @@ const renameNodeInTree = (nodes: FileNode[], targetId: string, name: string): Fi
     return node
   })
 
+const findNodeById = (nodes: FileNode[], id: string): FileNode | null => {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    if (node.children?.length) {
+      const child = findNodeById(node.children, id)
+      if (child) return child
+    }
+  }
+  return null
+}
+
+const collectNodeAndDescendants = (node: FileNode | null): string[] => {
+  if (!node) return []
+  const ids: string[] = [node.id]
+  if (node.children?.length) {
+    for (const child of node.children) {
+      ids.push(...collectNodeAndDescendants(child))
+    }
+  }
+  return ids
+}
+
+const findNameById = (nodes: FileNode[], id: string): string | null => {
+  for (const node of nodes) {
+    if (node.id === id) return node.name
+    if (node.children?.length) {
+      const child = findNameById(node.children, id)
+      if (child) return child
+    }
+  }
+  return null
+}
+
 type UseFileTreeActionsParams = {
   activeProjectId?: string
   setTree: Dispatch<SetStateAction<FileNode[]>>
   setError: Dispatch<SetStateAction<string | null>>
   lastServerState: MutableRefObject<FileNode[] | null>
+  setPendingDeleteIds: Dispatch<SetStateAction<string[] | null>>
+  setDeleting: Dispatch<SetStateAction<boolean>>
 }
 
 export const useFileTreeActions = ({
@@ -121,6 +156,8 @@ export const useFileTreeActions = ({
   setTree,
   setError,
   lastServerState,
+  setPendingDeleteIds,
+  setDeleting,
 }: UseFileTreeActionsParams) => {
   const handleAddNode = useCallback(
     (node: FileNode) => {
@@ -202,9 +239,19 @@ export const useFileTreeActions = ({
   const handleDelete = useCallback(
     async ({ ids }: { ids: string[] }) => {
       if (!activeProjectId) return
+      const sourceTree = lastServerState.current
+      const idsToRemove = new Set<string>()
+
+      ids.forEach((id) => {
+        const node = sourceTree ? findNodeById(sourceTree, id) : null
+        const chain = node ? collectNodeAndDescendants(node) : [id]
+        chain.forEach((item) => idsToRemove.add(item))
+      })
+
       setTree((prev) => {
+        const removeList = Array.from(idsToRemove)
         let working = prev
-        ids.forEach((id) => {
+        removeList.forEach((id) => {
           const { tree: withoutNode } = removeNodeFromTree(working, id)
           working = withoutNode
         })
@@ -212,7 +259,10 @@ export const useFileTreeActions = ({
       })
 
       try {
-        for (const id of ids) {
+        // delete children before parents
+        const ordered = Array.from(idsToRemove)
+        ordered.reverse()
+        for (const id of ordered) {
           await filesApi.deleteFile(activeProjectId, id)
         }
         const fresh = await filesApi.fetchTree(activeProjectId)
@@ -281,6 +331,19 @@ export const useFileTreeActions = ({
     handleMove,
     handleRename,
     handleDelete,
+    confirmDelete: async (ids: string[]) => {
+      if (!ids?.length) return
+      const idsToDelete = [...ids]
+      setPendingDeleteIds(null) // close modal immediately
+      try {
+        setDeleting(true)
+        await handleDelete({ ids: idsToDelete })
+      } finally {
+        setDeleting(false)
+      }
+    },
+    getDeleteNames: (ids: string[], tree: FileNode[]) =>
+      ids.map((id) => findNameById(tree, id)).filter(Boolean) as string[],
     isDropDisabled,
   }
 }

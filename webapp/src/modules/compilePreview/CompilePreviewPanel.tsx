@@ -6,6 +6,7 @@ import { useAppStore } from "@/shared/state/appStore";
 
 export const CompilePreviewPanel = () => {
   const { activeProjectId, entryFile } = useAppStore();
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Ready to compile");
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +28,14 @@ export const CompilePreviewPanel = () => {
     setLoading(true);
     setError(null);
     setStatus("Compiling…");
-    setPdfUrl(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+    setPdfBlob(null);
     try {
       const blob = await compileApi.compileProjectAsset(activeProjectId, entryFile.id);
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setStatus("Compilation succeeded");
@@ -42,6 +48,19 @@ export const CompilePreviewPanel = () => {
     }
   }, [entryFile, activeProjectId]);
 
+  const handleDownload = useCallback(() => {
+    if (!pdfBlob) return;
+    const downloadUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    const inferredName = entryFile?.name?.replace(/\.tex$/i, ".pdf") ?? "compiled.pdf";
+    link.download = inferredName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+  }, [pdfBlob, entryFile]);
+
   return (
     <section className="flex min-h-[85vh] flex-shrink-0 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -49,13 +68,23 @@ export const CompilePreviewPanel = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">Compilation</p>
           <p className="text-base font-semibold text-text-primary">Tectonic · {entryLabel}</p>
         </div>
-        <Button
-          onClick={handleCompile}
-          disabled={!canCompile || loading}
-          className="rounded-full px-4 py-2 text-sm font-semibold shadow"
-        >
-          {loading ? "Compiling…" : "Compile"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleCompile}
+            disabled={!canCompile || loading}
+            className="rounded-full px-4 py-2 text-sm font-semibold shadow"
+          >
+            {loading ? "Compiling…" : "Compile"}
+          </Button>
+          <Button
+            onClick={handleDownload}
+            disabled={!pdfBlob || loading}
+            variant="outline"
+            className="rounded-full px-4 py-2 text-sm font-semibold"
+          >
+            Download PDF
+          </Button>
+        </div>
       </div>
       <div className="mt-4 flex-1 rounded-xl border border-dashed border-border-soft bg-surface-panel p-4 text-sm text-text-primary">
         {error ? (

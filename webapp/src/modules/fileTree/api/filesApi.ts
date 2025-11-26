@@ -19,6 +19,7 @@ export type CreateFileRequest = {
   assetType: "folder" | "file";
   mimeType: string;
   isInline: boolean;
+  content?: string;
 };
 
 export type UpdateFileRequest = {
@@ -74,8 +75,15 @@ export const filesApi = {
         asset_type: payload.assetType,
         mime_type: payload.mimeType,
         is_inline: payload.isInline,
+        content: payload.content ?? null,
       }),
     });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const detail = errorBody?.detail || "Failed to create file";
+      throw new Error(detail);
+    }
 
     const body = await response.json();
     const rawMetadata: RawFileNode | undefined = body?.file_metadata;
@@ -117,6 +125,12 @@ export const filesApi = {
         body: JSON.stringify({ status }),
       },
     );
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const detail = errorBody?.detail || "Failed to finalize upload";
+      throw new Error(detail);
+    }
 
     const rawMetadata: RawFileNode | undefined = await response.json();
     if (!rawMetadata) {

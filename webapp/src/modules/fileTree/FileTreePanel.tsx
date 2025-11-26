@@ -41,6 +41,8 @@ export const FileTreePanel = () => {
   const [showNewLatex, setShowNewLatex] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [treeHeight, setTreeHeight] = useState(0);
   const treeContainerRef = useRef<HTMLDivElement | null>(null);
   const lastServerState = useRef<FileNode[] | null>(null);
@@ -58,13 +60,16 @@ export const FileTreePanel = () => {
     handleAddNode,
     handleMove,
     handleRename,
-    handleDelete,
+    confirmDelete,
+    getDeleteNames,
     isDropDisabled,
   } = useFileTreeActions({
     activeProjectId,
     setTree,
     setError,
     lastServerState,
+    setPendingDeleteIds,
+    setDeleting,
   });
 
   useEffect(() => {
@@ -142,7 +147,6 @@ export const FileTreePanel = () => {
       const target = nodes[nodes.length - 1] ?? null;
 
       if (!target) {
-        setActiveFile(null);
         return;
       }
 
@@ -164,6 +168,18 @@ export const FileTreePanel = () => {
     },
     [setActiveFile],
   );
+
+  const requestDelete = useCallback(
+    ({ ids }: { ids: string[] }) => {
+      if (!ids?.length) return
+      setPendingDeleteIds(ids)
+    },
+    [],
+  )
+
+  const cancelDelete = () => {
+    setPendingDeleteIds(null)
+  }
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4 text-sm">
@@ -237,7 +253,7 @@ export const FileTreePanel = () => {
                 onSelect={handleSelect}
                 disableDrop={isDropDisabled}
                 onRename={handleRename}
-                onDelete={handleDelete}
+                onDelete={requestDelete}
               >
                 {FileTreeNodeRow}
               </Tree>
@@ -251,9 +267,16 @@ export const FileTreePanel = () => {
         showNewLatex={showNewLatex}
         showNewFolder={showNewFolder}
         showUpload={showUpload}
+        showDelete={Boolean(pendingDeleteIds?.length)}
+        pendingDeleteIds={pendingDeleteIds ?? []}
+        fileTree={tree}
+        deleting={deleting}
+        getDeleteNames={getDeleteNames}
         onCloseNewLatex={() => setShowNewLatex(false)}
         onCloseNewFolder={() => setShowNewFolder(false)}
         onCloseUpload={() => setShowUpload(false)}
+        onCancelDelete={cancelDelete}
+        onConfirmDelete={confirmDelete}
         onAddNode={handleAddNode}
         onRefreshTree={refreshTree}
         onError={(message) => setError(message)}

@@ -71,7 +71,7 @@ export const EditorWorkspace = () => {
   const editorExtensions = useMemo(
     () => [
       latex({
-        enableLinting: true,
+        enableLinting: false,
         enableAutocomplete: true,
         autoCloseTags: true,
         autoCloseBrackets: false,

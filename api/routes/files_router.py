@@ -17,7 +17,10 @@ from dto.files_types import (
 )
 
 from utils.files_utils import (
-    build_file_tree
+    build_file_tree,
+    ensure_content_update_allowed,
+    is_latex_mime,
+    validate_new_file_payload,
 )
 
 from utils.auth import ( 
@@ -28,6 +31,7 @@ from utils.auth import (
 
 import logging
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -70,9 +74,16 @@ async def create_file(
     # authenticate and authorize
     user_id = get_user_id(authorization)
     verify_project_access(user_id, project_id)
+
+    parent_record = None
+    if payload.parent_id:
+        verify_file_access(project_id, payload.parent_id)
+        parent_record = files_service.get_file_record(payload.parent_id)
+
+    validate_new_file_payload(payload, parent_record)
     
     requires_upload = not payload.is_inline and payload.asset_type != "folder"
-    initial_status = "pending" if requires_upload else "done"
+    initial_status = "done" if is_latex_mime(payload.mime_type) else ("pending" if requires_upload else "done")
 
     file_create_request = FileCreate(
         project_id=project_id,
@@ -205,6 +216,9 @@ async def update_upload_status(
     file_record = files_service.get_file_record(file_id)
     current_status = file_record.upload_status or "pending"
 
+    if is_latex_mime(file_record.mime_type):
+        raise HTTPException(status_code=400, detail="Upload status is not applicable for LaTeX files")
+
     if current_status != "pending":
         raise HTTPException(status_code=400, detail="Upload status is already finalized")
 
@@ -241,7 +255,6 @@ async def update_file_content(
 
     file_record = files_service.get_file_record(file_id)
 
-    if file_record.is_inline is False:
-        raise HTTPException(status_code=400, detail="Cannot update content of non-inline file")
+    ensure_content_update_allowed(file_record, payload.content)
 
     files_service.update_file_record(file_id, {"content": payload.content})

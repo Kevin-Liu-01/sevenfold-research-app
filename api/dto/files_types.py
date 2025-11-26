@@ -12,12 +12,12 @@ class FileCreate(BaseModel):
     parent_id: Optional[UUID]
     name: str
     upload_status: Optional[Literal["pending", "done", "failed"]] = None
+    content: Optional[str]
 
 
 class FileRecord(FileCreate):
     """Pydantic model representing a file record."""
 
-    content: Optional[str]
     id: UUID
 
 
@@ -29,6 +29,7 @@ class CreateFilePayload(BaseModel):
     asset_type: Literal["folder", "file"]
     mime_type: str
     is_inline: bool
+    content: Optional[str] = None
 
 class CreateFileResponse(BaseModel):
     """Response payload for file creation including upload URL if applicable."""
