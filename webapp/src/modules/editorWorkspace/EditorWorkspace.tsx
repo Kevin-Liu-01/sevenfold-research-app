@@ -1,7 +1,8 @@
 import CodeMirror from "@uiw/react-codemirror"
 import { latex } from "codemirror-lang-latex"
 import { EditorView } from "@codemirror/view"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useDebouncedCallback } from "use-debounce"
 
 import { editorApi } from "@/modules/editorWorkspace/api/editorApi"
 import { Button } from "@/shared/components/ui/button"
@@ -123,6 +124,17 @@ export const EditorWorkspace = () => {
     }
   }, [activeProjectId, content, fileId, hasUnsavedChanges, mode])
 
+  const debouncedSave = useDebouncedCallback(() => {
+    handleSave()
+  }, 1000)
+
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      debouncedSave()
+    }
+    return () => debouncedSave.cancel()
+  }, [content, debouncedSave, hasUnsavedChanges])
+
   const statusTone = useMemo(() => {
     if (errorMessage) return "text-red-600"
     if (saving) return "text-text-primary"
@@ -151,7 +163,7 @@ export const EditorWorkspace = () => {
   const renderBody = () => {
     if (!activeProjectId) {
       return (
-        <div className="flex h-full items-center justify-center px-4 text-center text-sm text-text-secondary">
+        <div className="flex h-full w-full flex-1 items-center justify-center px-4 text-center text-sm text-text-secondary">
           Select a project to load its files.
         </div>
       )
@@ -159,7 +171,7 @@ export const EditorWorkspace = () => {
 
     if (!activeFile) {
       return (
-        <div className="flex h-full items-center justify-center px-4 text-center text-sm text-text-secondary">
+        <div className="flex h-full w-full flex-1 items-center justify-center px-4 text-center text-sm text-text-secondary">
           Select a file from the File Tree to begin.
         </div>
       )
@@ -167,7 +179,7 @@ export const EditorWorkspace = () => {
 
     if (loading) {
       return (
-        <div className="flex h-full items-center justify-center text-sm text-text-secondary">
+        <div className="flex h-full w-full flex-1 items-center justify-center text-sm text-text-secondary">
           Loading file…
         </div>
       )
@@ -175,21 +187,24 @@ export const EditorWorkspace = () => {
 
     if (mode === "latex" && fileId) {
       return (
-        <CodeMirror
-          value={content}
-          height="100%"
-          extensions={editorExtensions}
-          onChange={(value) => {
-            setContent(value)
-            setStatus("Unsaved changes")
-          }}
-        />
+        <div className="flex h-full w-full flex-1">
+          <CodeMirror
+            value={content}
+            extensions={editorExtensions}
+            height="100%"
+            style={{ height: "100%", width: "100%" }}
+            onChange={(value) => {
+              setContent(value)
+              setStatus("Unsaved changes")
+            }}
+          />
+        </div>
       )
     }
 
     if (mode === "image" && previewUrl) {
       return (
-        <div className="flex h-full items-center justify-center">
+        <div className="flex h-full w-full flex-1 items-center justify-center">
           <img
             src={previewUrl}
             alt={fileName}
@@ -201,7 +216,7 @@ export const EditorWorkspace = () => {
 
     if (mode === "binary" && previewUrl) {
       return (
-        <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-sm text-text-secondary">
+        <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-3 px-4 text-center text-sm text-text-secondary">
           <p>This file type is not previewable. Download to view it locally.</p>
           <Button asChild size="sm">
             <a href={previewUrl} target="_blank" rel="noreferrer">
@@ -213,7 +228,7 @@ export const EditorWorkspace = () => {
     }
 
     return (
-      <div className="flex h-full items-center justify-center px-4 text-center text-sm text-text-secondary">
+      <div className="flex h-full w-full flex-1 items-center justify-center px-4 text-center text-sm text-text-secondary">
         {mode === "unsupported"
           ? "Choose an inline .tex file or an image to preview it here."
           : "Select a LaTeX file to view its contents."}
@@ -242,7 +257,7 @@ export const EditorWorkspace = () => {
           </Button>
         </div>
       </header>
-      <div className="mt-4 flex-1 min-h-0 rounded-xl border border-border-soft bg-surface-panel">
+      <div className="mt-4 flex-1 min-h-0 rounded-xl border border-border-soft bg-surface-panel p-4 text-sm text-text-primary flex">
         {renderBody()}
       </div>
     </section>
