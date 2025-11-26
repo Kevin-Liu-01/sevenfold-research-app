@@ -27,6 +27,11 @@ export interface ActiveFile {
   isInline?: boolean;
 }
 
+export interface EntryFile {
+  id: string;
+  name: string;
+}
+
 export interface LibraryDocument {
   id: string;
   project_id: string;

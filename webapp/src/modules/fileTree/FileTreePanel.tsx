@@ -25,8 +25,16 @@ const isImageFile = (file: FileNode) => {
   return mime.startsWith("image/") || /\.(png|jpe?g|gif|svg|bmp|webp)$/i.test(name);
 };
 
+const findEntryFile = (files: FileNode[]): Pick<FileNode, "id" | "name"> | null => {
+  const main = files.find(
+    (file) =>
+      file.assetType === "file" && file.name.toLowerCase() === "main.tex",
+  )
+  return main ? { id: main.id, name: main.name } : null
+}
+
 export const FileTreePanel = () => {
-  const { activeProjectId, setActiveFile } = useAppStore();
+  const { activeProjectId, setActiveFile, setEntryFile } = useAppStore();
   const [tree, setTree] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +100,10 @@ export const FileTreePanel = () => {
       cancelled = true;
     };
   }, [activeProjectId, setActiveFile]);
+
+  useEffect(() => {
+    setEntryFile(findEntryFile(tree));
+  }, [tree, setEntryFile]);
 
   useEffect(() => {
     const container = treeContainerRef.current;

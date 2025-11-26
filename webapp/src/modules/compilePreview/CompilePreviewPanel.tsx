@@ -5,27 +5,31 @@ import { Button } from "@/shared/components/ui/button";
 import { useAppStore } from "@/shared/state/appStore";
 
 export const CompilePreviewPanel = () => {
-  const { activeProjectId, activeFile } = useAppStore();
+  const { activeProjectId, entryFile } = useAppStore();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Ready to compile");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const entryLabel = useMemo(() => {
-    if (!activeFile) return "No entry file selected";
-    return `Entry file: ${activeFile.name}`;
-  }, [activeFile]);
+    if (!entryFile) return "Entry file: main.tex not found";
+    return `Entry file: ${entryFile.name}`;
+  }, [entryFile]);
 
-  const canCompile = !!activeProjectId && !!activeFile;
+  const canCompile = !!activeProjectId && !!entryFile;
 
   const handleCompile = useCallback(async () => {
-    if (!activeProjectId || !activeFile) return;
+    if (!activeProjectId || !entryFile) {
+      setError("main.tex is missing in this project.");
+      setStatus("main.tex not found");
+      return;
+    }
     setLoading(true);
     setError(null);
     setStatus("Compiling…");
     setPdfUrl(null);
     try {
-      const blob = await compileApi.compileProjectAsset(activeProjectId, activeFile.id);
+      const blob = await compileApi.compileProjectAsset(activeProjectId, entryFile.id);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setStatus("Compilation succeeded");
@@ -36,7 +40,7 @@ export const CompilePreviewPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeFile, activeProjectId]);
+  }, [entryFile, activeProjectId]);
 
   return (
     <section className="flex min-h-[85vh] flex-shrink-0 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4">
