@@ -1,10 +1,11 @@
 import CodeMirror from "@uiw/react-codemirror"
 import { latex } from "codemirror-lang-latex"
 import { EditorView } from "@codemirror/view"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useDebouncedCallback } from "use-debounce"
+import { useCallback, useMemo, useState } from "react"
 
 import { editorApi } from "@/modules/editorWorkspace/api/editorApi"
+import { useEditorFile } from "@/modules/editorWorkspace/hooks/useEditorFile"
+import { useAutoSave } from "@/modules/editorWorkspace/hooks/useAutoSave"
 import { Button } from "@/shared/components/ui/button"
 import { useAppStore } from "@/shared/state/appStore"
 
@@ -17,94 +18,28 @@ const isInlineLatex = (mimeType: string | undefined, name: string, isInline?: bo
 
 export const EditorWorkspace = () => {
   const { activeProjectId, activeFile } = useAppStore()
-  const [fileId, setFileId] = useState<string | null>(null)
-  const [fileName, setFileName] = useState("Select a file")
-  const [content, setContent] = useState("")
-  const [initialContent, setInitialContent] = useState("")
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [mode, setMode] = useState<"idle" | "latex" | "image" | "binary" | "unsupported">("idle")
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [status, setStatus] = useState("Select a project to start writing")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const latexCapable =
+    !!activeFile && isInlineLatex(activeFile.mimeType, activeFile.name, activeFile.isInline)
 
-  const latexCapable = !!(
-    activeFile &&
-    isInlineLatex(activeFile.mimeType, activeFile.name, activeFile.isInline)
-  )
+  const {
+    fileId,
+    fileName,
+    content,
+    setContent,
+    initialContent,
+    setInitialContent,
+    previewUrl,
+    mode,
+    loading,
+    status,
+    setStatus,
+    errorMessage,
+    setErrorMessage,
+  } = useEditorFile(activeProjectId, activeFile, latexCapable)
+
+  const [saving, setSaving] = useState(false)
 
   const hasUnsavedChanges = mode === "latex" && content !== initialContent
-
-  const resetState = useCallback((message: string) => {
-    setFileId(null)
-    setContent("")
-    setInitialContent("")
-    setPreviewUrl(null)
-    setMode("idle")
-    setStatus(message)
-  }, [])
-
-  useEffect(() => {
-    if (!activeProjectId) {
-      resetState("Select a project to start writing")
-      setFileName("Select a file")
-      return
-    }
-
-    if (!activeFile) {
-      resetState("Select a file from the tree to begin editing")
-      setFileName("Select a file")
-      return
-    }
-
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      setStatus("Loading file…")
-      setErrorMessage(null)
-      setPreviewUrl(null)
-      setContent("")
-      setInitialContent("")
-      try {
-        const file = await editorApi.fetchActiveFile(activeProjectId, activeFile.id)
-        if (cancelled) return
-        setFileId(file.id)
-        setFileName(file.name)
-        if (file.isInline && latexCapable) {
-          setContent(file.content)
-          setInitialContent(file.content)
-          setMode("latex")
-          setStatus("Loaded manuscript")
-        } else if (!file.isInline && file.mimeType?.startsWith("image/") && file.downloadUrl) {
-          setPreviewUrl(file.downloadUrl)
-          setMode("image")
-          setStatus("Image preview ready")
-        } else if (!file.isInline && file.downloadUrl) {
-          setPreviewUrl(file.downloadUrl)
-          setMode("binary")
-          setStatus("Download to view this file type")
-        } else {
-          setMode("unsupported")
-          setStatus("File type not supported for preview")
-        }
-      } catch (err) {
-        if (cancelled) return
-        const message = err instanceof Error ? err.message : "Failed to load file"
-        setErrorMessage(message)
-        setStatus(message)
-        setMode("unsupported")
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [activeProjectId, activeFile, latexCapable, resetState])
 
   const handleSave = useCallback(async () => {
     if (!activeProjectId || !fileId || !hasUnsavedChanges || mode !== "latex") return
@@ -124,16 +59,7 @@ export const EditorWorkspace = () => {
     }
   }, [activeProjectId, content, fileId, hasUnsavedChanges, mode])
 
-  const debouncedSave = useDebouncedCallback(() => {
-    handleSave()
-  }, 1000)
-
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      debouncedSave()
-    }
-    return () => debouncedSave.cancel()
-  }, [content, debouncedSave, hasUnsavedChanges])
+  useAutoSave(handleSave, hasUnsavedChanges, [content])
 
   const statusTone = useMemo(() => {
     if (errorMessage) return "text-red-600"
@@ -145,10 +71,10 @@ export const EditorWorkspace = () => {
   const editorExtensions = useMemo(
     () => [
       latex({
-        autoCloseTags: true,
-        autoCloseBrackets: true,
+        enableLinting: true,
         enableAutocomplete: true,
-        enableTooltips: true,
+        autoCloseTags: true,
+        autoCloseBrackets: false,
       }),
       EditorView.lineWrapping,
       EditorView.theme({
@@ -190,6 +116,7 @@ export const EditorWorkspace = () => {
         <div className="flex h-full w-full flex-1">
           <CodeMirror
             value={content}
+            basicSetup={{closeBrackets: false}}
             extensions={editorExtensions}
             height="100%"
             style={{ height: "100%", width: "100%" }}
