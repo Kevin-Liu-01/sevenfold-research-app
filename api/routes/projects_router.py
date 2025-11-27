@@ -19,9 +19,13 @@ from utils.auth import (
     get_user_id,
     verify_project_access
 )
+from db.vector_store_service import VectorStoreService
 
 router = APIRouter(prefix="/api", tags=["Projects"])
-library_service = LibraryService(supabase)
+
+# Initialize services with vector store support
+vector_store_service = VectorStoreService()
+library_service = LibraryService(supabase, vector_store_service=vector_store_service)
 
 
 @router.get(

@@ -8,8 +8,8 @@ export const AgentsPanel = () => {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-lg font-semibold text-white">AI Workspace</p>
+      <div className="flex items-center justify-between flex-shrink-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Agents</p>
         <PaneToggleGroup
           value={rightPaneView}
           onChange={setRightPaneView}

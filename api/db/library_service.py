@@ -6,12 +6,19 @@ from fastapi import HTTPException
 
 from db.supabase import supabase
 from dto.library_types import LibraryDocument
+from db.vector_store_service import VectorStoreService
 
 
 class LibraryService:
-    def __init__(self, supabase_client, storage_bucket: str = "project_library"):
+    def __init__(
+        self,
+        supabase_client,
+        storage_bucket: str = "project_library",
+        vector_store_service: Optional[VectorStoreService] = None,
+    ):
         self.supabase = supabase_client
         self.storage_bucket = storage_bucket
+        self.vector_store_service = vector_store_service
 
     # ------------------------------------------------------------------------------
     # Public helpers
@@ -82,11 +89,55 @@ class LibraryService:
             raise HTTPException(status_code=500, detail=detail)
 
         record = insert_response.data[0]
+        document_id = UUID(record["id"])
+
+        # Upload to OpenAI Vector Store asynchronously (don't block the response)
+        if self.vector_store_service:
+            try:
+                import asyncio
+
+                # Schedule the upload as a background task
+                # Note: In production, use a proper task queue (Celery, etc.)
+                asyncio.create_task(
+                    self._upload_to_openai_async(
+                        document_id, project_id, upload_bytes, safe_name
+                    )
+                )
+            except Exception as e:
+                # Log error but don't fail the upload
+                print(f"Warning: Failed to schedule OpenAI upload: {e}")
+
         download_url = self._generate_signed_url(
             record["storage_path"], record["original_filename"]
         )
 
         return LibraryDocument(**{**record, "download_url": download_url})
+
+    async def _upload_to_openai_async(
+        self,
+        document_id: UUID,
+        project_id: UUID,
+        upload_bytes: bytes,
+        filename: str,
+    ) -> None:
+        """Background task to upload document to OpenAI."""
+        try:
+            await self.vector_store_service.upload_and_add_file(
+                document_id=document_id,
+                project_id=project_id,
+                file_bytes=upload_bytes,
+                filename=filename,
+            )
+            # Update status to completed after successful upload
+            await self.vector_store_service.update_file_status(
+                document_id, "completed"
+            )
+        except Exception as e:
+            # Update status to failed
+            await self.vector_store_service.update_file_status(
+                document_id, "failed", error_message=str(e)
+            )
+            print(f"Error uploading document {document_id} to OpenAI: {e}")
 
     # ------------------------------------------------------------------------------
     # Internal helpers
