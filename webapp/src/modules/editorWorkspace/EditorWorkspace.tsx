@@ -113,7 +113,7 @@ export const EditorWorkspace = () => {
 
     if (mode === "latex" && fileId) {
       return (
-        <div className="flex h-full w-full flex-1">
+        <div className="flex h-full w-full flex-1 overflow-auto">
           <CodeMirror
             value={content}
             basicSetup={{closeBrackets: false}}
@@ -164,7 +164,7 @@ export const EditorWorkspace = () => {
   }
 
   return (
-    <section className="flex min-h-[85vh] flex-shrink-0 flex-col rounded-2xl border border-border-soft bg-surface-contrast p-4 overflow-hidden">
+    <section className="flex max-h-[85vh] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border-soft bg-surface-contrast p-4">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border-soft pb-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">
@@ -184,7 +184,7 @@ export const EditorWorkspace = () => {
           </Button>
         </div>
       </header>
-      <div className="mt-4 flex-1 min-h-0 rounded-xl border border-border-soft bg-surface-panel p-4 text-sm text-text-primary flex">
+      <div className="mt-4 flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border-soft bg-surface-panel p-4 text-sm text-text-primary">
         {renderBody()}
       </div>
     </section>
